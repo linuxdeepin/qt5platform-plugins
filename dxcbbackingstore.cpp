@@ -436,15 +436,19 @@ void DXcbBackingStore::paintWindowShadow()
     if (cornerShadowPixmap.size() == QSize(0, 0))
         return;
 
-    QPainterPathStroker pathStroker;
+    QTransform transform = pa.transform();
+    const QRectF &clipRect = clipPath.boundingRect();
 
-    pathStroker.setWidth(-2);
+    transform.scale((clipRect.width() - 4) / clipRect.width(),
+                    (clipRect.height() - 4) / clipRect.height());
+    transform.translate(2, 2);
 
     pa.begin(&cornerShadowPixmap);
     pa.setCompositionMode(QPainter::CompositionMode_Source);
     pa.drawImage(QPoint(0, 0), shadowImage, QRect(windowOffset(), m_image.size()));
     pa.setCompositionMode(QPainter::CompositionMode_Clear);
-    pa.fillPath(pathStroker.createStroke(windowClipPath), Qt::transparent);
+    pa.setTransform(transform);
+    pa.fillPath(clipPath, Qt::transparent);
     pa.end();
     /// end
 
