@@ -8,8 +8,8 @@ PLUGIN_TYPE = platforms
 PLUGIN_CLASS_NAME = DXcbIntegrationPlugin
 !equals(TARGET, $$QT_DEFAULT_QPA_PLUGIN): PLUGIN_EXTENDS = -
 
-Qt       += opengl
-QT       += core-private gui-private platformsupport-private
+QT       += opengl x11extras
+QT       += core-private gui-private platformsupport-private xcb_qpa_lib-private
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets widgets-private
 
 TARGET = dxcb
@@ -39,8 +39,6 @@ unix {
     target.path = $$[QT_INSTALL_PLUGINS]/platforms
     INSTALLS += target
 }
-
-include($$PWD/xcb/libqt5xcbqpa.pri)
 
 INCLUDEPATH += $$PWD/xcb
 
