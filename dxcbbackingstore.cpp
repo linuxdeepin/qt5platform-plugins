@@ -12,9 +12,12 @@
 #include <QOpenGLContext>
 #include <QOpenGLFunctions>
 #include <QPainterPathStroker>
+#include <QGuiApplication>
 
 #include <private/qwidgetwindow_p.h>
 #include <qpa/qplatformgraphicsbuffer.h>
+#include <qpa/qplatformscreen.h>
+#include <qpa/qplatformcursor.h>
 
 #define MOUSE_MARGINS 10
 
@@ -75,29 +78,85 @@ protected:
                 setLeftButtonPressed(false);
             }
 
-            e->l -= m_store->windowOffset();
-            e->w -= m_store->windowOffset();
-
-            if (!window_geometry.contains(e->globalPos())) {
+            if (!m_store->windowClipPath.contains(e->windowPos())) {
                 if (event->type() == QEvent::MouseMove) {
-//                    const QMargins &mouseMargins = QMargins(MOUSE_MARGINS, MOUSE_MARGINS, MOUSE_MARGINS, MOUSE_MARGINS);
-//                    const QList<QRect> &list = Utility::sudokuByRect(window_geometry + mouseMargins, mouseMargins);
+                    Utility::CornerEdge mouseCorner;
+                    QRect cornerRect;
+                    const QRect window_real_geometry = window_geometry
+                            + QMargins(MOUSE_MARGINS, MOUSE_MARGINS, MOUSE_MARGINS, MOUSE_MARGINS);
 
-//                    Qt::Corner mouseCorner;
+                    cornerRect.setSize(QSize(MOUSE_MARGINS * 2, MOUSE_MARGINS * 2));
+                    cornerRect.moveTopLeft(window_real_geometry.topLeft());
 
-//                    if (e->globalX() <= window_geometry.x()) {
-//                        if (e->globalY() <= window_geometry.y()) {
+                    if (cornerRect.contains(e->globalPos())) {
+                        mouseCorner = Utility::TopLeftCorner;
 
-//                        }
-//                    }
+                        qApp->setOverrideCursor(Qt::SizeFDiagCursor);
 
+                        goto set_cursor;
+                    }
+
+                    cornerRect.moveTopRight(window_real_geometry.topRight());
+
+                    if (cornerRect.contains(e->globalPos())) {
+                        mouseCorner = Utility::TopRightCorner;
+
+                        qApp->setOverrideCursor(Qt::SizeBDiagCursor);
+
+                        goto set_cursor;
+                    }
+
+                    cornerRect.moveBottomRight(window_real_geometry.bottomRight());
+
+                    if (cornerRect.contains(e->globalPos())) {
+                        mouseCorner = Utility::BottomRightCorner;
+
+                        qApp->setOverrideCursor(Qt::SizeFDiagCursor);
+
+                        goto set_cursor;
+                    }
+
+                    cornerRect.moveBottomLeft(window_real_geometry.bottomLeft());
+
+                    if (cornerRect.contains(e->globalPos())) {
+                        mouseCorner = Utility::BottomLeftCorner;
+
+                        qApp->setOverrideCursor(Qt::SizeBDiagCursor);
+
+                        goto set_cursor;
+                    }
+
+                    if (e->globalX() <= window_geometry.x()) {
+                        mouseCorner = Utility::LeftEdge;
+
+                        qApp->setOverrideCursor(Qt::SizeHorCursor);
+                    } else if (e->globalX() < window_geometry.right()) {
+                        if (e->globalY() <= window_geometry.y()) {
+                            mouseCorner = Utility::TopEdge;
+                        } else {
+                            mouseCorner = Utility::BottomEdge;
+
+                        }
+
+                        qApp->setOverrideCursor(Qt::SizeVerCursor);
+                    } else {
+                        mouseCorner = Utility::RightEdge;
+
+                        qApp->setOverrideCursor(Qt::SizeHorCursor);
+                    }
+set_cursor:
                     if (leftButtonPressed) {
-                        Utility::startWindowSystemResize(window->winId(), Utility::RightEdge, e->globalPos());
+                        Utility::startWindowSystemResize(window->winId(), mouseCorner, e->globalPos());
                     }
                 }
 
                 return true;
+            } else {
+                qApp->setOverrideCursor(window->cursor());
             }
+
+            e->l -= m_store->windowOffset();
+            e->w -= m_store->windowOffset();
 
             break;
         }
@@ -153,6 +212,43 @@ private:
             } else {
                 VtableHook::resetVfptrFun(static_cast<DQWindow*>(window), &DQWindow::mouseMoveEvent);
             }
+        }
+    }
+
+    void adsorbCursor(Utility::CornerEdge cornerEdge, const QRect &geometry, QPoint cursorPos = QPoint())
+    {
+        if (cursorPos.isNull())
+            cursorPos = QCursor::pos();
+
+        QPoint toPos = cursorPos;
+
+        switch (cornerEdge) {
+        case Utility::TopLeftCorner:
+            toPos = geometry.topLeft();
+            break;
+        case Utility::TopEdge:
+            toPos.setY(geometry.y());
+            break;
+        case Utility::TopRightCorner:
+            toPos = geometry.topRight();
+            break;
+        case Utility::RightEdge:
+            toPos.setX(geometry.right());
+            break;
+        case Utility::BottomRightCorner:
+            toPos = geometry.bottomRight();
+            break;
+        case Utility::BottomEdge:
+            toPos.setY(geometry.bottom());
+            break;
+        case Utility::BottomLeftCorner:
+            toPos = geometry.bottomLeft();
+            break;
+        case Utility::LeftEdge:
+            toPos.setX(geometry.x());
+            break;
+        default:
+            break;
         }
     }
 

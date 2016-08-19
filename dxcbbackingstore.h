@@ -86,6 +86,6 @@ private:
     friend class WindowEventListener;
 };
 
-Q_DECLARE_METATYPE(QPainterPath);
+Q_DECLARE_METATYPE(QPainterPath)
 
 #endif // DXCBBACKINGSTORE_H
