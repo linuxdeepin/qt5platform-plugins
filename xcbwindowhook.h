@@ -30,7 +30,7 @@ public:
 
     void setMask(const QRegion &region);
 
-    bool startSystemResize(const QPoint &pos, Qt::Corner corner);
+//    bool startSystemResize(const QPoint &pos, Qt::Corner corner);
 
     void propagateSizeHints();
 

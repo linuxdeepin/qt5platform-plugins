@@ -5,15 +5,18 @@
 #include <QCursor>
 #include <QDebug>
 #include <QtX11Extras/QX11Info>
+#include <QWindow>
 
 #include <X11/Xatom.h>
 #include <X11/Xlib.h>
 #include <X11/extensions/shape.h>
 
+#include <xcb/xproto.h>
+
 #define _NET_WM_MOVERESIZE_MOVE              8   /* movement only */
 #define _NET_WM_MOVERESIZE_CANCEL           11   /* cancel operation */
 
-const char kAtomNameMoveResize[] = "_NET_WM_MOVERESIZE";
+#define XATOM_MOVE_RESIZE "_NET_WM_MOVERESIZE"
 
 QT_BEGIN_NAMESPACE
 //extern Q_WIDGETS_EXPORT void qt_blurImage(QImage &blurImage, qreal radius, bool quality, int transposed = 0);
@@ -53,7 +56,7 @@ QImage Utility::dropShadow(const QPixmap &px, qreal radius, const QColor &color)
     return tmp;
 }
 
-static QList<QRect> sudokuByRect(const QRect &rect, QMargins borders)
+QList<QRect> Utility::sudokuByRect(const QRect &rect, QMargins borders)
 {
     QList<QRect> list;
 
@@ -106,65 +109,78 @@ QImage Utility::borderImage(const QPixmap &px, const QMargins &borders,
     return image;
 }
 
+xcb_atom_t internAtom(const char *name)
+{
+    if (!name || *name == 0)
+        return XCB_NONE;
+
+    xcb_intern_atom_cookie_t cookie = xcb_intern_atom(QX11Info::connection(), false, strlen(name), name);
+    xcb_intern_atom_reply_t *reply = xcb_intern_atom_reply(QX11Info::connection(), cookie, 0);
+    int atom = reply->atom;
+    free(reply);
+    return atom;
+}
+
 void Utility::moveWindow(uint WId)
 {
-    sendMoveResizeMessage(WId, Qt::LeftButton, _NET_WM_MOVERESIZE_MOVE);
+    sendMoveResizeMessage(WId, _NET_WM_MOVERESIZE_MOVE);
 }
 
 void Utility::cancelMoveWindow(uint WId)
 {
-    sendMoveResizeMessage(WId, Qt::LeftButton, _NET_WM_MOVERESIZE_CANCEL);
+    sendMoveResizeMessage(WId, _NET_WM_MOVERESIZE_CANCEL);
 }
 
-void Utility::sendMoveResizeMessage(uint WId, Qt::MouseButton qbutton, int action)
+void Utility::sendMoveResizeMessage(uint WId, uint32_t action, QPoint globalPos, Qt::MouseButton qbutton)
 {
-    const auto display = QX11Info::display();
-    const auto screen = QX11Info::appScreen();
+    int xbtn = qbutton == Qt::LeftButton ? XCB_BUTTON_INDEX_1 :
+               qbutton == Qt::RightButton ? XCB_BUTTON_INDEX_3 :
+               XCB_BUTTON_INDEX_ANY;
 
-    int xbtn = qbutton == Qt::LeftButton ? Button1 :
-               qbutton == Qt::RightButton ? Button3 :
-               AnyButton;
+    if (globalPos.isNull())
+        globalPos = QCursor::pos();
 
-    XEvent xev;
-    memset(&xev, 0, sizeof(xev));
-    const Atom net_move_resize = XInternAtom(display, kAtomNameMoveResize, false);
-    xev.xclient.type = ClientMessage;
-    xev.xclient.message_type = net_move_resize;
-    xev.xclient.display = display;
-    xev.xclient.window = WId;
-    xev.xclient.format = 32;
+    xcb_client_message_event_t xev;
 
-    const auto global_position = QCursor::pos();
-    xev.xclient.data.l[0] = global_position.x();
-    xev.xclient.data.l[1] = global_position.y();
-    xev.xclient.data.l[2] = action;
-    xev.xclient.data.l[3] = xbtn;
-    xev.xclient.data.l[4] = 0;
-    XUngrabPointer(display, QX11Info::appTime());
+    xev.response_type = XCB_CLIENT_MESSAGE;
+    xev.type = internAtom(XATOM_MOVE_RESIZE);
+    xev.window = WId;
+    xev.format = 32;
+    xev.data.data32[0] = globalPos.x();
+    xev.data.data32[1] = globalPos.y();
+    xev.data.data32[2] = action;
+    xev.data.data32[3] = xbtn;
+    xev.data.data32[4] = 0;
 
-    XSendEvent(display,
-               QX11Info::appRootWindow(screen),
-               false,
-               SubstructureRedirectMask | SubstructureNotifyMask,
-               &xev);
-
-    XFlush(display);
+    xcb_ungrab_pointer(QX11Info::connection(), QX11Info::appTime());
+    xcb_send_event(QX11Info::connection(), false, QX11Info::appRootWindow(QX11Info::appScreen()),
+                   XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT | XCB_EVENT_MASK_SUBSTRUCTURE_NOTIFY,
+                   (const char *)&xev);
+    xcb_flush(QX11Info::connection());
 }
 
 void Utility::setWindowExtents(uint WId, const QSize &winSize, const QMargins &margins, const int resizeHandleWidth)
 {
     Atom frameExtents;
+
     unsigned long value[4] = {
         (unsigned long)(margins.left()),
         (unsigned long)(margins.right()),
         (unsigned long)(margins.top()),
         (unsigned long)(margins.bottom())
     };
-    frameExtents = XInternAtom(QX11Info::display(), "_GTK_FRAME_EXTENTS", False);
+
+    frameExtents = XInternAtom(QX11Info::display(), "_GTK_FRAME_EXTENTS", false);
+
     if (frameExtents == None) {
         qWarning() << "Failed to create atom with name DEEPIN_WINDOW_SHADOW";
         return;
     }
+
+//    xcb_intern_atom(QX11Info::display())
+
+//    xcb_change_property(QX11Info::connection(), PropModeReplace, WId, frameExtents, XA_CARDINAL, 32, 4, value);
+
     XChangeProperty(QX11Info::display(),
                     WId,
                     frameExtents,
@@ -189,4 +205,9 @@ void Utility::setWindowExtents(uint WId, const QSize &winSize, const QMargins &m
                             margins.left() - resizeHandleWidth,
                             margins.top() - resizeHandleWidth,
                             &contentXRect, 1, ShapeSet, YXBanded);
+}
+
+void Utility::startWindowSystemResize(uint WId, CornerEdge cornerEdge, const QPoint &globalPos)
+{
+    sendMoveResizeMessage(WId, cornerEdge, globalPos);
 }

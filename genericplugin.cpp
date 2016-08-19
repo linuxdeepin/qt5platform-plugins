@@ -32,21 +32,13 @@ QPlatformWindow *GenericPlugin::createPlatformWindow(QWindow *window) const
         }
 //    }
 
-    window->setFlags(Qt::Window | Qt::FramelessWindowHint);
-
     QPlatformWindow *w = QXcbIntegration::createPlatformWindow(window);
 
     w->setWindowFlags(Qt::FramelessWindowHint);
 
     if (window->type() != Qt::Desktop) {
-        QXcbWindow *xw = dynamic_cast<QXcbWindow*>(w);
-
-        if (xw && window->metaObject()->className() == QStringLiteral("QWidgetWindow")) {
-            QWidgetWindow *widget_window = static_cast<QWidgetWindow*>(window);
-
-//            if (widget_window->widget()->property("enableDxcb").toBool())
-                new XcbWindowHook(xw);
-        }
+        //            if (widget_window->widget()->property("enableDxcb").toBool())
+                        new XcbWindowHook(dynamic_cast<QXcbWindow*>(w));
     }
 
     return w;
@@ -63,10 +55,8 @@ QPlatformBackingStore *GenericPlugin::createPlatformBackingStore(QWindow *window
 
     QPlatformBackingStore *store = QXcbIntegration::createPlatformBackingStore(window);
 
-    if (window->type() == Qt::Desktop || window->metaObject()->className() != QStringLiteral("QWidgetWindow"))
+    if (window->type() == Qt::Desktop)
         return store;
-
-    QWidgetWindow *widget_window = static_cast<QWidgetWindow*>(window);
 
 //    if (widget_window->widget()->property("enableDxcb").toBool())
         return new DXcbBackingStore(window, static_cast<QXcbBackingStore*>(store));

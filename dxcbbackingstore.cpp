@@ -16,6 +16,8 @@
 #include <private/qwidgetwindow_p.h>
 #include <qpa/qplatformgraphicsbuffer.h>
 
+#define MOUSE_MARGINS 10
+
 #define PUBLIC_CLASS(Class, Target) \
     class D##Class : public Class\
     {friend class Target;}
@@ -64,12 +66,6 @@ protected:
         case QEvent::MouseButtonRelease: {
             DQMouseEvent *e = static_cast<DQMouseEvent*>(event);
 
-            if (!window_geometry.contains(e->globalPos()))
-                return true;
-
-            e->l -= m_store->windowOffset();
-            e->w -= m_store->windowOffset();
-
             if (e->buttons() == Qt::LeftButton) {
                 if (e->type() == QEvent::MouseButtonPress)
                     setLeftButtonPressed(true);
@@ -77,6 +73,30 @@ protected:
                     setLeftButtonPressed(false);
             } else {
                 setLeftButtonPressed(false);
+            }
+
+            e->l -= m_store->windowOffset();
+            e->w -= m_store->windowOffset();
+
+            if (!window_geometry.contains(e->globalPos())) {
+                if (event->type() == QEvent::MouseMove) {
+//                    const QMargins &mouseMargins = QMargins(MOUSE_MARGINS, MOUSE_MARGINS, MOUSE_MARGINS, MOUSE_MARGINS);
+//                    const QList<QRect> &list = Utility::sudokuByRect(window_geometry + mouseMargins, mouseMargins);
+
+//                    Qt::Corner mouseCorner;
+
+//                    if (e->globalX() <= window_geometry.x()) {
+//                        if (e->globalY() <= window_geometry.y()) {
+
+//                        }
+//                    }
+
+                    if (leftButtonPressed) {
+                        Utility::startWindowSystemResize(window->winId(), Utility::RightEdge, e->globalPos());
+                    }
+                }
+
+                return true;
             }
 
             break;
@@ -185,7 +205,7 @@ DXcbBackingStore::DXcbBackingStore(QWindow *window, QXcbBackingStore *proxy)
     updateWindowMargins();
     updateWindowExtents();
 
-    QObject::connect(window, &QWindow::destroyed, window, [this] {
+    QObject::connect(window, &QWindow::destroyed, m_eventListener, [this] {
         delete this;
     });
 }
@@ -367,7 +387,7 @@ void DXcbBackingStore::updateWindowExtents()
     const QMargins &borderMargins = QMargins(windowBorder, windowBorder, windowBorder, windowBorder);
     const QMargins &extentsMargins = windowMargins - borderMargins;
 
-    Utility::setWindowExtents(window()->winId(), m_size, extentsMargins, 10);
+    Utility::setWindowExtents(window()->winId(), m_size, extentsMargins, MOUSE_MARGINS);
 }
 
 void DXcbBackingStore::updateClipPath()

@@ -3,19 +3,37 @@
 
 #include <QImage>
 
+QT_BEGIN_NAMESPACE
+class QXcbWindow;
+QT_END_NAMESPACE
+
 class Utility
 {
 public:
+    enum CornerEdge {
+        TopLeftCorner = 0,
+        TopEdge = 1,
+        TopRightCorner = 2,
+        RightEdge = 3,
+        BottomRightCorner = 4,
+        BottomEdge = 5,
+        BottomLeftCorner = 6,
+        LeftEdge = 7
+    };
+
     static QImage dropShadow(const QPixmap &px, qreal radius, const QColor &color);
     static QImage borderImage(const QPixmap &px, const QMargins &borders, const QSize &size,
                               QImage::Format format = QImage::Format_ARGB32_Premultiplied);
 
+    static QList<QRect> sudokuByRect(const QRect &rect, QMargins borders);
+
     static void moveWindow(uint WId);
     static void cancelMoveWindow(uint WId);
     static void setWindowExtents(uint WId, const QSize &winSize, const QMargins &margins, const int resizeHandleWidth);
+    static void startWindowSystemResize(uint WId, CornerEdge cornerEdge, const QPoint &globalPos = QPoint());
 
 private:
-    static void sendMoveResizeMessage(uint WId, Qt::MouseButton qbutton, int action);
+    static void sendMoveResizeMessage(uint WId, uint32_t action, QPoint globalPos = QPoint(), Qt::MouseButton qbutton = Qt::LeftButton);
 };
 
 #endif // UTILITY_H
