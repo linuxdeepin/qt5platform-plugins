@@ -34,9 +34,11 @@ XcbWindowHook *XcbWindowHook::me() const
 
 void XcbWindowHook::setGeometry(const QRect &rect)
 {
-    qDebug() << __FUNCTION__ << rect << rect + me()->windowMargins;
+    const QMargins &margins = me()->windowMargins;
 
-    CALL::setGeometry(rect + me()->windowMargins);
+    qDebug() << __FUNCTION__ << rect << rect + margins;
+
+    CALL::setGeometry(rect + margins);
 }
 
 QRect XcbWindowHook::geometry() const
@@ -100,8 +102,6 @@ void XcbWindowHook::propagateSizeHints()
 {
     QWindow *win = window()->window();
     QWindowPrivate *winp = qt_window_private(win);
-
-    qDebug() << __FUNCTION__ << win->minimumSize() << win->maximumSize() << win->baseSize();
 
     const QMargins &windowMarings = me()->windowMargins;
 

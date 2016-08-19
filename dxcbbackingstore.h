@@ -50,7 +50,6 @@ private:
     void setWindowMargins(const QMargins &margins);
 
     void paintWindowShadow();
-    void paintWindowBorder();
 
     inline bool isWidgetWindow() const
     { return isWidgetWindow(window());}
@@ -80,8 +79,7 @@ private:
     int shadowOffsetX = 0;
     int shadowOffsetY = 0;//10;
     QColor shadowColor = Qt::black;//QColor(0, 0, 0, 255 * 0.5);
-    QImage shadowImage;
-    QPixmap cornerShadowPixmap;
+    QPixmap shadowPixmap;
 
     QMargins windowMargins;
 

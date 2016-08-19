@@ -53,6 +53,59 @@ QImage Utility::dropShadow(const QPixmap &px, qreal radius, const QColor &color)
     return tmp;
 }
 
+static QList<QRect> sudokuByRect(const QRect &rect, QMargins borders)
+{
+    QList<QRect> list;
+
+//    qreal border_width = borders.left() + borders.right();
+
+//    if ( border_width > rect.width()) {
+//        borders.setLeft(borders.left() / border_width * rect.width());
+//        borders.setRight(rect.width() - borders.left());
+//    }
+
+//    qreal border_height = borders.top() + borders.bottom();
+
+//    if (border_height > rect.height()) {
+//        borders.setTop(borders.top()/ border_height * rect.height());
+//        borders.setBottom(rect.height() - borders.top());
+//    }
+
+    const QRect &contentsRect = rect - borders;
+
+    list << QRect(0, 0, borders.left(), borders.top());
+    list << QRect(list.at(0).topRight(), QSize(contentsRect.width(), borders.top())).translated(1, 0);
+    list << QRect(list.at(1).topRight(), QSize(borders.right(), borders.top())).translated(1, 0);
+    list << QRect(list.at(0).bottomLeft(), QSize(borders.left(), contentsRect.height())).translated(0, 1);
+    list << contentsRect;
+    list << QRect(contentsRect.topRight(), QSize(borders.right(), contentsRect.height())).translated(1, 0);
+    list << QRect(list.at(3).bottomLeft(), QSize(borders.left(), borders.bottom())).translated(0, 1);
+    list << QRect(contentsRect.bottomLeft(), QSize(contentsRect.width(), borders.bottom())).translated(0, 1);
+    list << QRect(contentsRect.bottomRight(), QSize(borders.left(), borders.bottom())).translated(1, 1);
+
+    return list;
+}
+
+QImage Utility::borderImage(const QPixmap &px, const QMargins &borders,
+                            const QSize &size, QImage::Format format)
+{
+    QImage image(size, format);
+    QPainter pa(&image);
+
+    const QList<QRect> sudoku_src = sudokuByRect(px.rect(), borders);
+    const QList<QRect> sudoku_tar = sudokuByRect(QRect(QPoint(0, 0), size), borders);
+
+    pa.setCompositionMode(QPainter::CompositionMode_Source);
+
+    for (int i = 0; i < 9; ++i) {
+        pa.drawPixmap(sudoku_tar[i], px, sudoku_src[i]);
+    }
+
+    pa.end();
+
+    return image;
+}
+
 void Utility::moveWindow(uint WId)
 {
     sendMoveResizeMessage(WId, Qt::LeftButton, _NET_WM_MOVERESIZE_MOVE);

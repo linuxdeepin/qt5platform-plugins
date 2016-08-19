@@ -177,7 +177,7 @@ DXcbBackingStore::DXcbBackingStore(QWindow *window, QXcbBackingStore *proxy)
     , m_proxy(proxy)
     , m_eventListener(new WindowEventListener(this))
 {
-    shadowImage.fill(Qt::transparent);
+    shadowPixmap.fill(Qt::transparent);
 
     initUserPropertys();
 
@@ -209,13 +209,13 @@ void DXcbBackingStore::flush(QWindow *window, const QRegion &region, const QPoin
     const QPoint &windowOffset = this->windowOffset();
     QRegion tmp_region = region.translated(windowOffset);
 
-    qDebug() << "flush" << window << tmp_region << offset;
+//    qDebug() << "flush" << window << tmp_region << offset;
 
     QPainter pa(m_proxy->paintDevice());
 
-    pa.drawPixmap(windowOffset, cornerShadowPixmap);
-    pa.setRenderHint(QPainter::Antialiasing);
     pa.setCompositionMode(QPainter::CompositionMode_Source);
+    pa.drawPixmap(windowOffset, shadowPixmap, windowGeometry());
+    pa.setRenderHint(QPainter::Antialiasing);
     pa.setClipPath(windowClipPath);
     pa.drawImage(windowOffset, m_image);
     pa.end();
@@ -272,7 +272,7 @@ void DXcbBackingStore::resize(const QSize &size, const QRegion &staticContents)
 
     m_image = QImage(xSize, QImage::Format_ARGB32_Premultiplied);
     m_image.setDevicePixelRatio(dpr);
-    m_image.fill(Qt::transparent);
+//    m_image.fill(Qt::transparent);
     // Slow path for bgr888 VNC: Create an additional image, paint into that and
     // swap R and B while copying to m_image after each paint.
 
@@ -292,7 +292,7 @@ void DXcbBackingStore::resize(const QSize &size, const QRegion &staticContents)
 
 void DXcbBackingStore::beginPaint(const QRegion &reg)
 {
-    qDebug() << "begin paint" << reg << window()->geometry();
+//    qDebug() << "begin paint" << reg << window()->geometry();
 
     QPainter pa(&m_image);
 
@@ -311,7 +311,7 @@ void DXcbBackingStore::endPaint()
 {
     m_proxy->endPaint();
 
-    qDebug() << "end paint";
+//    qDebug() << "end paint";
 }
 
 void DXcbBackingStore::initUserPropertys()
@@ -414,6 +414,12 @@ void DXcbBackingStore::setWindowMargins(const QMargins &margins)
     m_proxy->resize(m_size, QRegion());
 }
 
+inline QSize margins2Size(const QMargins &margins)
+{
+    return QSize(margins.left() + margins.right(),
+                 margins.top() + margins.bottom());
+}
+
 void DXcbBackingStore::paintWindowShadow()
 {
     QPixmap pixmap(m_image.size());
@@ -425,37 +431,52 @@ void DXcbBackingStore::paintWindowShadow()
     pa.fillPath(clipPath, shadowColor);
     pa.end();
 
-    shadowImage = Utility::dropShadow(pixmap, shadowRadius, shadowColor);
+    bool paintShadow = isUserSetClipPath || shadowPixmap.isNull();
 
-    /// The order is important
-    paintWindowBorder();
+    if (!paintShadow) {
+        QSize margins_size = margins2Size(windowMargins + windowRadius + windowBorder);
 
-    /// begin paint window corner shadow
-    cornerShadowPixmap = QPixmap(m_image.size());
+        if (margins_size.width() > qMin(m_size.width(), shadowPixmap.width())
+                || margins_size.height() > qMin(m_size.height(), shadowPixmap.height())) {
+            paintShadow = true;
+        }
+    }
 
-    if (cornerShadowPixmap.size() == QSize(0, 0))
-        return;
+    if (paintShadow) {
+        QImage image = Utility::dropShadow(pixmap, shadowRadius, shadowColor);
 
-    QTransform transform = pa.transform();
-    const QRectF &clipRect = clipPath.boundingRect();
+        /// begin paint window border;
+        QPainter pa(&image);
+        QPainterPathStroker pathStroker;
 
-    transform.scale((clipRect.width() - 4) / clipRect.width(),
-                    (clipRect.height() - 4) / clipRect.height());
-    transform.translate(2, 2);
+        pathStroker.setWidth(windowBorder * 2);
 
-    pa.begin(&cornerShadowPixmap);
-    pa.setCompositionMode(QPainter::CompositionMode_Source);
-    pa.drawImage(QPoint(0, 0), shadowImage, QRect(windowOffset(), m_image.size()));
-    pa.setCompositionMode(QPainter::CompositionMode_Clear);
-    pa.setTransform(transform);
-    pa.fillPath(clipPath, Qt::transparent);
-    pa.end();
-    /// end
+        QTransform transform = pa.transform();
+        const QRectF &clipRect = clipPath.boundingRect();
+
+        transform.translate(windowMargins.left() + 2, windowMargins.top() + 2);
+        transform.scale((clipRect.width() - 4) / clipRect.width(),
+                        (clipRect.height() - 4) / clipRect.height());
+
+        pa.setCompositionMode(QPainter::CompositionMode_Source);
+        pa.setRenderHint(QPainter::Antialiasing);
+        pa.fillPath(pathStroker.createStroke(windowClipPath), windowBorderColor);
+        pa.setCompositionMode(QPainter::CompositionMode_Clear);
+        pa.setRenderHint(QPainter::Antialiasing, false);
+        pa.setTransform(transform);
+        pa.fillPath(clipPath, Qt::transparent);
+        pa.end();
+        /// end
+
+        shadowPixmap = QPixmap::fromImage(image);
+    } else {
+        shadowPixmap = QPixmap::fromImage(Utility::borderImage(shadowPixmap, windowMargins + windowRadius, m_size));
+    }
 
     /// begin paint window drop shadow
     pa.begin(m_proxy->paintDevice());
     pa.setCompositionMode(QPainter::CompositionMode_Source);
-    pa.drawImage(0, 0, shadowImage);
+    pa.drawPixmap(0, 0, shadowPixmap);
     pa.end();
 
     XcbWindowHook *window_hook = XcbWindowHook::getHookByWindow(window()->handle());
@@ -472,22 +493,6 @@ void DXcbBackingStore::paintWindowShadow()
 
     if (window_hook)
         window_hook->windowMargins = windowMargins;
-    /// end
-}
-
-void DXcbBackingStore::paintWindowBorder()
-{
-    /// begin paint window border;
-    QPainter pa;
-    QPainterPathStroker pathStroker;
-
-    pathStroker.setWidth(2);
-
-    pa.begin(&shadowImage);
-    pa.setCompositionMode(QPainter::CompositionMode_Source);
-    pa.setRenderHint(QPainter::Antialiasing);
-    pa.fillPath(pathStroker.createStroke(windowClipPath), windowBorderColor);
-    pa.end();
     /// end
 }
 

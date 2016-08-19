@@ -7,6 +7,8 @@ class Utility
 {
 public:
     static QImage dropShadow(const QPixmap &px, qreal radius, const QColor &color);
+    static QImage borderImage(const QPixmap &px, const QMargins &borders, const QSize &size,
+                              QImage::Format format = QImage::Format_ARGB32_Premultiplied);
 
     static void moveWindow(uint WId);
     static void cancelMoveWindow(uint WId);
