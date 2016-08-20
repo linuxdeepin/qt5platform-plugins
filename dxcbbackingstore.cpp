@@ -2,6 +2,7 @@
 #include "xcbwindowhook.h"
 #include "vtablehook.h"
 #include "utility.h"
+#include "global.h"
 
 #include "qxcbbackingstore.h"
 
@@ -20,18 +21,15 @@
 #include <qpa/qplatformgraphicsbuffer.h>
 #include <qpa/qplatformscreen.h>
 #include <qpa/qplatformcursor.h>
-
-#define MOUSE_MARGINS 10
-
-#define PUBLIC_CLASS(Class, Target) \
-    class D##Class : public Class\
-    {friend class Target;}
+#include <qpa/qplatformnativeinterface.h>
 
 PUBLIC_CLASS(QMouseEvent, WindowEventListener);
 PUBLIC_CLASS(QWheelEvent, WindowEventListener);
 PUBLIC_CLASS(QResizeEvent, WindowEventListener);
 PUBLIC_CLASS(QWidget, WindowEventListener);
 PUBLIC_CLASS(QWindow, WindowEventListener);
+
+PUBLIC_CLASS(QXcbWindow, DXcbBackingStore);
 
 class WindowEventListener : public QObject
 {
@@ -92,12 +90,14 @@ protected:
                 setLeftButtonPressed(false);
             }
 
-            if (!window_geometry.contains(e->globalPos())
-                    || !m_store->windowClipPath.contains(e->windowPos())) {
+            const QRect &window_visible_rect = m_store->windowValidRect.translated(window_geometry.topLeft());
+
+            if (!window_visible_rect.contains(e->globalPos())
+                    || !m_store->m_windowClipPath.contains(e->windowPos())) {
                 if (event->type() == QEvent::MouseMove) {
                     Utility::CornerEdge mouseCorner;
                     QRect cornerRect;
-                    const QRect window_real_geometry = window_geometry
+                    const QRect window_real_geometry = window_visible_rect
                             + QMargins(MOUSE_MARGINS, MOUSE_MARGINS, MOUSE_MARGINS, MOUSE_MARGINS);
 
                     cornerRect.setSize(QSize(MOUSE_MARGINS * 2, MOUSE_MARGINS * 2));
@@ -141,12 +141,12 @@ protected:
                         goto set_cursor;
                     }
 
-                    if (e->globalX() <= window_geometry.x()) {
+                    if (e->globalX() <= window_visible_rect.x()) {
                         mouseCorner = Utility::LeftEdge;
 
                         qApp->setOverrideCursor(Qt::SizeHorCursor);
-                    } else if (e->globalX() < window_geometry.right()) {
-                        if (e->globalY() <= window_geometry.y()) {
+                    } else if (e->globalX() < window_visible_rect.right()) {
+                        if (e->globalY() <= window_visible_rect.y()) {
                             mouseCorner = Utility::TopEdge;
                         } else {
                             mouseCorner = Utility::BottomEdge;
@@ -200,6 +200,32 @@ set_cursor:
             cancelAdsorbCursor();
 
             break;
+        case QEvent::DynamicPropertyChange: {
+            QDynamicPropertyChangeEvent *e = static_cast<QDynamicPropertyChangeEvent*>(event);
+
+            if (e->propertyName() == netWmStates) {
+                m_store->onWindowStateChanged();
+            } else if (e->propertyName() == windowRadius) {
+                m_store->updateWindowRadius();
+            } else if (e->propertyName() == borderWidth) {
+                m_store->updateBorderWidth();
+            } else if (e->propertyName() == borderColor) {
+                m_store->updateBorderColor();
+            } else if (e->propertyName() == shadowRadius) {
+                m_store->updateShadowRadius();
+            } else if (e->propertyName() == shadowOffset) {
+                m_store->updateShadowOffset();
+            } else if (e->propertyName() == shadowColor) {
+                m_store->updateShadowColor();
+            } else if (e->propertyName() == clipPath) {
+                m_store->updateUserClipPath();
+            } else if (e->propertyName() == frameMask) {
+                m_store->updateFrameMask();
+            }
+
+            break;
+        }
+        default: break;
         }
 
         return false;
@@ -276,7 +302,7 @@ private:
     {
         QPoint cursorPos = QCursor::pos();
         QPoint toPos = cursorPos;
-        const QRect geometry = m_store->window()->geometry().adjusted(-1, -1, 1, 1);
+        const QRect geometry = m_store->windowValidRect.translated(m_store->window()->position()).adjusted(-1, -1, 1, 1);
 
         switch (lastCornerEdge) {
         case Utility::TopLeftCorner:
@@ -371,11 +397,14 @@ DXcbBackingStore::DXcbBackingStore(QWindow *window, QXcbBackingStore *proxy)
 
     //! Warning: At this point you must be initialized window Margins and window Extents
     updateWindowMargins();
-    updateWindowExtents();
+    updateFrameExtents();
 
     QObject::connect(window, &QWindow::destroyed, m_eventListener, [this] {
         delete this;
     });
+
+    VtableHook::overrideVfptrFun(static_cast<QXcbWindow*>(window->handle()), &QXcbWindowEventListener::handlePropertyNotifyEvent,
+                                 this, &DXcbBackingStore::handlePropertyNotifyEvent);
 }
 
 DXcbBackingStore::~DXcbBackingStore()
@@ -404,7 +433,7 @@ void DXcbBackingStore::flush(QWindow *window, const QRegion &region, const QPoin
     pa.setCompositionMode(QPainter::CompositionMode_Source);
     pa.drawPixmap(windowOffset, shadowPixmap, windowGeometry());
     pa.setRenderHint(QPainter::Antialiasing);
-    pa.setClipPath(windowClipPath);
+    pa.setClipPath(m_windowClipPath);
     pa.drawImage(windowOffset, m_image);
     pa.end();
 
@@ -473,9 +502,9 @@ void DXcbBackingStore::resize(const QSize &size, const QRegion &staticContents)
 
     updateClipPath();
     //! TODO: update window margins
-//    updateWindowMargins();
+    //    updateWindowMargins();
     paintWindowShadow();
-    updateWindowExtents();
+    updateInputShapeRegion();
 }
 
 void DXcbBackingStore::beginPaint(const QRegion &reg)
@@ -504,78 +533,178 @@ void DXcbBackingStore::endPaint()
 
 void DXcbBackingStore::initUserPropertys()
 {
-    const QWindow *window = this->window();
-
-    QVariant v = window->property("shadowRadius");
-
-    bool ok;
-    int tmp = v.toInt(&ok);
-
-    if (ok)
-        shadowRadius = tmp;
-
-    v = window->property("shadowOffsetX");
-    tmp = v.toInt(&ok);
-
-    if (ok)
-        shadowOffsetX = tmp;
-
-    v = window->property("shadowOffsetY");
-    tmp = v.toInt(&ok);
-
-    if (ok)
-        shadowOffsetY = tmp;
-
-    v = window->property("shadowColor");
-    QColor color = qvariant_cast<QColor>(v);
-
-    if (color.isValid())
-        shadowColor = color;
-
-    v = window->property("clipPath");
-
-    if (v.isValid()) {
-        clipPath = qvariant_cast<QPainterPath>(v);
-
-        if (!clipPath.isEmpty())
-            isUserSetClipPath = true;
-    }
+    updateWindowRadius();
+    updateBorderWidth();
+    updateBorderColor();
+    updateUserClipPath();
+    updateFrameMask();
+    updateShadowRadius();
+    updateShadowOffset();
+    updateShadowColor();
 }
 
 void DXcbBackingStore::updateWindowMargins()
 {
-    setWindowMargins(QMargins(shadowRadius - shadowOffsetX,
-                              shadowRadius - shadowOffsetY,
-                              shadowRadius + shadowOffsetX,
-                              shadowRadius + shadowOffsetY));
+    setWindowMargins(QMargins(m_shadowRadius - m_shadowOffset.x(),
+                              m_shadowRadius - m_shadowOffset.y(),
+                              m_shadowRadius + m_shadowOffset.x(),
+                              m_shadowRadius + m_shadowOffset.y()));
 }
 
-void DXcbBackingStore::updateWindowExtents()
+void DXcbBackingStore::updateFrameExtents()
 {
-    const QMargins &borderMargins = QMargins(windowBorder, windowBorder, windowBorder, windowBorder);
-    const QMargins &extentsMargins = windowMargins - borderMargins;
+    const QMargins &borderMargins = QMargins(m_borderWidth, m_borderWidth, m_borderWidth, m_borderWidth);
 
-    Utility::setWindowExtents(window()->winId(), m_size, extentsMargins, MOUSE_MARGINS);
+    QMargins extentsMargins = windowMargins;
+
+    if (canUseClipPath() && !isUserSetClipPath) {
+        extentsMargins -= borderMargins;
+    }
+
+    Utility::setFrameExtents(window()->winId(), extentsMargins);
+}
+
+void DXcbBackingStore::updateInputShapeRegion()
+{
+    if (isUserSetClipPath) {
+        return;
+    }
+
+    QRegion region(windowGeometry().adjusted(-MOUSE_MARGINS, -MOUSE_MARGINS, MOUSE_MARGINS, MOUSE_MARGINS));
+
+    Utility::setInputShapeRectangles(window()->winId(), region);
+}
+
+void DXcbBackingStore::updateWindowRadius()
+{
+    const QVariant &v = window()->property(windowRadius);
+
+    bool ok;
+    int radius = v.toInt(&ok);
+
+    if (ok && radius != m_windowRadius) {
+        m_windowRadius = radius;
+
+        updateClipPath();
+    }
+}
+
+void DXcbBackingStore::updateBorderWidth()
+{
+    const QVariant &v = window()->property(borderWidth);
+
+    bool ok;
+    int width = v.toInt(&ok);
+
+    if (ok && width != m_borderWidth) {
+        m_borderWidth = width;
+        shadowPixmap = QPixmap();
+
+        updateFrameExtents();
+        paintWindowShadow();
+    }
+}
+
+void DXcbBackingStore::updateBorderColor()
+{
+    const QVariant &v = window()->property(borderColor);
+    const QColor &color = qvariant_cast<QColor>(v);
+
+    if (color.isValid() && m_borderColor != color) {
+        m_borderColor = color;
+        shadowPixmap = QPixmap();
+
+        paintWindowShadow();
+    }
+}
+
+void DXcbBackingStore::updateUserClipPath()
+{
+    const QVariant &v = window()->property(clipPath);
+    QPainterPath path;
+
+    if (v.isValid()) {
+        path = qvariant_cast<QPainterPath>(v);
+    }
+
+    if (!isUserSetClipPath && path.isEmpty())
+        return;
+
+    isUserSetClipPath = !path.isEmpty();
+
+    if (path.isEmpty())
+        updateClipPath();
+    else
+        setClipPah(path);
 }
 
 void DXcbBackingStore::updateClipPath()
 {
-    if (isUserSetClipPath) {
-        const QVariant &v = window()->property("clipPath");
-
-        if (v.isValid()) {
-            clipPath = qvariant_cast<QPainterPath>(v);
-
-            isUserSetClipPath = !clipPath.isEmpty();
-        }
-    }
-
     if (!isUserSetClipPath) {
-        clipPath = QPainterPath();
-        clipPath.addRoundedRect(QRect(QPoint(0, 0), m_image.size()), windowRadius, windowRadius);
-    }
+        QPainterPath path;
 
-    windowClipPath = clipPath.translated(windowOffset());
+        if (canUseClipPath())
+            path.addRoundedRect(QRect(QPoint(0, 0), m_image.size()), m_windowRadius, m_windowRadius);
+        else
+            path.addRect(0, 0, m_image.width(), m_image.height());
+
+        setClipPah(path);
+    }
+}
+
+void DXcbBackingStore::updateFrameMask()
+{
+    const QVariant &v = window()->property(frameMask);
+
+    if (!v.isValid())
+        return;
+
+    QRegion region = qvariant_cast<QRegion>(v);
+
+    static_cast<QXcbWindow*>(window()->handle())->QXcbWindow::setMask(region);
+
+    isUserSetFrameMask = !region.isEmpty();
+}
+
+void DXcbBackingStore::updateShadowRadius()
+{
+    const QVariant &v = window()->property(shadowRadius);
+
+    bool ok;
+    int radius = v.toInt(&ok);
+
+    if (ok && radius != m_shadowRadius) {
+        m_shadowRadius = radius;
+        shadowPixmap = QPixmap();
+
+        paintWindowShadow();
+    }
+}
+
+void DXcbBackingStore::updateShadowOffset()
+{
+    const QVariant &v = window()->property(shadowOffset);
+    const QPoint &offset = v.toPoint();
+
+    if (!offset.isNull() && offset != m_shadowOffset) {
+        m_shadowOffset = offset;
+        shadowPixmap = QPixmap();
+
+        paintWindowShadow();
+    }
+}
+
+void DXcbBackingStore::updateShadowColor()
+{
+    const QVariant &v = window()->property(shadowColor);
+    const QColor &color = qvariant_cast<QColor>(v);
+
+    if (color.isValid() && m_shadowColor != color) {
+        m_shadowColor = color;
+        shadowPixmap = QPixmap();
+
+        paintWindowShadow();
+    }
 }
 
 void DXcbBackingStore::setWindowMargins(const QMargins &margins)
@@ -584,7 +713,8 @@ void DXcbBackingStore::setWindowMargins(const QMargins &margins)
         return;
 
     windowMargins = margins;
-    windowClipPath = clipPath.translated(windowOffset());
+    m_windowClipPath = m_clipPath.translated(windowOffset());
+    shadowPixmap = QPixmap();
 
     XcbWindowHook *hook = XcbWindowHook::getHookByWindow(m_proxy->window()->handle());
 
@@ -602,6 +732,15 @@ void DXcbBackingStore::setWindowMargins(const QMargins &margins)
     m_proxy->resize(m_size, QRegion());
 }
 
+void DXcbBackingStore::setClipPah(const QPainterPath &path)
+{
+    if (m_clipPath != path) {
+        m_clipPath = path;
+        m_windowClipPath = m_clipPath.translated(windowOffset());
+        windowValidRect = m_clipPath.boundingRect().toRect();
+    }
+}
+
 inline QSize margins2Size(const QMargins &margins)
 {
     return QSize(margins.left() + margins.right(),
@@ -612,17 +751,20 @@ void DXcbBackingStore::paintWindowShadow()
 {
     QPixmap pixmap(m_image.size());
 
+    if (pixmap.isNull())
+        return;
+
     pixmap.fill(Qt::transparent);
 
     QPainter pa(&pixmap);
 
-    pa.fillPath(clipPath, shadowColor);
+    pa.fillPath(m_clipPath, m_shadowColor);
     pa.end();
 
     bool paintShadow = isUserSetClipPath || shadowPixmap.isNull();
 
     if (!paintShadow) {
-        QSize margins_size = margins2Size(windowMargins + windowRadius + windowBorder);
+        QSize margins_size = margins2Size(windowMargins + m_windowRadius + m_borderWidth);
 
         if (margins_size.width() > qMin(m_size.width(), shadowPixmap.width())
                 || margins_size.height() > qMin(m_size.height(), shadowPixmap.height())) {
@@ -631,16 +773,16 @@ void DXcbBackingStore::paintWindowShadow()
     }
 
     if (paintShadow) {
-        QImage image = Utility::dropShadow(pixmap, shadowRadius, shadowColor);
+        QImage image = Utility::dropShadow(pixmap, m_shadowRadius, m_shadowColor);
 
         /// begin paint window border;
         QPainter pa(&image);
         QPainterPathStroker pathStroker;
 
-        pathStroker.setWidth(windowBorder * 2);
+        pathStroker.setWidth(m_borderWidth * 2);
 
         QTransform transform = pa.transform();
-        const QRectF &clipRect = clipPath.boundingRect();
+        const QRectF &clipRect = m_clipPath.boundingRect();
 
         transform.translate(windowMargins.left() + 2, windowMargins.top() + 2);
         transform.scale((clipRect.width() - 4) / clipRect.width(),
@@ -648,17 +790,17 @@ void DXcbBackingStore::paintWindowShadow()
 
         pa.setCompositionMode(QPainter::CompositionMode_Source);
         pa.setRenderHint(QPainter::Antialiasing);
-        pa.fillPath(pathStroker.createStroke(windowClipPath), windowBorderColor);
+        pa.fillPath(pathStroker.createStroke(m_windowClipPath), m_borderColor);
         pa.setCompositionMode(QPainter::CompositionMode_Clear);
         pa.setRenderHint(QPainter::Antialiasing, false);
         pa.setTransform(transform);
-        pa.fillPath(clipPath, Qt::transparent);
+        pa.fillPath(m_clipPath, Qt::transparent);
         pa.end();
         /// end
 
         shadowPixmap = QPixmap::fromImage(image);
     } else {
-        shadowPixmap = QPixmap::fromImage(Utility::borderImage(shadowPixmap, windowMargins + windowRadius, m_size));
+        shadowPixmap = QPixmap::fromImage(Utility::borderImage(shadowPixmap, windowMargins + m_windowRadius, m_size));
     }
 
     /// begin paint window drop shadow
@@ -692,4 +834,36 @@ bool DXcbBackingStore::isWidgetWindow(const QWindow *window)
 QWidgetWindow *DXcbBackingStore::widgetWindow() const
 {
     return static_cast<QWidgetWindow*>(window());
+}
+
+bool DXcbBackingStore::canUseClipPath() const
+{
+    QXcbWindow::NetWmStates states = (QXcbWindow::NetWmStates)window()->property(netWmStates).toInt();
+
+    if (states & (QXcbWindow::NetWmStateFullScreen | QXcbWindow::NetWmStateMaximizedHorz | QXcbWindow::NetWmStateMaximizedVert)) {
+        return false;
+    }
+
+    return true;
+}
+
+void DXcbBackingStore::onWindowStateChanged()
+{
+    updateClipPath();
+    updateFrameExtents();
+    paintWindowShadow();
+}
+
+void DXcbBackingStore::handlePropertyNotifyEvent(const xcb_property_notify_event_t *event)
+{
+    DQXcbWindow *window = static_cast<DQXcbWindow*>(reinterpret_cast<QXcbWindowEventListener*>(this));
+
+    window->QXcbWindow::handlePropertyNotifyEvent(event);
+
+    if (event->window == window->xcb_window()
+            && event->atom == window->connection()->internAtom("_NET_WM_STATE")) {
+        QXcbWindow::NetWmStates states = window->netWmStates();
+
+        window->window()->setProperty(netWmStates, (int)states);
+    }
 }

@@ -13,6 +13,8 @@ QT_END_NAMESPACE
 class DXcbShmGraphicsBuffer;
 class WindowEventListener;
 
+struct xcb_property_notify_event_t;
+
 class DXcbBackingStore : public QPlatformBackingStore
 {
 public:
@@ -44,10 +46,22 @@ private:
     void initUserPropertys();
 
     void updateWindowMargins();
-    void updateWindowExtents();
+    void updateFrameExtents();
+    void updateInputShapeRegion();
     void updateClipPath();
 
+    /// update of user propertys
+    void updateWindowRadius();
+    void updateBorderWidth();
+    void updateBorderColor();
+    void updateUserClipPath();
+    void updateFrameMask();
+    void updateShadowRadius();
+    void updateShadowOffset();
+    void updateShadowColor();
+
     void setWindowMargins(const QMargins &margins);
+    void setClipPah(const QPainterPath &path);
 
     void paintWindowShadow();
 
@@ -61,6 +75,11 @@ private:
     inline QRect windowGeometry() const
     { return QRect(windowOffset(), m_image.size());}
 
+    bool canUseClipPath() const;
+
+    void onWindowStateChanged();
+    void handlePropertyNotifyEvent(const xcb_property_notify_event_t *event);
+
     QSize m_size;
     QImage m_image;
 
@@ -68,24 +87,24 @@ private:
     WindowEventListener *m_eventListener;
     DXcbShmGraphicsBuffer *m_graphicsBuffer = Q_NULLPTR;
 
-    int windowRadius = 10;
-    int windowBorder = 1;
+    int m_windowRadius = 10;
+    int m_borderWidth = 1;
     bool isUserSetClipPath = false;
-    QPainterPath clipPath;
-    QPainterPath windowClipPath;
-    QColor windowBorderColor = QColor(255, 0, 0, 255 * 0.5);
+    QPainterPath m_clipPath;
+    QPainterPath m_windowClipPath;
+    QColor m_borderColor = QColor(255, 0, 0, 255 * 0.5);
 
-    int shadowRadius = 20;//40;
-    int shadowOffsetX = 0;
-    int shadowOffsetY = 0;//10;
-    QColor shadowColor = Qt::black;//QColor(0, 0, 0, 255 * 0.5);
+    int m_shadowRadius = 20;//40;
+    QPoint m_shadowOffset = QPoint(0, 0);
+    QColor m_shadowColor = Qt::black;//QColor(0, 0, 0, 255 * 0.5);
     QPixmap shadowPixmap;
 
+    QRect windowValidRect;
     QMargins windowMargins;
+
+    bool isUserSetFrameMask = false;
 
     friend class WindowEventListener;
 };
-
-Q_DECLARE_METATYPE(QPainterPath)
 
 #endif // DXCBBACKINGSTORE_H

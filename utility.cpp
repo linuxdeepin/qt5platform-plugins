@@ -128,6 +128,46 @@ void Utility::cancelMoveWindow(uint WId)
     sendMoveResizeMessage(WId, _NET_WM_MOVERESIZE_CANCEL);
 }
 
+void Utility::setFrameExtents(uint WId, const QMargins &margins)
+{
+    xcb_atom_t frameExtents = internAtom("_GTK_FRAME_EXTENTS");
+
+    if (frameExtents == XCB_NONE) {
+        qWarning() << "Failed to create atom with name DEEPIN_WINDOW_SHADOW";
+        return;
+    }
+
+    uint32_t value[4] = {
+        (uint32_t)margins.left(),
+        (uint32_t)margins.right(),
+        (uint32_t)margins.top(),
+        (uint32_t)margins.bottom()
+    };
+
+    xcb_change_property(QX11Info::connection(), XCB_PROP_MODE_REPLACE, WId, frameExtents, XCB_ATOM_CARDINAL, 32, 4, value);
+}
+
+void Utility::setInputShapeRectangles(uint WId, const QRegion &region)
+{
+    QVector<xcb_rectangle_t> rectangles;
+
+    rectangles.reserve(region.rectCount());
+
+    for (const QRect &rect : region.rects()) {
+        xcb_rectangle_t r;
+
+        r.x = rect.x();
+        r.y = rect.y();
+        r.width = rect.width();
+        r.height = rect.height();
+
+        rectangles << r;
+    }
+
+    xcb_shape_rectangles(QX11Info::connection(), XCB_SHAPE_SO_SET, XCB_SHAPE_SK_INPUT, XCB_CLIP_ORDERING_YX_BANDED, WId,
+                         0, 0, rectangles.size(), rectangles.constData());
+}
+
 void Utility::sendMoveResizeMessage(uint WId, uint32_t action, QPoint globalPos, Qt::MouseButton qbutton)
 {
     int xbtn = qbutton == Qt::LeftButton ? XCB_BUTTON_INDEX_1 :
@@ -157,41 +197,18 @@ void Utility::sendMoveResizeMessage(uint WId, uint32_t action, QPoint globalPos,
     xcb_flush(QX11Info::connection());
 }
 
-void Utility::setWindowExtents(uint WId, const QSize &winSize, const QMargins &margins, const int resizeHandleWidth)
-{
-    xcb_atom_t frameExtents = internAtom("_GTK_FRAME_EXTENTS");
-
-    if (frameExtents == XCB_NONE) {
-        qWarning() << "Failed to create atom with name DEEPIN_WINDOW_SHADOW";
-        return;
-    }
-
-    uint32_t value[4] = {
-        (uint32_t)margins.left(),
-        (uint32_t)margins.right(),
-        (uint32_t)margins.top(),
-        (uint32_t)margins.bottom()
-    };
-
-    xcb_change_property(QX11Info::connection(), XCB_PROP_MODE_REPLACE, WId, frameExtents, XCB_ATOM_CARDINAL, 32, 4, value);
-
-    QRect tmp_rect = QRect(QPoint(0, 0), winSize);
-
-    tmp_rect -= margins;
-
-    xcb_rectangle_t contentXRect;
-
-    contentXRect.x = 0;
-    contentXRect.y = 0;
-    contentXRect.width = tmp_rect.width() + resizeHandleWidth * 2;
-    contentXRect.height = tmp_rect.height() + resizeHandleWidth * 2;
-
-
-    xcb_shape_rectangles(QX11Info::connection(), XCB_SHAPE_SO_SET, XCB_SHAPE_SK_INPUT, XCB_CLIP_ORDERING_YX_BANDED, WId,
-                         margins.left() - resizeHandleWidth, margins.top() - resizeHandleWidth, 1, &contentXRect);
-}
-
 void Utility::startWindowSystemResize(uint WId, CornerEdge cornerEdge, const QPoint &globalPos)
 {
     sendMoveResizeMessage(WId, cornerEdge, globalPos);
+}
+
+QRegion Utility::regionAddMargins(const QRegion &region, const QMargins &margins, const QPoint &offset)
+{
+    QRegion tmp;
+
+    for (const QRect &rect : region.rects()) {
+        tmp += rect.translated(offset) + margins;
+    }
+
+    return tmp;
 }

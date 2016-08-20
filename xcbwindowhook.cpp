@@ -1,8 +1,6 @@
 #include "xcbwindowhook.h"
-
 #include "vtablehook.h"
-
-#include "qxcbnativeinterface.h"
+#include "global.h"
 
 #include <private/qwindow_p.h>
 
@@ -36,7 +34,7 @@ void XcbWindowHook::setGeometry(const QRect &rect)
 {
     const QMargins &margins = me()->windowMargins;
 
-    qDebug() << __FUNCTION__ << rect << rect + margins;
+//    qDebug() << __FUNCTION__ << rect << rect + margins;
 
     CALL::setGeometry(rect + margins);
 }
@@ -50,18 +48,9 @@ QRect XcbWindowHook::geometry() const
 
 QMargins XcbWindowHook::frameMargins() const
 {
-    return QMargins();
-
     QMargins margins = CALL::frameMargins();
 
-    if (CALL::window()->flags().testFlag(Qt::FramelessWindowHint)) {
-        const QMargins &windowMargins = me()->windowMargins;
-
-        margins.setRight(margins.right() - windowMargins.left() - windowMargins.right());
-        margins.setBottom(margins.bottom() - windowMargins.top() - windowMargins.bottom());
-    }
-
-    return margins;
+    return margins + me()->windowMargins;
 }
 
 void XcbWindowHook::setParent(const QPlatformWindow *window)
@@ -95,7 +84,24 @@ void XcbWindowHook::setWindowIcon(const QIcon &icon)
 
 void XcbWindowHook::setMask(const QRegion &region)
 {
-    CALL::setMask(region);
+    QRegion tmp_region;
+
+    const QMargins &margins = me()->windowMargins;
+
+    QRect window_rect = CALL::geometry() - margins;
+
+    window_rect.moveTopLeft(QPoint(margins.left(), margins.top()));
+
+    for (const QRect &rect : region.rects()) {
+        tmp_region += rect.translated(window_rect.topLeft()).intersected(window_rect) + margins;
+    }
+
+    QPainterPath path;
+
+    path.addRegion(region);
+
+    CALL::window()->setProperty(clipPath, QVariant::fromValue(path));
+//    CALL::setMask(tmp_region);
 }
 
 void XcbWindowHook::propagateSizeHints()

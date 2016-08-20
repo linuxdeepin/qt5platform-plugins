@@ -43,4 +43,6 @@ private:
     friend class DXcbBackingStore;
 };
 
+Q_DECLARE_METATYPE(QPainterPath)
+
 #endif // TESTWINDOW_H

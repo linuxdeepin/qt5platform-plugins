@@ -30,7 +30,8 @@ HEADERS += \
     $$PWD/dxcbbackingstore.h \
     $$PWD/vtablehook.h \
     $$PWD/xcbwindowhook.h \
-    $$PWD/utility.h
+    $$PWD/utility.h \
+    global.h
 
 DISTFILES += \
     $$PWD/dxcb.json

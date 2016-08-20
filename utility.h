@@ -29,8 +29,11 @@ public:
 
     static void moveWindow(uint WId);
     static void cancelMoveWindow(uint WId);
-    static void setWindowExtents(uint WId, const QSize &winSize, const QMargins &margins, const int resizeHandleWidth);
+    static void setFrameExtents(uint WId, const QMargins &margins);
+    static void setInputShapeRectangles(uint WId, const QRegion &region);
     static void startWindowSystemResize(uint WId, CornerEdge cornerEdge, const QPoint &globalPos = QPoint());
+
+    static QRegion regionAddMargins(const QRegion &region, const QMargins &margins, const QPoint &offset = QPoint(0, 0));
 
 private:
     static void sendMoveResizeMessage(uint WId, uint32_t action, QPoint globalPos = QPoint(), Qt::MouseButton qbutton = Qt::LeftButton);
