@@ -13,6 +13,8 @@
 #include <QOpenGLFunctions>
 #include <QPainterPathStroker>
 #include <QGuiApplication>
+#include <QVariantAnimation>
+#include <QTimer>
 
 #include <private/qwidgetwindow_p.h>
 #include <qpa/qplatformgraphicsbuffer.h>
@@ -39,6 +41,18 @@ public:
         , m_store(store)
     {
         store->window()->installEventFilter(this);
+
+        cursorAnimation.setDuration(50);
+        cursorAnimation.setEasingCurve(QEasingCurve::InExpo);
+
+        connect(&cursorAnimation, &QVariantAnimation::valueChanged,
+                this, &WindowEventListener::onAnimationValueChanged);
+
+        startAnimationTimer.setSingleShot(true);
+        startAnimationTimer.setInterval(300);
+
+        connect(&startAnimationTimer, &QTimer::timeout,
+                this, &WindowEventListener::startAnimation);
     }
 
 protected:
@@ -78,7 +92,8 @@ protected:
                 setLeftButtonPressed(false);
             }
 
-            if (!m_store->windowClipPath.contains(e->windowPos())) {
+            if (!window_geometry.contains(e->globalPos())
+                    || !m_store->windowClipPath.contains(e->windowPos())) {
                 if (event->type() == QEvent::MouseMove) {
                     Utility::CornerEdge mouseCorner;
                     QRect cornerRect;
@@ -147,12 +162,19 @@ protected:
 set_cursor:
                     if (leftButtonPressed) {
                         Utility::startWindowSystemResize(window->winId(), mouseCorner, e->globalPos());
+
+                        cancelAdsorbCursor();
+                    } else {
+                        adsorbCursor(mouseCorner);
                     }
                 }
 
                 return true;
             } else {
                 qApp->setOverrideCursor(window->cursor());
+
+                cancelAdsorbCursor();
+                canAdsorbCursor = true;
             }
 
             e->l -= m_store->windowOffset();
@@ -169,6 +191,15 @@ set_cursor:
 
             break;
         }
+        case QEvent::Enter:
+            canAdsorbCursor = true;
+
+            break;
+        case QEvent::Leave:
+            canAdsorbCursor = false;
+            cancelAdsorbCursor();
+
+            break;
         }
 
         return false;
@@ -215,14 +246,39 @@ private:
         }
     }
 
-    void adsorbCursor(Utility::CornerEdge cornerEdge, const QRect &geometry, QPoint cursorPos = QPoint())
+    void adsorbCursor(Utility::CornerEdge cornerEdge)
     {
-        if (cursorPos.isNull())
-            cursorPos = QCursor::pos();
+        lastCornerEdge = cornerEdge;
 
+        if (!canAdsorbCursor)
+            return;
+
+        if (cursorAnimation.state() == QVariantAnimation::Running)
+            return;
+
+        startAnimationTimer.start();
+    }
+
+    void cancelAdsorbCursor()
+    {
+        QSignalBlocker blocker(&startAnimationTimer);
+        Q_UNUSED(blocker)
+        startAnimationTimer.stop();
+        cursorAnimation.stop();
+    }
+
+    void onAnimationValueChanged(const QVariant &value)
+    {
+        QCursor::setPos(value.toPoint());
+    }
+
+    void startAnimation()
+    {
+        QPoint cursorPos = QCursor::pos();
         QPoint toPos = cursorPos;
+        const QRect geometry = m_store->window()->geometry().adjusted(-1, -1, 1, 1);
 
-        switch (cornerEdge) {
+        switch (lastCornerEdge) {
         case Utility::TopLeftCorner:
             toPos = geometry.topLeft();
             break;
@@ -250,9 +306,25 @@ private:
         default:
             break;
         }
+
+        const QPoint &tmp = toPos - cursorPos;
+
+        if (qAbs(tmp.x()) < 3 && qAbs(tmp.y()) < 3)
+            return;
+
+        canAdsorbCursor = false;
+
+        cursorAnimation.setStartValue(cursorPos);
+        cursorAnimation.setEndValue(toPos);
+        cursorAnimation.start();
     }
 
     bool leftButtonPressed = false;
+
+    bool canAdsorbCursor = false;
+    Utility::CornerEdge lastCornerEdge;
+    QTimer startAnimationTimer;
+    QVariantAnimation cursorAnimation;
 
     DXcbBackingStore *m_store;
 };
