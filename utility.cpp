@@ -5,13 +5,9 @@
 #include <QCursor>
 #include <QDebug>
 #include <QtX11Extras/QX11Info>
-#include <QWindow>
-
-#include <X11/Xatom.h>
-#include <X11/Xlib.h>
-#include <X11/extensions/shape.h>
 
 #include <xcb/xproto.h>
+#include <xcb/shape.h>
 
 #define _NET_WM_MOVERESIZE_MOVE              8   /* movement only */
 #define _NET_WM_MOVERESIZE_CANCEL           11   /* cancel operation */
@@ -118,6 +114,7 @@ xcb_atom_t internAtom(const char *name)
     xcb_intern_atom_reply_t *reply = xcb_intern_atom_reply(QX11Info::connection(), cookie, 0);
     int atom = reply->atom;
     free(reply);
+
     return atom;
 }
 
@@ -156,55 +153,42 @@ void Utility::sendMoveResizeMessage(uint WId, uint32_t action, QPoint globalPos,
     xcb_send_event(QX11Info::connection(), false, QX11Info::appRootWindow(QX11Info::appScreen()),
                    XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT | XCB_EVENT_MASK_SUBSTRUCTURE_NOTIFY,
                    (const char *)&xev);
+
     xcb_flush(QX11Info::connection());
 }
 
 void Utility::setWindowExtents(uint WId, const QSize &winSize, const QMargins &margins, const int resizeHandleWidth)
 {
-    Atom frameExtents;
+    xcb_atom_t frameExtents = internAtom("_GTK_FRAME_EXTENTS");
 
-    unsigned long value[4] = {
-        (unsigned long)(margins.left()),
-        (unsigned long)(margins.right()),
-        (unsigned long)(margins.top()),
-        (unsigned long)(margins.bottom())
-    };
-
-    frameExtents = XInternAtom(QX11Info::display(), "_GTK_FRAME_EXTENTS", false);
-
-    if (frameExtents == None) {
+    if (frameExtents == XCB_NONE) {
         qWarning() << "Failed to create atom with name DEEPIN_WINDOW_SHADOW";
         return;
     }
 
-//    xcb_intern_atom(QX11Info::display())
+    uint32_t value[4] = {
+        (uint32_t)margins.left(),
+        (uint32_t)margins.right(),
+        (uint32_t)margins.top(),
+        (uint32_t)margins.bottom()
+    };
 
-//    xcb_change_property(QX11Info::connection(), PropModeReplace, WId, frameExtents, XA_CARDINAL, 32, 4, value);
-
-    XChangeProperty(QX11Info::display(),
-                    WId,
-                    frameExtents,
-                    XA_CARDINAL,
-                    32,
-                    PropModeReplace,
-                    (unsigned char *)value,
-                    4);
+    xcb_change_property(QX11Info::connection(), XCB_PROP_MODE_REPLACE, WId, frameExtents, XCB_ATOM_CARDINAL, 32, 4, value);
 
     QRect tmp_rect = QRect(QPoint(0, 0), winSize);
 
     tmp_rect -= margins;
 
-    XRectangle contentXRect;
+    xcb_rectangle_t contentXRect;
+
     contentXRect.x = 0;
     contentXRect.y = 0;
     contentXRect.width = tmp_rect.width() + resizeHandleWidth * 2;
     contentXRect.height = tmp_rect.height() + resizeHandleWidth * 2;
-    XShapeCombineRectangles(QX11Info::display(),
-                            WId,
-                            ShapeInput,
-                            margins.left() - resizeHandleWidth,
-                            margins.top() - resizeHandleWidth,
-                            &contentXRect, 1, ShapeSet, YXBanded);
+
+
+    xcb_shape_rectangles(QX11Info::connection(), XCB_SHAPE_SO_SET, XCB_SHAPE_SK_INPUT, XCB_CLIP_ORDERING_YX_BANDED, WId,
+                         margins.left() - resizeHandleWidth, margins.top() - resizeHandleWidth, 1, &contentXRect);
 }
 
 void Utility::startWindowSystemResize(uint WId, CornerEdge cornerEdge, const QPoint &globalPos)
