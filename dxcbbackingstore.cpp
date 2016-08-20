@@ -90,16 +90,29 @@ protected:
                 setLeftButtonPressed(false);
             }
 
+            e->l -= m_store->windowOffset();
+            e->w -= m_store->windowOffset();
+
+            if (window->minimumSize() == window->maximumSize())
+                break;
+
             const QRect &window_visible_rect = m_store->windowValidRect.translated(window_geometry.topLeft());
 
             if (!window_visible_rect.contains(e->globalPos())
-                    || !m_store->m_windowClipPath.contains(e->windowPos())) {
+                    || !m_store->m_clipPath.contains(e->windowPos())) {
                 if (event->type() == QEvent::MouseMove) {
+                    bool isFixedWidth = window->minimumWidth() == window->maximumWidth();
+                    bool isFixedHeight = window->minimumHeight() == window->maximumHeight();
+
                     Utility::CornerEdge mouseCorner;
                     QRect cornerRect;
                     const QRect window_real_geometry = window_visible_rect
                             + QMargins(MOUSE_MARGINS, MOUSE_MARGINS, MOUSE_MARGINS, MOUSE_MARGINS);
 
+                    if (isFixedWidth || isFixedHeight)
+                        goto set_edge;
+
+                    /// begin set cursor corner type
                     cornerRect.setSize(QSize(MOUSE_MARGINS * 2, MOUSE_MARGINS * 2));
                     cornerRect.moveTopLeft(window_real_geometry.topLeft());
 
@@ -140,24 +153,34 @@ protected:
 
                         goto set_cursor;
                     }
-
+set_edge:
+                    /// begin set cursor edge type
                     if (e->globalX() <= window_visible_rect.x()) {
+                        if (isFixedWidth)
+                            goto skip_set_cursor;
+
                         mouseCorner = Utility::LeftEdge;
 
                         qApp->setOverrideCursor(Qt::SizeHorCursor);
                     } else if (e->globalX() < window_visible_rect.right()) {
+                        if (isFixedHeight)
+                            goto skip_set_cursor;
+
                         if (e->globalY() <= window_visible_rect.y()) {
                             mouseCorner = Utility::TopEdge;
-                        } else {
+                        } else if (!isFixedWidth || e->globalY() >= window_visible_rect.bottom()) {
                             mouseCorner = Utility::BottomEdge;
-
+                        } else {
+                            goto skip_set_cursor;
                         }
 
                         qApp->setOverrideCursor(Qt::SizeVerCursor);
-                    } else {
+                    } else if (!isFixedWidth && (!isFixedHeight || e->globalX() >= window_visible_rect.right())) {
                         mouseCorner = Utility::RightEdge;
 
                         qApp->setOverrideCursor(Qt::SizeHorCursor);
+                    } else {
+                        goto skip_set_cursor;
                     }
 set_cursor:
                     if (leftButtonPressed) {
@@ -170,15 +193,12 @@ set_cursor:
                 }
 
                 return true;
-            } else {
-                qApp->setOverrideCursor(window->cursor());
-
-                cancelAdsorbCursor();
-                canAdsorbCursor = true;
             }
+skip_set_cursor:
+            qApp->setOverrideCursor(window->cursor());
 
-            e->l -= m_store->windowOffset();
-            e->w -= m_store->windowOffset();
+            cancelAdsorbCursor();
+            canAdsorbCursor = true;
 
             break;
         }
