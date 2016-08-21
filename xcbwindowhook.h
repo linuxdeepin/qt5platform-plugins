@@ -40,6 +40,8 @@ private:
     QMargins windowMargins;
     static QHash<const QPlatformWindow*, XcbWindowHook*> mapped;
 
+    QXcbWindow *xcbWindow;
+
     friend class DXcbBackingStore;
 };
 

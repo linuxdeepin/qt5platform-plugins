@@ -10,6 +10,7 @@
 QHash<const QPlatformWindow*, XcbWindowHook*> XcbWindowHook::mapped;
 
 XcbWindowHook::XcbWindowHook(QXcbWindow *window)
+    : xcbWindow(window)
 {
     mapped[window] = this;
 
@@ -23,6 +24,16 @@ XcbWindowHook::XcbWindowHook(QXcbWindow *window)
 //    HOOK_VFPTR(mapFromGlobal);
     HOOK_VFPTR(setMask);
     HOOK_VFPTR(propagateSizeHints);
+
+    QObject::connect(window->window(), &QWindow::destroyed, window->window(), [this] {
+        if (mapped.contains(xcbWindow))
+            delete this;
+    });
+}
+
+XcbWindowHook::~XcbWindowHook()
+{
+    mapped.remove(xcbWindow);
 }
 
 XcbWindowHook *XcbWindowHook::me() const

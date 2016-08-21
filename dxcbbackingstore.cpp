@@ -419,10 +419,6 @@ DXcbBackingStore::DXcbBackingStore(QWindow *window, QXcbBackingStore *proxy)
     updateWindowMargins();
     updateFrameExtents();
 
-    QObject::connect(window, &QWindow::destroyed, m_eventListener, [this] {
-        delete this;
-    });
-
     VtableHook::overrideVfptrFun(static_cast<QXcbWindow*>(window->handle()), &QXcbWindowEventListener::handlePropertyNotifyEvent,
                                  this, &DXcbBackingStore::handlePropertyNotifyEvent);
 }
