@@ -41,6 +41,20 @@ unix {
     INSTALLS += target
 }
 
-INCLUDEPATH += $$PWD/xcb
+INCLUDEPATH += $$PWD/libqt5xcbqpa-dev
 
-#DEFINES += QT_NO_DEBUG_OUTPUT
+CONFIG(release, debug|release) {
+    DEFINES += QT_NO_DEBUG_OUTPUT
+}
+
+message(Qt Version: $$VERSION)
+
+exists($$PWD/libqt5xcbqpa-dev) {
+    !system(cd $$PWD/libqt5xcbqpa-dev && git checkout $$VERSION) {
+        !system(git fetch -p):error(update libqt5xcbqpa header sources failed)
+        !system(git checkout $$VERSION)error(Not support Qt Version: $$VERSION)
+    }
+} else {
+    !system(git clone https://github.com/zccrs/libqt5xcbqpa-dev.git):error(clone libqt5xcbqpa header sources failed)
+    !system(cd $$PWD/libqt5xcbqpa-dev && git checkout $$VERSION):error(Not support Qt Version: $$VERSION)
+}
