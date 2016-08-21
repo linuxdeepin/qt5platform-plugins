@@ -5,6 +5,8 @@
 #include <qpa/qplatformbackingstore.h>
 #undef private
 
+#include <QBasicTimer>
+
 QT_BEGIN_NAMESPACE
 class QXcbBackingStore;
 class QWidgetWindow;
@@ -50,6 +52,7 @@ private:
     void updateInputShapeRegion();
     void updateClipPath();
     void updateWindowShadow();
+    void doDelayedUpdateWindowShadow(int delaye = 100);
 
     /// update of user propertys
     void updateWindowRadius();
@@ -64,7 +67,8 @@ private:
     void setWindowMargins(const QMargins &margins);
     void setClipPah(const QPainterPath &path);
 
-    void paintWindowShadow();
+    void paintWindowShadow(QRegion region = QRegion());
+    void repaintWindowShadow();
 
     inline bool isWidgetWindow() const
     { return isWidgetWindow(window());}
@@ -104,6 +108,11 @@ private:
     QMargins windowMargins;
 
     bool isUserSetFrameMask = false;
+
+    QBasicTimer updateShadowTimer;
+
+    /// Settings window margins before the window position deviation
+    QPoint oldWindowOffset;
 
     friend class WindowEventListener;
 };

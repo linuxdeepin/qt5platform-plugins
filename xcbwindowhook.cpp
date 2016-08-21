@@ -17,10 +17,10 @@ XcbWindowHook::XcbWindowHook(QXcbWindow *window)
 
     HOOK_VFPTR(setGeometry);
     HOOK_VFPTR(geometry);
-    HOOK_VFPTR(frameMargins);
-    HOOK_VFPTR(setParent);
-    HOOK_VFPTR(setWindowTitle);
-    HOOK_VFPTR(setWindowIcon);
+//    HOOK_VFPTR(frameMargins);
+//    HOOK_VFPTR(setParent);
+//    HOOK_VFPTR(setWindowTitle);
+//    HOOK_VFPTR(setWindowIcon);
 //    HOOK_VFPTR(mapToGlobal);
 //    HOOK_VFPTR(mapFromGlobal);
     HOOK_VFPTR(setMask);
@@ -53,16 +53,18 @@ void XcbWindowHook::setGeometry(const QRect &rect)
 
 QRect XcbWindowHook::geometry() const
 {
+    const QMargins &margins = me()->windowMargins;
+
 //    qDebug() << __FUNCTION__ << CALL::geometry() << CALL::window()->isVisible();
 
-    return CALL::geometry() - me()->windowMargins;
+    return CALL::geometry() - margins;
 }
 
 QMargins XcbWindowHook::frameMargins() const
 {
     QMargins margins = CALL::frameMargins();
 
-    return margins + me()->windowMargins;
+    return margins/* + me()->windowMargins*/;
 }
 
 void XcbWindowHook::setParent(const QPlatformWindow *window)

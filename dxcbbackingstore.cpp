@@ -258,6 +258,13 @@ skip_set_cursor:
         Utility::moveWindow(reinterpret_cast<QWidget*>(this)->winId());
     }
 
+    void timerEvent(QTimerEvent *event) Q_DECL_OVERRIDE
+    {
+        if (event->timerId() == m_store->updateShadowTimer.timerId()) {
+            m_store->repaintWindowShadow();
+        }
+    }
+
 private:
     void setLeftButtonPressed(bool pressed)
     {
@@ -453,6 +460,13 @@ void DXcbBackingStore::flush(QWindow *window, const QRegion &region, const QPoin
     pa.drawImage(windowOffset, m_image);
     pa.end();
 
+    if (oldWindowOffset != windowOffset) {
+        /// redress window position
+        window->setGeometry(window->geometry().translated(oldWindowOffset - windowOffset));
+
+        oldWindowOffset = windowOffset;
+    }
+
     XcbWindowHook *window_hook = XcbWindowHook::getHookByWindow(window->handle());
 
     if (window_hook)
@@ -618,10 +632,9 @@ void DXcbBackingStore::updateBorderWidth()
 
     if (ok && width != m_borderWidth) {
         m_borderWidth = width;
-        shadowPixmap = QPixmap();
 
         updateFrameExtents();
-        updateWindowShadow();
+        doDelayedUpdateWindowShadow();
     }
 }
 
@@ -632,9 +645,8 @@ void DXcbBackingStore::updateBorderColor()
 
     if (color.isValid() && m_borderColor != color) {
         m_borderColor = color;
-        shadowPixmap = QPixmap();
 
-        updateWindowShadow();
+        doDelayedUpdateWindowShadow();
     }
 }
 
@@ -695,9 +707,9 @@ void DXcbBackingStore::updateShadowRadius()
 
     if (ok && radius != m_shadowRadius) {
         m_shadowRadius = radius;
-        shadowPixmap = QPixmap();
 
-        updateWindowShadow();
+        updateWindowMargins();
+        doDelayedUpdateWindowShadow();
     }
 }
 
@@ -708,9 +720,9 @@ void DXcbBackingStore::updateShadowOffset()
 
     if (!offset.isNull() && offset != m_shadowOffset) {
         m_shadowOffset = offset;
-        shadowPixmap = QPixmap();
 
-        updateWindowShadow();
+        updateWindowMargins();
+        doDelayedUpdateWindowShadow();
     }
 }
 
@@ -721,9 +733,8 @@ void DXcbBackingStore::updateShadowColor()
 
     if (color.isValid() && m_shadowColor != color) {
         m_shadowColor = color;
-        shadowPixmap = QPixmap();
 
-        updateWindowShadow();
+        doDelayedUpdateWindowShadow();
     }
 }
 
@@ -732,9 +743,14 @@ void DXcbBackingStore::setWindowMargins(const QMargins &margins)
     if (windowMargins == margins)
         return;
 
-    windowMargins = margins;
+    oldWindowOffset = windowOffset();       ///
+                                            ///
+    windowMargins = margins;                ///   Order is important
+                                            ///
+    if (!window()->isVisible())             ///
+        oldWindowOffset = windowOffset();   ///
+
     m_windowClipPath = m_clipPath.translated(windowOffset());
-    shadowPixmap = QPixmap();
 
     XcbWindowHook *hook = XcbWindowHook::getHookByWindow(m_proxy->window()->handle());
 
@@ -760,14 +776,12 @@ void DXcbBackingStore::setClipPah(const QPainterPath &path)
         windowValidRect = m_clipPath.boundingRect().toRect();
 
         if (isUserSetClipPath) {
-            shadowPixmap = QPixmap();
-
-            updateWindowShadow();
+            doDelayedUpdateWindowShadow();
         }
     }
 }
 
-void DXcbBackingStore::paintWindowShadow()
+void DXcbBackingStore::paintWindowShadow(QRegion region)
 {
     QPainter pa;
 
@@ -782,16 +796,28 @@ void DXcbBackingStore::paintWindowShadow()
     if (window_hook)
         window_hook->windowMargins = QMargins(0, 0, 0, 0);
 
-    QRegion region;
-
-    region += QRect(windowOffset().x(), 0, m_size.width(), windowOffset().y());
-    region += QRect(0, 0, windowOffset().x(), m_size.height());
+    if (region.isEmpty()) {
+        region += QRect(windowMargins.left(), 0, m_size.width(), windowMargins.top());
+        region += QRect(0, 0, windowOffset().x(), m_size.height());
+    }
 
     m_proxy->flush(window(), region, QPoint(0, 0));
 
     if (window_hook)
         window_hook->windowMargins = windowMargins;
     /// end
+}
+
+void DXcbBackingStore::repaintWindowShadow()
+{
+    updateShadowTimer.stop();
+
+    shadowPixmap = QPixmap();
+
+    updateWindowShadow();
+    paintWindowShadow(QRegion(0, 0, m_size.width(), m_size.height()));
+
+    flush(window(), QRegion(0, 0, m_image.width(), m_image.height()), QPoint(0, 0));
 }
 
 inline QSize margins2Size(const QMargins &margins)
@@ -855,8 +881,11 @@ void DXcbBackingStore::updateWindowShadow()
     } else {
         shadowPixmap = QPixmap::fromImage(Utility::borderImage(shadowPixmap, windowMargins + m_windowRadius, m_size));
     }
+}
 
-    paintWindowShadow();
+void DXcbBackingStore::doDelayedUpdateWindowShadow(int delaye)
+{
+    updateShadowTimer.start(delaye, m_eventListener);
 }
 
 bool DXcbBackingStore::isWidgetWindow(const QWindow *window)
