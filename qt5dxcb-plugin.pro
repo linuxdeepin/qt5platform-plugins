@@ -14,7 +14,7 @@ greaterThan(QT_MAJOR_VERSION, 4): QT += widgets widgets-private
 
 TARGET = dxcb
 TEMPLATE = lib
-VERSION = 5.5.1
+VERSION = $$QT_VERSION
 CONFIG += plugin c++11
 
 SOURCES += \
