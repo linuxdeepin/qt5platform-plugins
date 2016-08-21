@@ -493,7 +493,7 @@ QPlatformGraphicsBuffer *DXcbBackingStore::graphicsBuffer() const
 
 void DXcbBackingStore::resize(const QSize &size, const QRegion &staticContents)
 {
-    qDebug() << "resize" << size << staticContents;
+//    qDebug() << "resize" << size << staticContents;
 
     const int dpr = int(window()->devicePixelRatio());
     const QSize xSize = size * dpr;
@@ -519,8 +519,11 @@ void DXcbBackingStore::resize(const QSize &size, const QRegion &staticContents)
     updateClipPath();
     //! TODO: update window margins
     //    updateWindowMargins();
-    paintWindowShadow();
-    updateInputShapeRegion();
+
+    if (!isUserSetClipPath) {
+        paintWindowShadow();
+        updateInputShapeRegion();
+    }
 }
 
 void DXcbBackingStore::beginPaint(const QRegion &reg)
@@ -582,10 +585,6 @@ void DXcbBackingStore::updateFrameExtents()
 
 void DXcbBackingStore::updateInputShapeRegion()
 {
-    if (isUserSetClipPath) {
-        return;
-    }
-
     QRegion region(windowGeometry().adjusted(-MOUSE_MARGINS, -MOUSE_MARGINS, MOUSE_MARGINS, MOUSE_MARGINS));
 
     Utility::setInputShapeRectangles(window()->winId(), region);
@@ -754,6 +753,12 @@ void DXcbBackingStore::setClipPah(const QPainterPath &path)
         m_clipPath = path;
         m_windowClipPath = m_clipPath.translated(windowOffset());
         windowValidRect = m_clipPath.boundingRect().toRect();
+
+        if (isUserSetClipPath) {
+            shadowPixmap = QPixmap();
+
+            paintWindowShadow();
+        }
     }
 }
 
