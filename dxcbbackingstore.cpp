@@ -520,10 +520,12 @@ void DXcbBackingStore::resize(const QSize &size, const QRegion &staticContents)
     //! TODO: update window margins
     //    updateWindowMargins();
 
-    if (!isUserSetClipPath) {
-        paintWindowShadow();
+    if (!isUserSetClipPath || shadowPixmap.isNull()) {
         updateInputShapeRegion();
+        updateWindowShadow();
     }
+
+    paintWindowShadow();
 }
 
 void DXcbBackingStore::beginPaint(const QRegion &reg)
@@ -585,6 +587,9 @@ void DXcbBackingStore::updateFrameExtents()
 
 void DXcbBackingStore::updateInputShapeRegion()
 {
+    if (isUserSetClipPath)
+        return;
+
     QRegion region(windowGeometry().adjusted(-MOUSE_MARGINS, -MOUSE_MARGINS, MOUSE_MARGINS, MOUSE_MARGINS));
 
     Utility::setInputShapeRectangles(window()->winId(), region);
@@ -616,7 +621,7 @@ void DXcbBackingStore::updateBorderWidth()
         shadowPixmap = QPixmap();
 
         updateFrameExtents();
-        paintWindowShadow();
+        updateWindowShadow();
     }
 }
 
@@ -629,7 +634,7 @@ void DXcbBackingStore::updateBorderColor()
         m_borderColor = color;
         shadowPixmap = QPixmap();
 
-        paintWindowShadow();
+        updateWindowShadow();
     }
 }
 
@@ -692,7 +697,7 @@ void DXcbBackingStore::updateShadowRadius()
         m_shadowRadius = radius;
         shadowPixmap = QPixmap();
 
-        paintWindowShadow();
+        updateWindowShadow();
     }
 }
 
@@ -705,7 +710,7 @@ void DXcbBackingStore::updateShadowOffset()
         m_shadowOffset = offset;
         shadowPixmap = QPixmap();
 
-        paintWindowShadow();
+        updateWindowShadow();
     }
 }
 
@@ -718,7 +723,7 @@ void DXcbBackingStore::updateShadowColor()
         m_shadowColor = color;
         shadowPixmap = QPixmap();
 
-        paintWindowShadow();
+        updateWindowShadow();
     }
 }
 
@@ -757,9 +762,36 @@ void DXcbBackingStore::setClipPah(const QPainterPath &path)
         if (isUserSetClipPath) {
             shadowPixmap = QPixmap();
 
-            paintWindowShadow();
+            updateWindowShadow();
         }
     }
+}
+
+void DXcbBackingStore::paintWindowShadow()
+{
+    QPainter pa;
+
+    /// begin paint window drop shadow
+    pa.begin(m_proxy->paintDevice());
+    pa.setCompositionMode(QPainter::CompositionMode_Source);
+    pa.drawPixmap(0, 0, shadowPixmap);
+    pa.end();
+
+    XcbWindowHook *window_hook = XcbWindowHook::getHookByWindow(window()->handle());
+
+    if (window_hook)
+        window_hook->windowMargins = QMargins(0, 0, 0, 0);
+
+    QRegion region;
+
+    region += QRect(windowOffset().x(), 0, m_size.width(), windowOffset().y());
+    region += QRect(0, 0, windowOffset().x(), m_size.height());
+
+    m_proxy->flush(window(), region, QPoint(0, 0));
+
+    if (window_hook)
+        window_hook->windowMargins = windowMargins;
+    /// end
 }
 
 inline QSize margins2Size(const QMargins &margins)
@@ -768,7 +800,7 @@ inline QSize margins2Size(const QMargins &margins)
                  margins.top() + margins.bottom());
 }
 
-void DXcbBackingStore::paintWindowShadow()
+void DXcbBackingStore::updateWindowShadow()
 {
     QPixmap pixmap(m_image.size());
 
@@ -824,27 +856,7 @@ void DXcbBackingStore::paintWindowShadow()
         shadowPixmap = QPixmap::fromImage(Utility::borderImage(shadowPixmap, windowMargins + m_windowRadius, m_size));
     }
 
-    /// begin paint window drop shadow
-    pa.begin(m_proxy->paintDevice());
-    pa.setCompositionMode(QPainter::CompositionMode_Source);
-    pa.drawPixmap(0, 0, shadowPixmap);
-    pa.end();
-
-    XcbWindowHook *window_hook = XcbWindowHook::getHookByWindow(window()->handle());
-
-    if (window_hook)
-        window_hook->windowMargins = QMargins(0, 0, 0, 0);
-
-    QRegion region;
-
-    region += QRect(windowOffset().x(), 0, m_size.width(), windowOffset().y());
-    region += QRect(0, 0, windowOffset().x(), m_size.height());
-
-    m_proxy->flush(window(), region, QPoint(0, 0));
-
-    if (window_hook)
-        window_hook->windowMargins = windowMargins;
-    /// end
+    paintWindowShadow();
 }
 
 bool DXcbBackingStore::isWidgetWindow(const QWindow *window)
@@ -872,7 +884,7 @@ void DXcbBackingStore::onWindowStateChanged()
 {
     updateClipPath();
     updateFrameExtents();
-    paintWindowShadow();
+    updateWindowShadow();
 }
 
 void DXcbBackingStore::handlePropertyNotifyEvent(const xcb_property_notify_event_t *event)

@@ -49,6 +49,7 @@ private:
     void updateFrameExtents();
     void updateInputShapeRegion();
     void updateClipPath();
+    void updateWindowShadow();
 
     /// update of user propertys
     void updateWindowRadius();

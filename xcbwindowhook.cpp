@@ -1,6 +1,7 @@
 #include "xcbwindowhook.h"
 #include "vtablehook.h"
 #include "global.h"
+#include "utility.h"
 
 #include <private/qwindow_p.h>
 
@@ -113,6 +114,7 @@ void XcbWindowHook::setMask(const QRegion &region)
 
     CALL::window()->setProperty(clipPath, QVariant::fromValue(path));
 //    CALL::setMask(tmp_region);
+    Utility::setInputShapeRectangles(CALL::winId(), tmp_region);
 }
 
 void XcbWindowHook::propagateSizeHints()
