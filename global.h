@@ -9,6 +9,7 @@
 
 #define DEFINE_CONST_CHAR(Name) const char Name[] = #Name
 
+DEFINE_CONST_CHAR(useDxcb);
 DEFINE_CONST_CHAR(netWmStates);
 DEFINE_CONST_CHAR(windowRadius);
 DEFINE_CONST_CHAR(borderWidth);

@@ -44,6 +44,8 @@ public:
     void beginPaint(const QRegion &) Q_DECL_OVERRIDE;
     void endPaint() Q_DECL_OVERRIDE;
 
+    static bool isWidgetWindow(const QWindow *window);
+
 private:
     void initUserPropertys();
 
@@ -72,7 +74,6 @@ private:
 
     inline bool isWidgetWindow() const
     { return isWidgetWindow(window());}
-    static bool isWidgetWindow(const QWindow *window);
     QWidgetWindow *widgetWindow() const;
 
     inline QPoint windowOffset() const
