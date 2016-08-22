@@ -81,15 +81,6 @@ protected:
         case QEvent::MouseButtonRelease: {
             DQMouseEvent *e = static_cast<DQMouseEvent*>(event);
 
-            if (e->buttons() == Qt::LeftButton) {
-                if (e->type() == QEvent::MouseButtonPress)
-                    setLeftButtonPressed(true);
-                else if (e->type() == QEvent::MouseButtonRelease)
-                    setLeftButtonPressed(false);
-            } else {
-                setLeftButtonPressed(false);
-            }
-
             e->l -= m_store->windowOffset();
             e->w -= m_store->windowOffset();
 
@@ -98,8 +89,8 @@ protected:
 
             const QRect &window_visible_rect = m_store->windowValidRect.translated(window_geometry.topLeft());
 
-            if (!window_visible_rect.contains(e->globalPos())
-                    || !m_store->m_clipPath.contains(e->windowPos())) {
+            if (!leftButtonPressed && (!window_visible_rect.contains(e->globalPos())
+                    || !m_store->m_clipPath.contains(e->windowPos()))) {
                 if (event->type() == QEvent::MouseMove) {
                     bool isFixedWidth = window->minimumWidth() == window->maximumWidth();
                     bool isFixedHeight = window->minimumHeight() == window->maximumHeight();
@@ -183,7 +174,7 @@ set_edge:
                         goto skip_set_cursor;
                     }
 set_cursor:
-                    if (leftButtonPressed) {
+                    if (qApp->mouseButtons() == Qt::LeftButton) {
                         Utility::startWindowSystemResize(window->winId(), mouseCorner, e->globalPos());
 
                         cancelAdsorbCursor();
@@ -195,6 +186,15 @@ set_cursor:
                 return true;
             }
 skip_set_cursor:
+            if (e->buttons() == Qt::LeftButton) {
+                if (e->type() == QEvent::MouseButtonPress)
+                    setLeftButtonPressed(true);
+                else if (e->type() == QEvent::MouseButtonRelease)
+                    setLeftButtonPressed(false);
+            } else {
+                setLeftButtonPressed(false);
+            }
+
             qApp->setOverrideCursor(window->cursor());
 
             cancelAdsorbCursor();
@@ -372,6 +372,7 @@ private:
         cursorAnimation.start();
     }
 
+    /// mouse left button is pressed in window vaild geometry
     bool leftButtonPressed = false;
 
     bool canAdsorbCursor = false;
