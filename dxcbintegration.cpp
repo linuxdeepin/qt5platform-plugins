@@ -1,4 +1,4 @@
-#include "genericplugin.h"
+#include "dxcbintegration.h"
 #include "xcbwindowhook.h"
 #include "dxcbbackingstore.h"
 #include "global.h"
@@ -10,13 +10,13 @@
 
 #include <QWidget>
 
-GenericPlugin::GenericPlugin(const QStringList &parameters, int &argc, char **argv)
+DXcbIntegration::DXcbIntegration(const QStringList &parameters, int &argc, char **argv)
     : QXcbIntegration(parameters, argc, argv)
 {
 
 }
 
-QPlatformWindow *GenericPlugin::createPlatformWindow(QWindow *window) const
+QPlatformWindow *DXcbIntegration::createPlatformWindow(QWindow *window) const
 {
     qDebug() << __FUNCTION__ << window << window->type() << window->parent();
 
@@ -43,7 +43,7 @@ QPlatformWindow *GenericPlugin::createPlatformWindow(QWindow *window) const
     return w;
 }
 
-QPlatformBackingStore *GenericPlugin::createPlatformBackingStore(QWindow *window) const
+QPlatformBackingStore *DXcbIntegration::createPlatformBackingStore(QWindow *window) const
 {
     qDebug() << __FUNCTION__ << window << window->type() << window->parent();
 

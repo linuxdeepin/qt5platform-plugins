@@ -5,10 +5,10 @@
 
 class XcbWindowHook;
 
-class GenericPlugin : public QXcbIntegration
+class DXcbIntegration : public QXcbIntegration
 {
 public:
-    GenericPlugin(const QStringList &parameters, int &argc, char **argv);
+    DXcbIntegration(const QStringList &parameters, int &argc, char **argv);
 
     QPlatformWindow *createPlatformWindow(QWindow *window) const Q_DECL_OVERRIDE;
     QPlatformBackingStore *createPlatformBackingStore(QWindow *window) const Q_DECL_OVERRIDE;

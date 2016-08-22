@@ -19,14 +19,14 @@ CONFIG += plugin c++11
 
 SOURCES += \
     $$PWD/main.cpp \
-    $$PWD/genericplugin.cpp \
+    $$PWD/dxcbintegration.cpp \
     $$PWD/dxcbbackingstore.cpp \
     $$PWD/vtablehook.cpp \
     $$PWD/xcbwindowhook.cpp \
     $$PWD/utility.cpp
 
 HEADERS += \
-    $$PWD/genericplugin.h \
+    $$PWD/dxcbintegration.h \
     $$PWD/dxcbbackingstore.h \
     $$PWD/vtablehook.h \
     $$PWD/xcbwindowhook.h \

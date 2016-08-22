@@ -32,7 +32,7 @@
 ****************************************************************************/
 
 #include <qpa/qplatformintegrationplugin.h>
-#include "genericplugin.h"
+#include "dxcbintegration.h"
 
 #include <QDebug>
 
@@ -49,7 +49,7 @@ public:
 QPlatformIntegration* QXcbIntegrationPlugin::create(const QString& system, const QStringList& parameters, int &argc, char **argv)
 {
     if (!system.compare(QLatin1String("dxcb"), Qt::CaseInsensitive))
-        return new GenericPlugin(parameters, argc, argv);
+        return new DXcbIntegration(parameters, argc, argv);
 
     return 0;
 }
