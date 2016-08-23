@@ -19,8 +19,9 @@ public:
         if (!objToVfptr.contains((qintptr**)t1) && !copyVtable((qintptr**)t1))
             return false;
 
-        qintptr fun1_offset = *(qintptr*)(&fun1) - 1;
-        qintptr fun2_offset = *(qintptr*)(&fun2) - 1;
+        //! ({code}) in the form of a code is to eliminate - Wstrict - aliasing build warnings
+        qintptr fun1_offset = ({qintptr *f = (qintptr *)&fun1; *f - 1;});
+        qintptr fun2_offset = ({qintptr *f = (qintptr *)&fun2; *f - 1;});
 
         if (fun1_offset < 0 || fun1_offset > UINT_LEAST16_MAX || fun2_offset < 0)
             return false;
@@ -53,7 +54,8 @@ public:
         if (!vfptr_t2)
             return false;
 
-        qintptr fun1_offset = *(qintptr*)(&fun1) - 1;
+        //! ({code}) in the form of a code is to eliminate - Wstrict - aliasing build warnings
+        qintptr fun1_offset = ({qintptr *f = (qintptr *)&fun1; *f - 1;});
 
         if (fun1_offset < 0 || fun1_offset > UINT_LEAST16_MAX)
             return false;
