@@ -41,7 +41,7 @@ public:
 
     void resize(const QSize &size, const QRegion &staticContents) Q_DECL_OVERRIDE;
 
-    void beginPaint(const QRegion &) Q_DECL_OVERRIDE;
+    void beginPaint(const QRegion &region) Q_DECL_OVERRIDE;
     void endPaint() Q_DECL_OVERRIDE;
 
     static bool isWidgetWindow(const QWindow *window);

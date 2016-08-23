@@ -447,18 +447,26 @@ QPaintDevice *DXcbBackingStore::paintDevice()
 
 void DXcbBackingStore::flush(QWindow *window, const QRegion &region, const QPoint &offset)
 {
+    Q_UNUSED(region)
+
     const QPoint &windowOffset = this->windowOffset();
-    QRegion tmp_region = region.translated(windowOffset);
+    QRegion tmp_region;
 
 //    qDebug() << "flush" << window << tmp_region << offset;
 
     QPainter pa(m_proxy->paintDevice());
 
     pa.setCompositionMode(QPainter::CompositionMode_Source);
-    pa.drawPixmap(windowOffset, shadowPixmap, windowGeometry());
     pa.setRenderHint(QPainter::Antialiasing);
     pa.setClipPath(m_windowClipPath);
-    pa.drawImage(windowOffset, m_image);
+
+    for (const QRect &rect : region.rects()) {
+        const QRect &tmp_rect = rect.translated(windowOffset);
+
+        pa.drawImage(tmp_rect, m_image, rect);
+        tmp_region += tmp_rect;
+    }
+
     pa.end();
 
     if (oldWindowOffset != windowOffset) {
@@ -495,8 +503,7 @@ QImage DXcbBackingStore::toImage() const
     return m_image;
 }
 
-GLuint DXcbBackingStore::toTexture(const QRegion &dirtyRegion, QSize *textureSize,
-                                   QPlatformBackingStore::TextureFlags *flags) const
+GLuint DXcbBackingStore::toTexture(const QRegion &dirtyRegion, QSize *textureSize, TextureFlags *flags) const
 {
     return m_proxy->toTexture(dirtyRegion, textureSize, flags);
 }
@@ -518,7 +525,7 @@ void DXcbBackingStore::resize(const QSize &size, const QRegion &staticContents)
     if (m_graphicsBuffer)
         delete m_graphicsBuffer;
 
-    m_image = QImage(xSize, QImage::Format_ARGB32_Premultiplied);
+    m_image = QImage(xSize, QImage::Format_RGB32);
     m_image.setDevicePixelRatio(dpr);
 //    m_image.fill(Qt::transparent);
     // Slow path for bgr888 VNC: Create an additional image, paint into that and
@@ -543,26 +550,23 @@ void DXcbBackingStore::resize(const QSize &size, const QRegion &staticContents)
     paintWindowShadow();
 }
 
-void DXcbBackingStore::beginPaint(const QRegion &reg)
+void DXcbBackingStore::beginPaint(const QRegion &region)
 {
-//    qDebug() << "begin paint" << reg << window()->geometry();
-
-    QPainter pa(&m_image);
-
-    pa.setCompositionMode(QPainter::CompositionMode_Clear);
-
-    for (const QRect &rect : reg.rects()) {
-        pa.fillRect(rect, Qt::transparent);
+    if (m_image.hasAlphaChannel()) {
+        QPainter p(paintDevice());
+        p.setCompositionMode(QPainter::CompositionMode_Source);
+        const QVector<QRect> rects = region.rects();
+        const QColor blank = Qt::transparent;
+        for (QVector<QRect>::const_iterator it = rects.begin(); it != rects.end(); ++it) {
+            const QRect &rect = it->translated(windowOffset());
+            p.fillRect(rect, blank);
+        }
     }
-
-    pa.end();
-
-    m_proxy->beginPaint(reg.translated(windowOffset()));
 }
 
 void DXcbBackingStore::endPaint()
 {
-    m_proxy->endPaint();
+//    m_proxy->endPaint();
 
 //    qDebug() << "end paint";
 }
