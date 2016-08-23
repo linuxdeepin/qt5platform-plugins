@@ -918,7 +918,7 @@ void DXcbBackingStore::onWindowStateChanged()
 {
     updateClipPath();
     updateFrameExtents();
-    updateWindowShadow();
+    doDelayedUpdateWindowShadow();
 }
 
 void DXcbBackingStore::handlePropertyNotifyEvent(const xcb_property_notify_event_t *event)
