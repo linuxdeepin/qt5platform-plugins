@@ -744,13 +744,13 @@ void DXcbBackingStore::setWindowMargins(const QMargins &margins)
     windowMargins = margins;
     m_windowClipPath = m_clipPath.translated(windowOffset());
 
+    const QRect &window_geometry = window()->geometry();
+
     XcbWindowHook *hook = XcbWindowHook::getHookByWindow(m_proxy->window()->handle());
 
-    if (!hook) {
-        return;
+    if (hook) {
+        hook->windowMargins = margins;
     }
-
-    hook->windowMargins = margins;
 
     const QSize &tmp_size = m_image.size();
 
@@ -761,6 +761,8 @@ void DXcbBackingStore::setWindowMargins(const QMargins &margins)
 
     updateInputShapeRegion();
     updateFrameExtents();
+
+    window()->setGeometry(window_geometry);
 
     repaintWindowShadow();
 }
