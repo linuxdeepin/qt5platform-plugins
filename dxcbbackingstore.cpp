@@ -469,13 +469,6 @@ void DXcbBackingStore::flush(QWindow *window, const QRegion &region, const QPoin
 
     pa.end();
 
-    if (oldWindowOffset != windowOffset) {
-        /// redress window position
-        window->setGeometry(window->geometry().translated(oldWindowOffset - windowOffset));
-
-        oldWindowOffset = windowOffset;
-    }
-
     XcbWindowHook *window_hook = XcbWindowHook::getHookByWindow(window->handle());
 
     if (window_hook)
@@ -748,13 +741,7 @@ void DXcbBackingStore::setWindowMargins(const QMargins &margins)
     if (windowMargins == margins)
         return;
 
-    oldWindowOffset = windowOffset();       ///
-                                            ///
-    windowMargins = margins;                ///   Order is important
-                                            ///
-    if (!window()->isVisible())             ///
-        oldWindowOffset = windowOffset();   ///
-
+    windowMargins = margins;
     m_windowClipPath = m_clipPath.translated(windowOffset());
 
     XcbWindowHook *hook = XcbWindowHook::getHookByWindow(m_proxy->window()->handle());
@@ -765,12 +752,17 @@ void DXcbBackingStore::setWindowMargins(const QMargins &margins)
 
     hook->windowMargins = margins;
 
-    const QSize &tmp_size = window()->handle()->QPlatformWindow::geometry().size();
+    const QSize &tmp_size = m_image.size();
 
     m_size = QSize(tmp_size.width() + windowMargins.left() + windowMargins.right(),
                    tmp_size.height() + windowMargins.top() + windowMargins.bottom());
 
     m_proxy->resize(m_size, QRegion());
+
+    updateInputShapeRegion();
+    updateFrameExtents();
+
+    repaintWindowShadow();
 }
 
 void DXcbBackingStore::setClipPah(const QPainterPath &path)
@@ -822,7 +814,7 @@ void DXcbBackingStore::repaintWindowShadow()
     updateWindowShadow();
     paintWindowShadow(QRegion(0, 0, m_size.width(), m_size.height()));
 
-    flush(window(), QRegion(0, 0, m_image.width(), m_image.height()), QPoint(0, 0));
+    flush(window(), QRect(QPoint(0, 0), m_image.size()), QPoint(0, 0));
 }
 
 inline QSize margins2Size(const QMargins &margins)

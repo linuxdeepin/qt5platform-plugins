@@ -112,9 +112,6 @@ private:
 
     QBasicTimer updateShadowTimer;
 
-    /// Settings window margins before the window position deviation
-    QPoint oldWindowOffset;
-
     friend class WindowEventListener;
 };
 
