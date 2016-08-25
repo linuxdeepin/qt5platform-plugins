@@ -98,11 +98,11 @@ private:
     bool isUserSetClipPath = false;
     QPainterPath m_clipPath;
     QPainterPath m_windowClipPath;
-    QColor m_borderColor = QColor(255, 0, 0, 255 * 0.5);
+    QColor m_borderColor = QColor(0, 0, 0, 255 * 0.15);
 
-    int m_shadowRadius = 20;//40;
-    QPoint m_shadowOffset = QPoint(0, 0);
-    QColor m_shadowColor = Qt::black;//QColor(0, 0, 0, 255 * 0.5);
+    int m_shadowRadius = 40;
+    QPoint m_shadowOffset = QPoint(0, 10);
+    QColor m_shadowColor = QColor(0, 0, 0, 255 * 0.3);
     QPixmap shadowPixmap;
 
     QRect windowValidRect;
