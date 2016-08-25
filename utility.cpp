@@ -9,6 +9,9 @@
 #include <xcb/xproto.h>
 #include <xcb/shape.h>
 
+#include <X11/cursorfont.h>
+#include <X11/Xlib.h>
+
 #define _NET_WM_MOVERESIZE_MOVE              8   /* movement only */
 #define _NET_WM_MOVERESIZE_CANCEL           11   /* cancel operation */
 
@@ -118,12 +121,12 @@ xcb_atom_t internAtom(const char *name)
     return atom;
 }
 
-void Utility::moveWindow(uint WId)
+void Utility::startWindowSystemMove(uint WId)
 {
     sendMoveResizeMessage(WId, _NET_WM_MOVERESIZE_MOVE);
 }
 
-void Utility::cancelMoveWindow(uint WId)
+void Utility::cancelWindowMoveResize(uint WId)
 {
     sendMoveResizeMessage(WId, _NET_WM_MOVERESIZE_CANCEL);
 }
@@ -200,6 +203,48 @@ void Utility::sendMoveResizeMessage(uint WId, uint32_t action, QPoint globalPos,
 void Utility::startWindowSystemResize(uint WId, CornerEdge cornerEdge, const QPoint &globalPos)
 {
     sendMoveResizeMessage(WId, cornerEdge, globalPos);
+}
+
+static xcb_cursor_t CornerEdge2Xcb_cursor_t(Utility::CornerEdge ce)
+{
+    switch (ce) {
+    case Utility::TopEdge:
+        return XC_top_side;
+    case Utility::TopRightCorner:
+        return XC_top_right_corner;
+    case Utility::RightEdge:
+        return XC_right_side;
+    case Utility::BottomRightCorner:
+        return XC_bottom_right_corner;
+    case Utility::BottomEdge:
+        return XC_bottom_side;
+    case Utility::BottomLeftCorner:
+        return XC_bottom_left_corner;
+    case Utility::LeftEdge:
+        return XC_left_side;
+    case Utility::TopLeftCorner:
+        return XC_top_left_corner;
+    default:
+        return XCB_CURSOR_NONE;
+    }
+}
+
+bool Utility::setWindowCursor(uint WId, Utility::CornerEdge ce)
+{
+    const auto display = QX11Info::display();
+
+    Cursor cursor = XCreateFontCursor(display, CornerEdge2Xcb_cursor_t(ce));
+
+    if (!cursor) {
+        qWarning() << "[ui]::setWindowCursor() call XCreateFontCursor() failed";
+        return false;
+    }
+
+    const int result = XDefineCursor(display, WId, cursor);
+
+    XFlush(display);
+
+    return result == Success;
 }
 
 QRegion Utility::regionAddMargins(const QRegion &region, const QMargins &margins, const QPoint &offset)

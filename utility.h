@@ -27,11 +27,12 @@ public:
 
     static QList<QRect> sudokuByRect(const QRect &rect, QMargins borders);
 
-    static void moveWindow(uint WId);
-    static void cancelMoveWindow(uint WId);
+    static void startWindowSystemMove(uint WId);
+    static void cancelWindowMoveResize(uint WId);
     static void setFrameExtents(uint WId, const QMargins &margins);
     static void setInputShapeRectangles(uint WId, const QRegion &region);
     static void startWindowSystemResize(uint WId, CornerEdge cornerEdge, const QPoint &globalPos = QPoint());
+    static bool setWindowCursor(uint WId, CornerEdge ce);
 
     static QRegion regionAddMargins(const QRegion &region, const QMargins &margins, const QPoint &offset = QPoint(0, 0));
 

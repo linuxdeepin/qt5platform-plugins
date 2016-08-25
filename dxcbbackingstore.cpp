@@ -110,8 +110,6 @@ protected:
                     if (cornerRect.contains(e->globalPos())) {
                         mouseCorner = Utility::TopLeftCorner;
 
-                        qApp->setOverrideCursor(Qt::SizeFDiagCursor);
-
                         goto set_cursor;
                     }
 
@@ -119,8 +117,6 @@ protected:
 
                     if (cornerRect.contains(e->globalPos())) {
                         mouseCorner = Utility::TopRightCorner;
-
-                        qApp->setOverrideCursor(Qt::SizeBDiagCursor);
 
                         goto set_cursor;
                     }
@@ -130,8 +126,6 @@ protected:
                     if (cornerRect.contains(e->globalPos())) {
                         mouseCorner = Utility::BottomRightCorner;
 
-                        qApp->setOverrideCursor(Qt::SizeFDiagCursor);
-
                         goto set_cursor;
                     }
 
@@ -139,8 +133,6 @@ protected:
 
                     if (cornerRect.contains(e->globalPos())) {
                         mouseCorner = Utility::BottomLeftCorner;
-
-                        qApp->setOverrideCursor(Qt::SizeBDiagCursor);
 
                         goto set_cursor;
                     }
@@ -151,8 +143,6 @@ set_edge:
                             goto skip_set_cursor;
 
                         mouseCorner = Utility::LeftEdge;
-
-                        qApp->setOverrideCursor(Qt::SizeHorCursor);
                     } else if (e->globalX() < window_visible_rect.right()) {
                         if (isFixedHeight)
                             goto skip_set_cursor;
@@ -164,16 +154,14 @@ set_edge:
                         } else {
                             goto skip_set_cursor;
                         }
-
-                        qApp->setOverrideCursor(Qt::SizeVerCursor);
                     } else if (!isFixedWidth && (!isFixedHeight || e->globalX() >= window_visible_rect.right())) {
                         mouseCorner = Utility::RightEdge;
-
-                        qApp->setOverrideCursor(Qt::SizeHorCursor);
                     } else {
                         goto skip_set_cursor;
                     }
 set_cursor:
+                    Utility::setWindowCursor(window->winId(), mouseCorner);
+
                     if (qApp->mouseButtons() == Qt::LeftButton) {
                         Utility::startWindowSystemResize(window->winId(), mouseCorner, e->globalPos());
 
@@ -181,6 +169,8 @@ set_cursor:
                     } else {
                         adsorbCursor(mouseCorner);
                     }
+                } else if (event->type() == QEvent::MouseButtonRelease) {
+                    Utility::cancelWindowMoveResize(window->winId());
                 }
 
                 return true;
@@ -255,7 +245,7 @@ skip_set_cursor:
     {
         Q_UNUSED(event);
 
-        Utility::moveWindow(reinterpret_cast<QWidget*>(this)->winId());
+        Utility::startWindowSystemMove(reinterpret_cast<QWidget*>(this)->winId());
     }
 
     void timerEvent(QTimerEvent *event) Q_DECL_OVERRIDE
@@ -272,7 +262,7 @@ private:
             return;
 
         if (!pressed)
-            Utility::cancelMoveWindow(m_store->window()->winId());
+            Utility::cancelWindowMoveResize(m_store->window()->winId());
 
         leftButtonPressed = pressed;
 
