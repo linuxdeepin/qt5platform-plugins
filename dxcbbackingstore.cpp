@@ -429,6 +429,11 @@ DXcbBackingStore::DXcbBackingStore(QWindow *window, QXcbBackingStore *proxy)
 
     VtableHook::overrideVfptrFun(static_cast<QXcbWindow*>(window->handle()), &QXcbWindowEventListener::handlePropertyNotifyEvent,
                                  this, &DXcbBackingStore::handlePropertyNotifyEvent);
+
+    QObject::connect(window, &QWindow::windowStateChanged,
+                     m_eventListener, [window, this] {
+        updateWindowMargins(false);
+    });
 }
 
 DXcbBackingStore::~DXcbBackingStore()
@@ -576,12 +581,27 @@ void DXcbBackingStore::initUserPropertys()
     updateShadowColor();
 }
 
-void DXcbBackingStore::updateWindowMargins()
+void DXcbBackingStore::updateWindowMargins(bool repaintShadow)
 {
-    setWindowMargins(QMargins(m_shadowRadius - m_shadowOffset.x(),
-                              m_shadowRadius - m_shadowOffset.y(),
-                              m_shadowRadius + m_shadowOffset.x(),
-                              m_shadowRadius + m_shadowOffset.y()));
+    Qt::WindowState state = window()->windowState();
+
+    const QMargins old_margins = windowMargins;
+    const QRect &window_geometry = window()->geometry();
+
+    if (state == Qt::WindowMaximized || state == Qt::WindowFullScreen) {
+        setWindowMargins(QMargins(0, 0, 0, 0));
+    } else {
+        setWindowMargins(QMargins(m_shadowRadius - m_shadowOffset.x(),
+                                  m_shadowRadius - m_shadowOffset.y(),
+                                  m_shadowRadius + m_shadowOffset.x(),
+                                  m_shadowRadius + m_shadowOffset.y()));
+    }
+
+    if (repaintShadow && old_margins != windowMargins) {
+        window()->setGeometry(window_geometry);
+
+        repaintWindowShadow();
+    }
 }
 
 void DXcbBackingStore::updateFrameExtents()
@@ -744,8 +764,6 @@ void DXcbBackingStore::setWindowMargins(const QMargins &margins)
     windowMargins = margins;
     m_windowClipPath = m_clipPath.translated(windowOffset());
 
-    const QRect &window_geometry = window()->geometry();
-
     XcbWindowHook *hook = XcbWindowHook::getHookByWindow(m_proxy->window()->handle());
 
     if (hook) {
@@ -761,10 +779,6 @@ void DXcbBackingStore::setWindowMargins(const QMargins &margins)
 
     updateInputShapeRegion();
     updateFrameExtents();
-
-    window()->setGeometry(window_geometry);
-
-    repaintWindowShadow();
 }
 
 void DXcbBackingStore::setClipPah(const QPainterPath &path)
@@ -926,5 +940,24 @@ void DXcbBackingStore::handlePropertyNotifyEvent(const xcb_property_notify_event
         QXcbWindow::NetWmStates states = window->netWmStates();
 
         window->window()->setProperty(netWmStates, (int)states);
+
+        QWindow *ww = window->window();
+
+        switch (states) {
+        case 0:
+            if (ww->windowState() != Qt::WindowNoState)
+                ww->setWindowState(Qt::WindowNoState);
+            break;
+        case QXcbWindow::NetWmStateFullScreen:
+            if (ww->windowState() != Qt::WindowFullScreen)
+                ww->setWindowState(Qt::WindowFullScreen);
+            break;
+        case QXcbWindow::NetWmStateMaximizedHorz | QXcbWindow::NetWmStateMaximizedVert:
+            if (ww->windowState() != Qt::WindowMaximized)
+                ww->setWindowState(Qt::WindowMaximized);
+            break;
+        default:
+            break;
+        }
     }
 }
