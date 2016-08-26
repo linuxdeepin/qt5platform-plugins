@@ -870,7 +870,7 @@ void DXcbBackingStore::updateWindowShadow()
         transform.scale((clipRect.width() - 4) / clipRect.width(),
                         (clipRect.height() - 4) / clipRect.height());
 
-        pa.setCompositionMode(QPainter::CompositionMode_Source);
+//        pa.setCompositionMode(QPainter::CompositionMode_Source);
         pa.setRenderHint(QPainter::Antialiasing);
         pa.fillPath(pathStroker.createStroke(m_windowClipPath), m_borderColor);
         pa.setCompositionMode(QPainter::CompositionMode_Clear);
