@@ -93,16 +93,16 @@ private:
     WindowEventListener *m_eventListener;
     DXcbShmGraphicsBuffer *m_graphicsBuffer = Q_NULLPTR;
 
-    int m_windowRadius = 10;
+    int m_windowRadius = 4;
     int m_borderWidth = 1;
     bool isUserSetClipPath = false;
     QPainterPath m_clipPath;
     QPainterPath m_windowClipPath;
     QColor m_borderColor = QColor(0, 0, 0, 255 * 0.15);
 
-    int m_shadowRadius = 40;
-    QPoint m_shadowOffset = QPoint(0, 10);
-    QColor m_shadowColor = QColor(0, 0, 0, 255 * 0.3);
+    int m_shadowRadius = 60;
+    QPoint m_shadowOffset = QPoint(0, 16);
+    QColor m_shadowColor = QColor(0, 0, 0, 255 * 0.6);
     QPixmap shadowPixmap;
 
     QRect windowValidRect;
