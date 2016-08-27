@@ -65,6 +65,9 @@ private:
     void updateShadowRadius();
     void updateShadowOffset();
     void updateShadowColor();
+    void updateTranslucentBackground();
+    void updateEnableSystemResize();
+    void updateEnableSystemMove();
 
     void setWindowMargins(const QMargins &margins);
     void setClipPah(const QPainterPath &path);
@@ -104,6 +107,10 @@ private:
     QPoint m_shadowOffset = QPoint(0, 16);
     QColor m_shadowColor = QColor(0, 0, 0, 255 * 0.6);
     QPixmap shadowPixmap;
+
+    bool m_translucentBackground = false;
+    bool m_enableSystemResize = true;
+    bool m_enableSystemMove = true;
 
     QRect windowValidRect;
     QMargins windowMargins;

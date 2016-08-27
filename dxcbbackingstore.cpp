@@ -84,10 +84,10 @@ protected:
             e->l -= m_store->windowOffset();
             e->w -= m_store->windowOffset();
 
-            if (window->minimumSize() == window->maximumSize())
-                break;
-
             const QRect &window_visible_rect = m_store->windowValidRect.translated(window_geometry.topLeft());
+
+            if (window->minimumSize() == window->maximumSize() || !m_store->m_enableSystemResize)
+                goto skip_set_cursor;
 
             if (!leftButtonPressed && (!window_visible_rect.contains(e->globalPos())
                     || !m_store->m_clipPath.contains(e->windowPos()))) {
@@ -188,7 +188,7 @@ skip_set_cursor:
             qApp->setOverrideCursor(window->cursor());
 
             cancelAdsorbCursor();
-            canAdsorbCursor = true;
+            canAdsorbCursor = m_store->m_enableSystemResize;
 
             break;
         }
@@ -202,7 +202,7 @@ skip_set_cursor:
             break;
         }
         case QEvent::Enter:
-            canAdsorbCursor = true;
+            canAdsorbCursor = m_store->m_enableSystemResize;
 
             break;
         case QEvent::Leave:
@@ -231,6 +231,26 @@ skip_set_cursor:
                 m_store->updateUserClipPath();
             } else if (e->propertyName() == frameMask) {
                 m_store->updateFrameMask();
+            } else if (e->propertyName() == translucentBackground) {
+                m_store->updateTranslucentBackground();
+            } else if (e->propertyName() == enableSystemResize) {
+                m_store->updateEnableSystemResize();
+
+                if (!m_store->m_enableSystemMove) {
+                    qApp->setOverrideCursor(window->cursor());
+
+                    cancelAdsorbCursor();
+                    canAdsorbCursor = false;
+
+                    Utility::cancelWindowMoveResize(window->winId());
+                }
+            } else if (e->propertyName() == enableSystemMove) {
+                m_store->updateEnableSystemMove();
+
+                if (!m_store->m_enableSystemMove)
+                    Utility::cancelWindowMoveResize(window->winId());
+
+                updateStealMoveEvent();
             }
 
             break;
@@ -266,12 +286,17 @@ private:
 
         leftButtonPressed = pressed;
 
+        updateStealMoveEvent();
+    }
+
+    void updateStealMoveEvent()
+    {
         const QWidgetWindow *widgetWindow = m_store->widgetWindow();
 
         QWidget *widget = widgetWindow->widget();
 
         if (widget) {
-            if (pressed) {
+            if (leftButtonPressed && m_store->m_enableSystemMove) {
                 VtableHook::overrideVfptrFun(static_cast<DQWidget*>(widget), &DQWidget::mouseMoveEvent,
                                              this, &WindowEventListener::mouseMoveEvent);
             } else {
@@ -280,7 +305,7 @@ private:
         } else {
             QWindow *window = m_store->window();
 
-            if (pressed) {
+            if (leftButtonPressed && m_store->m_enableSystemMove) {
                 VtableHook::overrideVfptrFun(static_cast<DQWindow*>(window), &DQWindow::mouseMoveEvent,
                                              this, &WindowEventListener::mouseMoveEvent);
             } else {
@@ -407,11 +432,11 @@ private:
 DXcbBackingStore::DXcbBackingStore(QWindow *window, QXcbBackingStore *proxy)
     : QPlatformBackingStore(window)
     , m_proxy(proxy)
-    , m_eventListener(new WindowEventListener(this))
 {
-    shadowPixmap.fill(Qt::transparent);
-
     initUserPropertys();
+
+    m_eventListener = new WindowEventListener(this);
+    shadowPixmap.fill(Qt::transparent);
 
     //! Warning: At this point you must be initialized window Margins and window Extents
     updateWindowMargins();
@@ -513,7 +538,7 @@ void DXcbBackingStore::resize(const QSize &size, const QRegion &staticContents)
     if (m_graphicsBuffer)
         delete m_graphicsBuffer;
 
-    m_image = QImage(xSize, QImage::Format_RGB32);
+    m_image = QImage(xSize, m_translucentBackground ? QImage::Format_ARGB32_Premultiplied : QImage::Format_RGB32);
     m_image.setDevicePixelRatio(dpr);
 //    m_image.fill(Qt::transparent);
     // Slow path for bgr888 VNC: Create an additional image, paint into that and
@@ -540,13 +565,13 @@ void DXcbBackingStore::resize(const QSize &size, const QRegion &staticContents)
 
 void DXcbBackingStore::beginPaint(const QRegion &region)
 {
-    if (m_image.hasAlphaChannel()) {
+    if (m_translucentBackground) {
         QPainter p(paintDevice());
         p.setCompositionMode(QPainter::CompositionMode_Source);
         const QVector<QRect> rects = region.rects();
         const QColor blank = Qt::transparent;
         for (QVector<QRect>::const_iterator it = rects.begin(); it != rects.end(); ++it) {
-            const QRect &rect = it->translated(windowOffset());
+            const QRect &rect = *it;
             p.fillRect(rect, blank);
         }
     }
@@ -569,6 +594,9 @@ void DXcbBackingStore::initUserPropertys()
     updateShadowRadius();
     updateShadowOffset();
     updateShadowColor();
+    updateTranslucentBackground();
+    updateEnableSystemMove();
+    updateEnableSystemResize();
 }
 
 void DXcbBackingStore::updateWindowMargins(bool repaintShadow)
@@ -621,6 +649,12 @@ void DXcbBackingStore::updateWindowRadius()
 {
     const QVariant &v = window()->property(windowRadius);
 
+    if (!v.isValid()) {
+        window()->setProperty(windowRadius, m_windowRadius);
+
+        return;
+    }
+
     bool ok;
     int radius = v.toInt(&ok);
 
@@ -634,6 +668,12 @@ void DXcbBackingStore::updateWindowRadius()
 void DXcbBackingStore::updateBorderWidth()
 {
     const QVariant &v = window()->property(borderWidth);
+
+    if (!v.isValid()) {
+        window()->setProperty(borderWidth, m_borderWidth);
+
+        return;
+    }
 
     bool ok;
     int width = v.toInt(&ok);
@@ -649,6 +689,13 @@ void DXcbBackingStore::updateBorderWidth()
 void DXcbBackingStore::updateBorderColor()
 {
     const QVariant &v = window()->property(borderColor);
+
+    if (!v.isValid()) {
+        window()->setProperty(borderColor, m_borderColor);
+
+        return;
+    }
+
     const QColor &color = qvariant_cast<QColor>(v);
 
     if (color.isValid() && m_borderColor != color) {
@@ -661,11 +708,16 @@ void DXcbBackingStore::updateBorderColor()
 void DXcbBackingStore::updateUserClipPath()
 {
     const QVariant &v = window()->property(clipPath);
+
+    if (!v.isValid()) {
+        window()->setProperty(clipPath, QVariant::fromValue(m_clipPath));
+
+        return;
+    }
+
     QPainterPath path;
 
-    if (v.isValid()) {
-        path = qvariant_cast<QPainterPath>(v);
-    }
+    path = qvariant_cast<QPainterPath>(v);
 
     if (!isUserSetClipPath && path.isEmpty())
         return;
@@ -696,8 +748,9 @@ void DXcbBackingStore::updateFrameMask()
 {
     const QVariant &v = window()->property(frameMask);
 
-    if (!v.isValid())
+    if (!v.isValid()) {
         return;
+    }
 
     QRegion region = qvariant_cast<QRegion>(v);
 
@@ -709,6 +762,12 @@ void DXcbBackingStore::updateFrameMask()
 void DXcbBackingStore::updateShadowRadius()
 {
     const QVariant &v = window()->property(shadowRadius);
+
+    if (!v.isValid()) {
+        window()->setProperty(shadowRadius, m_shadowRadius);
+
+        return;
+    }
 
     bool ok;
     int radius = v.toInt(&ok);
@@ -724,6 +783,13 @@ void DXcbBackingStore::updateShadowRadius()
 void DXcbBackingStore::updateShadowOffset()
 {
     const QVariant &v = window()->property(shadowOffset);
+
+    if (!v.isValid()) {
+        window()->setProperty(shadowOffset, m_shadowOffset);
+
+        return;
+    }
+
     const QPoint &offset = v.toPoint();
 
     if (!offset.isNull() && offset != m_shadowOffset) {
@@ -737,6 +803,13 @@ void DXcbBackingStore::updateShadowOffset()
 void DXcbBackingStore::updateShadowColor()
 {
     const QVariant &v = window()->property(shadowColor);
+
+    if (!v.isValid()) {
+        window()->setProperty(shadowColor, m_shadowColor);
+
+        return;
+    }
+
     const QColor &color = qvariant_cast<QColor>(v);
 
     if (color.isValid() && m_shadowColor != color) {
@@ -744,6 +817,45 @@ void DXcbBackingStore::updateShadowColor()
 
         doDelayedUpdateWindowShadow();
     }
+}
+
+void DXcbBackingStore::updateTranslucentBackground()
+{
+    const QVariant &v = window()->property(translucentBackground);
+
+    if (!v.isValid()) {
+        window()->setProperty(translucentBackground, m_translucentBackground);
+
+        return;
+    }
+
+    m_translucentBackground = v.toBool();
+}
+
+void DXcbBackingStore::updateEnableSystemResize()
+{
+    const QVariant &v = window()->property(enableSystemResize);
+
+    if (!v.isValid()) {
+        window()->setProperty(enableSystemResize, m_enableSystemResize);
+
+        return;
+    }
+
+    m_enableSystemResize = v.toBool();
+}
+
+void DXcbBackingStore::updateEnableSystemMove()
+{
+    const QVariant &v = window()->property(enableSystemMove);
+
+    if (!v.isValid()) {
+        window()->setProperty(enableSystemMove, m_enableSystemMove);
+
+        return;
+    }
+
+    m_enableSystemMove = v.toBool();
 }
 
 void DXcbBackingStore::setWindowMargins(const QMargins &margins)

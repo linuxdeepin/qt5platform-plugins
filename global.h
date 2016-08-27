@@ -7,7 +7,7 @@
     class D##Class : public Class\
     {friend class Target;}
 
-#define DEFINE_CONST_CHAR(Name) const char Name[] = #Name
+#define DEFINE_CONST_CHAR(Name) const char Name[] = "_d_" #Name
 
 DEFINE_CONST_CHAR(useDxcb);
 DEFINE_CONST_CHAR(netWmStates);
@@ -19,5 +19,8 @@ DEFINE_CONST_CHAR(shadowOffset);
 DEFINE_CONST_CHAR(shadowColor);
 DEFINE_CONST_CHAR(clipPath);
 DEFINE_CONST_CHAR(frameMask);
+DEFINE_CONST_CHAR(translucentBackground);
+DEFINE_CONST_CHAR(enableSystemResize);
+DEFINE_CONST_CHAR(enableSystemMove);
 
 #endif // GLOBAL_H
