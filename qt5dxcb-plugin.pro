@@ -9,13 +9,21 @@ PLUGIN_CLASS_NAME = DXcbIntegrationPlugin
 !equals(TARGET, $$QT_DEFAULT_QPA_PLUGIN): PLUGIN_EXTENDS = -
 
 QT       += opengl x11extras
-QT       += core-private gui-private platformsupport-private xcb_qpa_lib-private
+QT       += core-private gui-private platformsupport-private #xcb_qpa_lib-private
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets widgets-private
 
 TARGET = dxcb
 TEMPLATE = lib
 VERSION = $$QT_VERSION
-CONFIG += plugin c++11
+CONFIG += plugin c++11 pkg_config
+
+PKGCONFIG += x11-xcb xi xcb-renderutil sm ice xcb-render dbus-1 xcb \
+             xcb-image xcb-icccm xcb-sync xcb-xfixes xcb-shm xcb-randr xcb-shape \
+             xcb-keysyms xcb-xkb xkbcommon-x11
+
+greaterThan(QT_MINOR_VERSION, 5): PKGCONFIG += xcb-xinerama
+
+LIBS += -ldl -lQt5XcbQpa
 
 SOURCES += \
     $$PWD/main.cpp \
@@ -31,7 +39,7 @@ HEADERS += \
     $$PWD/vtablehook.h \
     $$PWD/xcbwindowhook.h \
     $$PWD/utility.h \
-    global.h
+    $$PWD/global.h
 
 DISTFILES += \
     $$PWD/dxcb.json
@@ -51,8 +59,8 @@ message(Qt Version: $$VERSION)
 
 exists($$PWD/libqt5xcbqpa-dev) {
     !system(cd $$PWD/libqt5xcbqpa-dev && git checkout $$VERSION) {
-        !system(git fetch -p):error(update libqt5xcbqpa header sources failed)
-        !system(git checkout $$VERSION)error(Not support Qt Version: $$VERSION)
+        !system(cd $$PWD/libqt5xcbqpa-dev && git fetch -p):error(update libqt5xcbqpa header sources failed)
+        !system(cd $$PWD/libqt5xcbqpa-dev && git checkout $$VERSION):error(Not support Qt Version: $$VERSION)
     }
 } else {
     !system(git clone https://github.com/zccrs/libqt5xcbqpa-dev.git):error(clone libqt5xcbqpa header sources failed)
