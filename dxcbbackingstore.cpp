@@ -53,6 +53,19 @@ public:
                 this, &WindowEventListener::startAnimation);
     }
 
+    ~WindowEventListener()
+    {
+        const QWidgetWindow *widgetWindow = m_store->widgetWindow();
+
+        QWidget *widget = widgetWindow->widget();
+
+        if (widget) {
+            VtableHook::clearGhostVtable(widget);
+        } else {
+            VtableHook::clearGhostVtable(m_store->window());
+        }
+    }
+
 protected:
     bool eventFilter(QObject *obj, QEvent *event) Q_DECL_OVERRIDE
     {
@@ -446,7 +459,7 @@ DXcbBackingStore::DXcbBackingStore(QWindow *window, QXcbBackingStore *proxy)
                                  this, &DXcbBackingStore::handlePropertyNotifyEvent);
 
     QObject::connect(window, &QWindow::windowStateChanged,
-                     m_eventListener, [window, this] {
+                     m_eventListener, [this] {
         updateWindowMargins(false);
     });
 }
@@ -458,6 +471,8 @@ DXcbBackingStore::~DXcbBackingStore()
 
     if (m_graphicsBuffer)
         delete m_graphicsBuffer;
+
+    VtableHook::clearGhostVtable(static_cast<QXcbWindowEventListener*>(static_cast<QXcbWindow*>(window()->handle())));
 }
 
 QPaintDevice *DXcbBackingStore::paintDevice()

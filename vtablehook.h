@@ -9,6 +9,7 @@ class VtableHook
 {
 public:
     static bool copyVtable(qintptr **obj);
+    static bool clearGhostVtable(void *obj);
 
     template <typename List1, typename List2> struct CheckCompatibleArguments { enum { value = false }; };
     template <typename List> struct CheckCompatibleArguments<List, List> { enum { value = true }; };
@@ -16,7 +17,7 @@ public:
     static bool overrideVfptrFun(const typename QtPrivate::FunctionPointer<Fun1>::Object *t1, Fun1 fun1,
                       const typename QtPrivate::FunctionPointer<Fun2>::Object *t2, Fun2 fun2)
     {
-        if (!objToVfptr.contains((qintptr**)t1) && !copyVtable((qintptr**)t1))
+        if (!objToOriginalVfptr.contains((qintptr**)t1) && !copyVtable((qintptr**)t1))
             return false;
 
         //! ({code}) in the form of a code is to eliminate - Wstrict - aliasing build warnings
@@ -49,7 +50,7 @@ public:
     template<typename Fun1>
     static bool resetVfptrFun(const typename QtPrivate::FunctionPointer<Fun1>::Object *t1, Fun1 fun1)
     {
-        qintptr *vfptr_t2 = objToVfptr.value((qintptr**)t1, 0);
+        qintptr *vfptr_t2 = objToOriginalVfptr.value((qintptr**)t1, 0);
 
         if (!vfptr_t2)
             return false;
@@ -68,7 +69,8 @@ public:
     }
 
 private:
-    static QHash<qintptr**, qintptr*> objToVfptr;
+    static QHash<qintptr**, qintptr*> objToOriginalVfptr;
+    static QHash<void*, qintptr*> objToGhostVfptr;
 };
 
 #endif // VTABLEHOOK_H

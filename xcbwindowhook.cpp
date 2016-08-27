@@ -35,6 +35,8 @@ XcbWindowHook::XcbWindowHook(QXcbWindow *window)
 XcbWindowHook::~XcbWindowHook()
 {
     mapped.remove(xcbWindow);
+
+    VtableHook::clearGhostVtable(static_cast<QPlatformWindow*>(xcbWindow));
 }
 
 XcbWindowHook *XcbWindowHook::me() const

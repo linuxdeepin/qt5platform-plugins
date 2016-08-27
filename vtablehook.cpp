@@ -1,6 +1,7 @@
 #include "vtablehook.h"
 
-QHash<qintptr**, qintptr*> VtableHook::objToVfptr;
+QHash<qintptr**, qintptr*> VtableHook::objToOriginalVfptr;
+QHash<void*, qintptr*> VtableHook::objToGhostVfptr;
 
 bool VtableHook::copyVtable(qintptr **obj)
 {
@@ -19,8 +20,26 @@ bool VtableHook::copyVtable(qintptr **obj)
 
     memcpy(new_vtable, *obj, (vtable_size) * sizeof(qintptr));
 
-    objToVfptr[obj] = *obj;
+    //! save original vfptr
+    objToOriginalVfptr[obj] = *obj;
     *obj = new_vtable;
+    //! save ghost vfptr
+    objToGhostVfptr[obj] = new_vtable;
 
     return true;
+}
+
+bool VtableHook::clearGhostVtable(void *obj)
+{
+    qintptr *vtable = objToGhostVfptr.take(obj);
+
+    if (vtable) {
+        objToOriginalVfptr.remove((qintptr**)obj);
+
+        delete[] vtable;
+
+        return true;
+    }
+
+    return false;
 }
