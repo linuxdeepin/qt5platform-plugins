@@ -1000,7 +1000,8 @@ void DXcbBackingStore::updateWindowShadow()
 
 void DXcbBackingStore::doDelayedUpdateWindowShadow(int delaye)
 {
-    updateShadowTimer.start(delaye, m_eventListener);
+    if (m_eventListener)
+        updateShadowTimer.start(delaye, m_eventListener);
 }
 
 bool DXcbBackingStore::isWidgetWindow(const QWindow *window)

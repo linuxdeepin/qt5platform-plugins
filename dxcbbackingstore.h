@@ -93,7 +93,7 @@ private:
     QImage m_image;
 
     QXcbBackingStore *m_proxy;
-    WindowEventListener *m_eventListener;
+    WindowEventListener *m_eventListener = Q_NULLPTR;
     DXcbShmGraphicsBuffer *m_graphicsBuffer = Q_NULLPTR;
 
     int m_windowRadius = 4;
