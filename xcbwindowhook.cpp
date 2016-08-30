@@ -126,13 +126,25 @@ void XcbWindowHook::propagateSizeHints()
     QWindow *win = window()->window();
     QWindowPrivate *winp = qt_window_private(win);
 
+    QSize old_min_size = win->property(userWindowMinimumSize).toSize();
+    QSize old_max_size = win->property(userWindowMaximumSize).toSize();
+
+    win->setProperty(userWindowMinimumSize, winp->minimumSize);
+    win->setProperty(userWindowMaximumSize, winp->maximumSize);
+
     const QMargins &windowMarings = me()->windowMargins;
 
     const QSize &marginSize = QSize(windowMarings.left() + windowMarings.right(),
                                     windowMarings.top() + windowMarings.bottom());
 
-    winp->minimumSize += marginSize;
-    winp->maximumSize += marginSize;
+    if (!old_min_size.isValid())
+        old_min_size = winp->minimumSize;
+
+    if (!old_max_size.isValid())
+        old_max_size = winp->maximumSize;
+
+    winp->minimumSize = old_min_size + marginSize;
+    winp->maximumSize = old_max_size + marginSize;
     winp->maximumSize.setWidth(qMin(QWINDOWSIZE_MAX, winp->maximumSize.width()));
     winp->maximumSize.setHeight(qMin(QWINDOWSIZE_MAX, winp->maximumSize.height()));
 

@@ -888,6 +888,7 @@ void DXcbBackingStore::setWindowMargins(const QMargins &margins)
 
     if (hook) {
         hook->windowMargins = margins;
+        window()->handle()->propagateSizeHints();
     }
 
     const QSize &tmp_size = m_image.size();

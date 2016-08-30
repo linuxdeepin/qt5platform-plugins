@@ -22,5 +22,7 @@ DEFINE_CONST_CHAR(frameMask);
 DEFINE_CONST_CHAR(translucentBackground);
 DEFINE_CONST_CHAR(enableSystemResize);
 DEFINE_CONST_CHAR(enableSystemMove);
+DEFINE_CONST_CHAR(userWindowMinimumSize);
+DEFINE_CONST_CHAR(userWindowMaximumSize);
 
 #endif // GLOBAL_H
