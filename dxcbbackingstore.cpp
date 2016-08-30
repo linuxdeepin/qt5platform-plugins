@@ -217,6 +217,9 @@ skip_set_cursor:
         case QEvent::Enter:
             canAdsorbCursor = m_store->m_enableSystemResize;
 
+            /// Warning: System move finished no mouse release event
+            setLeftButtonPressed(false);
+
             break;
         case QEvent::Leave:
             canAdsorbCursor = false;
