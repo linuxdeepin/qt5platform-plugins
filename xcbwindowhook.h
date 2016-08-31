@@ -25,8 +25,8 @@ public:
     void setWindowTitle(const QString &title);
     void setWindowIcon(const QIcon &icon);
 
-//    QPoint mapToGlobal(const QPoint &pos) const;
-//    QPoint mapFromGlobal(const QPoint &pos) const;
+    QPoint mapToGlobal(const QPoint &pos) const;
+    QPoint mapFromGlobal(const QPoint &pos) const;
 
     void setMask(const QRegion &region);
 
@@ -37,6 +37,8 @@ public:
     static XcbWindowHook *getHookByWindow(const QPlatformWindow *window);
 
 private:
+    void setWindowMargins(const QMargins &margins, bool propagateSizeHints = false);
+
     QMargins windowMargins;
     static QHash<const QPlatformWindow*, XcbWindowHook*> mapped;
 

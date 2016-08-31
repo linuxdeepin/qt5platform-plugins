@@ -21,8 +21,8 @@ XcbWindowHook::XcbWindowHook(QXcbWindow *window)
 //    HOOK_VFPTR(setParent);
 //    HOOK_VFPTR(setWindowTitle);
 //    HOOK_VFPTR(setWindowIcon);
-//    HOOK_VFPTR(mapToGlobal);
-//    HOOK_VFPTR(mapFromGlobal);
+    HOOK_VFPTR(mapToGlobal);
+    HOOK_VFPTR(mapFromGlobal);
     HOOK_VFPTR(setMask);
     HOOK_VFPTR(propagateSizeHints);
 
@@ -84,19 +84,19 @@ void XcbWindowHook::setWindowIcon(const QIcon &icon)
     return CALL::setWindowIcon(icon);
 }
 
-//QPoint XcbWindowHook::mapToGlobal(const QPoint &pos) const
-//{
-//    XcbWindowHook *me = XcbWindowHook::me();
+QPoint XcbWindowHook::mapToGlobal(const QPoint &pos) const
+{
+    XcbWindowHook *me = XcbWindowHook::me();
 
-//    return CALL::mapToGlobal(pos + QPoint(me->windowMargins.left(), me->windowMargins.top()));
-//}
+    return CALL::mapToGlobal(pos + QPoint(me->windowMargins.left(), me->windowMargins.top()));
+}
 
-//QPoint XcbWindowHook::mapFromGlobal(const QPoint &pos) const
-//{
-//    XcbWindowHook *me = XcbWindowHook::me();
+QPoint XcbWindowHook::mapFromGlobal(const QPoint &pos) const
+{
+    XcbWindowHook *me = XcbWindowHook::me();
 
-//    return CALL::mapFromGlobal(pos - QPoint(me->windowMargins.left(), me->windowMargins.top()));
-//}
+    return CALL::mapFromGlobal(pos - QPoint(me->windowMargins.left(), me->windowMargins.top()));
+}
 
 void XcbWindowHook::setMask(const QRegion &region)
 {
@@ -126,32 +126,49 @@ void XcbWindowHook::propagateSizeHints()
     QWindow *win = window()->window();
     QWindowPrivate *winp = qt_window_private(win);
 
-    QSize old_min_size = win->property(userWindowMinimumSize).toSize();
-    QSize old_max_size = win->property(userWindowMaximumSize).toSize();
-
     win->setProperty(userWindowMinimumSize, winp->minimumSize);
     win->setProperty(userWindowMaximumSize, winp->maximumSize);
 
-    const QMargins &windowMarings = me()->windowMargins;
+    const QMargins &windowMargins = me()->windowMargins;
+    const QSize &marginSize = QSize(windowMargins.left() + windowMargins.right(),
+                                    windowMargins.top() + windowMargins.bottom());
 
-    const QSize &marginSize = QSize(windowMarings.left() + windowMarings.right(),
-                                    windowMarings.top() + windowMarings.bottom());
-
-    if (!old_min_size.isValid())
-        old_min_size = winp->minimumSize;
-
-    if (!old_max_size.isValid())
-        old_max_size = winp->maximumSize;
-
-    winp->minimumSize = old_min_size + marginSize;
-    winp->maximumSize = old_max_size + marginSize;
+    winp->minimumSize += marginSize;
+    winp->maximumSize += marginSize;
     winp->maximumSize.setWidth(qMin(QWINDOWSIZE_MAX, winp->maximumSize.width()));
     winp->maximumSize.setHeight(qMin(QWINDOWSIZE_MAX, winp->maximumSize.height()));
 
     CALL::propagateSizeHints();
+
+//    qDebug() << winp->minimumSize << winp->maximumSize << marginSize;
 }
 
 XcbWindowHook *XcbWindowHook::getHookByWindow(const QPlatformWindow *window)
 {
     return mapped.value(window);
+}
+
+void XcbWindowHook::setWindowMargins(const QMargins &margins, bool propagateSizeHints)
+{
+    windowMargins = margins;
+
+    if (!propagateSizeHints) {
+        return;
+    }
+
+    QWindow *win = xcbWindow->window();
+    QWindowPrivate *winp = qt_window_private(win);
+
+    const QSize &user_max_size = win->property(userWindowMaximumSize).toSize();
+    const QSize &user_min_size = win->property(userWindowMinimumSize).toSize();
+
+    if (user_max_size.isValid()) {
+        winp->maximumSize = user_max_size;
+    }
+
+    if (user_min_size.isValid()) {
+        winp->minimumSize = user_min_size;
+    }
+
+    static_cast<QPlatformWindow*>(xcbWindow)->propagateSizeHints();
 }
