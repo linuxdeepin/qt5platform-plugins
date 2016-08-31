@@ -490,8 +490,6 @@ void DXcbBackingStore::flush(QWindow *window, const QRegion &region, const QPoin
     const QPoint &windowOffset = this->windowOffset();
     QRegion tmp_region;
 
-//    qDebug() << "flush" << window << tmp_region << offset;
-
     QPainter pa(m_proxy->paintDevice());
 
     pa.setCompositionMode(QPainter::CompositionMode_Source);
@@ -499,23 +497,30 @@ void DXcbBackingStore::flush(QWindow *window, const QRegion &region, const QPoin
     pa.setClipPath(m_windowClipPath);
 
     for (const QRect &rect : region.rects()) {
-        const QRect &tmp_rect = rect.translated(windowOffset);
+        QRect tmp_rect = rect.translated(windowOffset);
 
         pa.drawImage(tmp_rect, m_image, rect);
-        tmp_region += tmp_rect;
+
+        if (tmp_rect.size() == m_size) {
+            tmp_region += QRect(QPoint(0, 0), m_size);
+        } else {
+            tmp_region += tmp_rect;
+        }
     }
 
     pa.end();
 
+//    qDebug() << "flush" << window << tmp_region << offset;
+
     XcbWindowHook *window_hook = XcbWindowHook::getHookByWindow(window->handle());
 
     if (window_hook)
-        window_hook->windowMargins = QMargins(0, 0, 0, 0);
+        window_hook->setWindowMargins(QMargins(0, 0, 0, 0));
 
     m_proxy->flush(window, tmp_region, offset);
 
     if (window_hook)
-        window_hook->windowMargins = windowMargins;
+        window_hook->setWindowMargins(windowMargins);
 }
 
 void DXcbBackingStore::composeAndFlush(QWindow *window, const QRegion &region, const QPoint &offset,
@@ -887,8 +892,7 @@ void DXcbBackingStore::setWindowMargins(const QMargins &margins)
     XcbWindowHook *hook = XcbWindowHook::getHookByWindow(m_proxy->window()->handle());
 
     if (hook) {
-        hook->windowMargins = margins;
-        window()->handle()->propagateSizeHints();
+        hook->setWindowMargins(margins, true);
     }
 
     const QSize &tmp_size = m_image.size();
@@ -928,7 +932,7 @@ void DXcbBackingStore::paintWindowShadow(QRegion region)
     XcbWindowHook *window_hook = XcbWindowHook::getHookByWindow(window()->handle());
 
     if (window_hook)
-        window_hook->windowMargins = QMargins(0, 0, 0, 0);
+        window_hook->setWindowMargins(QMargins(0, 0, 0, 0));
 
     if (region.isEmpty()) {
         region += QRect(windowMargins.left(), 0, m_size.width(), windowMargins.top());
@@ -938,7 +942,7 @@ void DXcbBackingStore::paintWindowShadow(QRegion region)
     m_proxy->flush(window(), region, QPoint(0, 0));
 
     if (window_hook)
-        window_hook->windowMargins = windowMargins;
+        window_hook->setWindowMargins(windowMargins);
     /// end
 }
 
