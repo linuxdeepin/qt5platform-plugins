@@ -414,36 +414,36 @@ private:
     DXcbBackingStore *m_store;
 };
 
-class DXcbShmGraphicsBuffer : public QPlatformGraphicsBuffer
-{
-public:
-    DXcbShmGraphicsBuffer(QImage *image)
-        : QPlatformGraphicsBuffer(image->size(), QImage::toPixelFormat(image->format()))
-        , m_access_lock(QPlatformGraphicsBuffer::None)
-        , m_image(image)
-    { }
+//class DXcbShmGraphicsBuffer : public QPlatformGraphicsBuffer
+//{
+//public:
+//    DXcbShmGraphicsBuffer(QImage *image)
+//        : QPlatformGraphicsBuffer(image->size(), QImage::toPixelFormat(image->format()))
+//        , m_access_lock(QPlatformGraphicsBuffer::None)
+//        , m_image(image)
+//    { }
 
-    bool doLock(AccessTypes access, const QRect &rect) Q_DECL_OVERRIDE
-    {
-        Q_UNUSED(rect);
-        if (access & ~(QPlatformGraphicsBuffer::SWReadAccess | QPlatformGraphicsBuffer::SWWriteAccess))
-            return false;
+//    bool doLock(AccessTypes access, const QRect &rect) Q_DECL_OVERRIDE
+//    {
+//        Q_UNUSED(rect);
+//        if (access & ~(QPlatformGraphicsBuffer::SWReadAccess | QPlatformGraphicsBuffer::SWWriteAccess))
+//            return false;
 
-        m_access_lock |= access;
-        return true;
-    }
-    void doUnlock() Q_DECL_OVERRIDE { m_access_lock = None; }
+//        m_access_lock |= access;
+//        return true;
+//    }
+//    void doUnlock() Q_DECL_OVERRIDE { m_access_lock = None; }
 
-    const uchar *data() const Q_DECL_OVERRIDE { return m_image->bits(); }
-    uchar *data() Q_DECL_OVERRIDE { return m_image->bits(); }
-    int bytesPerLine() const Q_DECL_OVERRIDE { return m_image->bytesPerLine(); }
+//    const uchar *data() const Q_DECL_OVERRIDE { return m_image.bits(); }
+//    uchar *data() Q_DECL_OVERRIDE { return m_image.bits(); }
+//    int bytesPerLine() const Q_DECL_OVERRIDE { return m_image.bytesPerLine(); }
 
-    Origin origin() const Q_DECL_OVERRIDE { return QPlatformGraphicsBuffer::OriginTopLeft; }
+//    Origin origin() const Q_DECL_OVERRIDE { return QPlatformGraphicsBuffer::OriginTopLeft; }
 
-private:
-    AccessTypes m_access_lock;
-    QImage *m_image;
-};
+//private:
+//    AccessTypes m_access_lock;
+//    QImage *m_image;
+//};
 
 DXcbBackingStore::DXcbBackingStore(QWindow *window, QXcbBackingStore *proxy)
     : QPlatformBackingStore(window)
@@ -472,8 +472,8 @@ DXcbBackingStore::~DXcbBackingStore()
     delete m_proxy;
     delete m_eventListener;
 
-    if (m_graphicsBuffer)
-        delete m_graphicsBuffer;
+//    if (m_graphicsBuffer)
+//        delete m_graphicsBuffer;
 
     VtableHook::clearGhostVtable(static_cast<QXcbWindowEventListener*>(static_cast<QXcbWindow*>(window()->handle())));
 }
@@ -504,7 +504,7 @@ void DXcbBackingStore::flush(QWindow *window, const QRegion &region, const QPoin
         if (tmp_rect.size() == m_size) {
             tmp_region += QRect(QPoint(0, 0), m_size);
         } else {
-            tmp_region += tmp_rect;
+            tmp_region += tmp_rect.united(QRect(windowOffset, m_image.size()));
         }
     }
 
@@ -546,28 +546,32 @@ GLuint DXcbBackingStore::toTexture(const QRegion &dirtyRegion, QSize *textureSiz
 
 QPlatformGraphicsBuffer *DXcbBackingStore::graphicsBuffer() const
 {
-    return m_graphicsBuffer;
+//    return m_graphicsBuffer;
+    return m_proxy->graphicsBuffer();
 }
 
 void DXcbBackingStore::resize(const QSize &size, const QRegion &staticContents)
 {
 //    qDebug() << "resize" << size << staticContents;
+#if QT_VERSION > QT_VERSION_CHECK(5, 5, 1)
+    if (size == m_image.size())
+        return;
 
+    m_image = QImage(size, QImage::Format_ARGB32_Premultiplied);
+#else
     const int dpr = int(window()->devicePixelRatio());
     const QSize xSize = size * dpr;
     if (xSize == m_image.size() && dpr == m_image.devicePixelRatio())
         return;
 
-    if (m_graphicsBuffer)
-        delete m_graphicsBuffer;
-
-    m_image = QImage(xSize, m_translucentBackground ? QImage::Format_ARGB32_Premultiplied : QImage::Format_RGB32);
+    m_image = QImage(xSize, QImage::Format_ARGB32_Premultiplied);
     m_image.setDevicePixelRatio(dpr);
-//    m_image.fill(Qt::transparent);
-    // Slow path for bgr888 VNC: Create an additional image, paint into that and
-    // swap R and B while copying to m_image after each paint.
+#endif
 
-    m_graphicsBuffer = new DXcbShmGraphicsBuffer(&m_image);
+//    if (m_graphicsBuffer)
+//        delete m_graphicsBuffer;
+
+//    m_graphicsBuffer = new DXcbShmGraphicsBuffer(&m_image);
 
     m_size = QSize(size.width() + windowMargins.left() + windowMargins.right(),
                    size.height() + windowMargins.top() + windowMargins.bottom());
@@ -935,8 +939,10 @@ void DXcbBackingStore::paintWindowShadow(QRegion region)
         window_hook->setWindowMargins(QMargins(0, 0, 0, 0));
 
     if (region.isEmpty()) {
-        region += QRect(windowMargins.left(), 0, m_size.width(), windowMargins.top());
-        region += QRect(0, 0, windowOffset().x(), m_size.height());
+        region += QRect(windowMargins.left(), 0, m_image.width(), windowMargins.top());
+        region += QRect(windowMargins.left(), windowMargins.top() + m_image.height(), m_image.width(), windowMargins.bottom());
+        region += QRect(0, 0, windowMargins.left(), m_size.height());
+        region += QRect(windowMargins.left() + m_image.width(), 0, windowMargins.right(), m_size.height());
     }
 
     m_proxy->flush(window(), region, QPoint(0, 0));
