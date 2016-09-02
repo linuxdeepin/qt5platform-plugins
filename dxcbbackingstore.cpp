@@ -217,9 +217,6 @@ skip_set_cursor:
         case QEvent::Enter:
             canAdsorbCursor = m_store->m_enableSystemResize;
 
-            /// Warning: System move finished no mouse release event
-            setLeftButtonPressed(false);
-
             break;
         case QEvent::Leave:
             canAdsorbCursor = false;
@@ -281,6 +278,7 @@ skip_set_cursor:
     {
         Q_UNUSED(event);
 
+        ///TODO: Warning: System move finished no mouse release event
         Utility::startWindowSystemMove(reinterpret_cast<QWidget*>(this)->winId());
     }
 
