@@ -7,6 +7,8 @@ QT_BEGIN_NAMESPACE
 class QXcbWindow;
 QT_END_NAMESPACE
 
+typedef uint32_t xcb_atom_t;
+
 class Utility
 {
 public:
@@ -27,6 +29,7 @@ public:
 
     static QList<QRect> sudokuByRect(const QRect &rect, QMargins borders);
 
+    static xcb_atom_t internAtom(const char *name);
     static void startWindowSystemMove(uint WId);
     static void cancelWindowMoveResize(uint WId);
     static void setFrameExtents(uint WId, const QMargins &margins);

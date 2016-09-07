@@ -3,10 +3,16 @@
 #include "global.h"
 #include "utility.h"
 
+#include <QX11Info>
+
 #include <private/qwindow_p.h>
+
+#include <X11/Xlib.h>
 
 #define HOOK_VFPTR(Fun) VtableHook::overrideVfptrFun(window, &QPlatformWindow::Fun, this, &XcbWindowHook::Fun)
 #define CALL this->window()->QXcbWindow
+
+PUBLIC_CLASS(QXcbWindow, XcbWindowHook);
 
 QHash<const QPlatformWindow*, XcbWindowHook*> XcbWindowHook::mapped;
 
@@ -24,6 +30,7 @@ XcbWindowHook::XcbWindowHook(QXcbWindow *window)
     HOOK_VFPTR(mapToGlobal);
     HOOK_VFPTR(mapFromGlobal);
     HOOK_VFPTR(setMask);
+    HOOK_VFPTR(setWindowState);
     HOOK_VFPTR(propagateSizeHints);
 
     QObject::connect(window->window(), &QWindow::destroyed, window->window(), [this] {
@@ -119,6 +126,42 @@ void XcbWindowHook::setMask(const QRegion &region)
     CALL::window()->setProperty(clipPath, QVariant::fromValue(path));
 //    CALL::setMask(tmp_region);
     Utility::setInputShapeRectangles(CALL::winId(), tmp_region);
+}
+
+void XcbWindowHook::setWindowState(Qt::WindowState state)
+{
+    DQXcbWindow *window = static_cast<DQXcbWindow*>(this->window());
+
+    if (window->m_windowState == state)
+        return;
+
+    if (state == Qt::WindowMinimized) {
+        // unset old state
+        switch (window->m_windowState) {
+        case Qt::WindowMinimized:
+            Q_XCB_CALL(xcb_map_window(QX11Info::connection(), window->m_window));
+            break;
+        case Qt::WindowMaximized:
+            window->changeNetWmState(false,
+                                     window->atom(QXcbAtom::_NET_WM_STATE_MAXIMIZED_HORZ),
+                                     window->atom(QXcbAtom::_NET_WM_STATE_MAXIMIZED_VERT));
+            break;
+        case Qt::WindowFullScreen:
+            window->changeNetWmState(false, window->atom(QXcbAtom::_NET_WM_STATE_FULLSCREEN));
+            break;
+        default:
+            break;
+        }
+
+        // set new state
+        xcb_atom_t atom = Utility::internAtom("_NET_WM_STATE_HIDDEN");
+        window->changeNetWmState(true, atom);
+        XIconifyWindow(QX11Info::display(), window->m_window, QX11Info::appScreen());
+
+        window->m_windowState = state;
+    } else {
+        CALL::setWindowState(state);
+    }
 }
 
 void XcbWindowHook::propagateSizeHints()

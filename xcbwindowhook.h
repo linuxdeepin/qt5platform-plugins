@@ -29,7 +29,7 @@ public:
     QPoint mapFromGlobal(const QPoint &pos) const;
 
     void setMask(const QRegion &region);
-
+    void setWindowState(Qt::WindowState state);
 //    bool startSystemResize(const QPoint &pos, Qt::Corner corner);
 
     void propagateSizeHints();

@@ -108,7 +108,7 @@ QImage Utility::borderImage(const QPixmap &px, const QMargins &borders,
     return image;
 }
 
-xcb_atom_t internAtom(const char *name)
+xcb_atom_t Utility::internAtom(const char *name)
 {
     if (!name || *name == 0)
         return XCB_NONE;

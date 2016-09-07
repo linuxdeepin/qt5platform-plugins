@@ -1062,6 +1062,9 @@ void DXcbBackingStore::onWindowStateChanged()
 void DXcbBackingStore::handlePropertyNotifyEvent(const xcb_property_notify_event_t *event)
 {
     DQXcbWindow *window = static_cast<DQXcbWindow*>(reinterpret_cast<QXcbWindowEventListener*>(this));
+    QWindow *ww = window->window();
+
+    Qt::WindowState oldState = ww->windowState();
 
     window->QXcbWindow::handlePropertyNotifyEvent(event);
 
@@ -1069,25 +1072,10 @@ void DXcbBackingStore::handlePropertyNotifyEvent(const xcb_property_notify_event
             && event->atom == window->connection()->internAtom("_NET_WM_STATE")) {
         QXcbWindow::NetWmStates states = window->netWmStates();
 
-        window->window()->setProperty(netWmStates, (int)states);
+        ww->setProperty(netWmStates, (int)states);
+    }
 
-        QWindow *ww = window->window();
-
-        switch (states) {
-        case 0:
-            if (ww->windowState() != Qt::WindowNoState)
-                ww->setWindowState(Qt::WindowNoState);
-            break;
-        case QXcbWindow::NetWmStateFullScreen:
-            if (ww->windowState() != Qt::WindowFullScreen)
-                ww->setWindowState(Qt::WindowFullScreen);
-            break;
-        case QXcbWindow::NetWmStateMaximizedHorz | QXcbWindow::NetWmStateMaximizedVert:
-            if (ww->windowState() != Qt::WindowMaximized)
-                ww->setWindowState(Qt::WindowMaximized);
-            break;
-        default:
-            break;
-        }
+    if (window->m_windowState != oldState) {
+        ww->setWindowState(window->m_windowState);
     }
 }
