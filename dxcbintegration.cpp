@@ -6,7 +6,11 @@
 #include "qxcbscreen.h"
 #include "qxcbbackingstore.h"
 
+#if QT_VERSION < QT_VERSION_CHECK(5, 4, 0)
+#include <private/qwidgetwindow_qpa_p.h>
+#else
 #include <private/qwidgetwindow_p.h>
+#endif
 
 #include <QWidget>
 
@@ -18,7 +22,7 @@ DXcbIntegration::DXcbIntegration(const QStringList &parameters, int &argc, char 
 
 QPlatformWindow *DXcbIntegration::createPlatformWindow(QWindow *window) const
 {
-    qDebug() << __FUNCTION__ << window << window->type() << window->parent();
+    qDebug() << __FUNCTION__ << window << window->type() << window->flags() << window->parent();
 
     bool isUseDxcb = window->type() != Qt::Desktop && window->property(useDxcb).toBool();
 
