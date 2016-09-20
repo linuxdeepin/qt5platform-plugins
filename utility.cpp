@@ -6,7 +6,6 @@
 #include <QDebug>
 #include <QtX11Extras/QX11Info>
 
-#include <xcb/xproto.h>
 #include <xcb/shape.h>
 
 #include <X11/cursorfont.h>

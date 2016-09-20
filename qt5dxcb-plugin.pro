@@ -23,7 +23,9 @@ PKGCONFIG += x11-xcb xi xcb-renderutil sm ice xcb-render dbus-1 xcb \
 
 greaterThan(QT_MINOR_VERSION, 5): PKGCONFIG += xcb-xinerama
 
-LIBS += -ldl -lQt5XcbQpa
+LIBS += -ldl
+
+greaterThan(QT_MINOR_VERSION, 4): LIBS += -lQt5XcbQpa
 
 SOURCES += \
     $$PWD/main.cpp \
