@@ -29,15 +29,28 @@ public:
     // offset is the (child) window's offset in relation to the window surface.
     void flush(QWindow *window, const QRegion &region, const QPoint &offset) Q_DECL_OVERRIDE;
 #ifndef QT_NO_OPENGL
+#if QT_VERSION < QT_VERSION_CHECK(5, 4, 0)
     void composeAndFlush(QWindow *window, const QRegion &region, const QPoint &offset,
-                                 QPlatformTextureList *textures, QOpenGLContext *context,
-                                 bool translucentBackground) Q_DECL_OVERRIDE;
+                         QPlatformTextureList *textures, QOpenGLContext *context) Q_DECL_OVERRIDE;
+#else
+    void composeAndFlush(QWindow *window, const QRegion &region, const QPoint &offset,
+                         QPlatformTextureList *textures, QOpenGLContext *context,
+                         bool translucentBackground) Q_DECL_OVERRIDE;
+#endif
     QImage toImage() const Q_DECL_OVERRIDE;
 
+#if QT_VERSION < QT_VERSION_CHECK(5, 4, 0)
+    GLuint toTexture(const QRegion &dirtyRegion, QSize *textureSize) const Q_DECL_OVERRIDE;
+#elif QT_VERSION < QT_VERSION_CHECK(5, 5, 0)
+    GLuint toTexture(const QRegion &dirtyRegion, QSize *textureSize, bool *needsSwizzle) const Q_DECL_OVERRIDE;
+#else
     GLuint toTexture(const QRegion &dirtyRegion, QSize *textureSize, TextureFlags *flags) const Q_DECL_OVERRIDE;
 #endif
+#endif
 
+#if QT_VERSION >= QT_VERSION_CHECK(5, 5, 0)
     QPlatformGraphicsBuffer *graphicsBuffer() const Q_DECL_OVERRIDE;
+#endif
 
     void resize(const QSize &size, const QRegion &staticContents) Q_DECL_OVERRIDE;
 

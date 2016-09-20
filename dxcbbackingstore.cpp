@@ -17,8 +17,11 @@
 #include <QVariantAnimation>
 #include <QTimer>
 
+#if QT_VERSION < QT_VERSION_CHECK(5, 4, 0)
+#include <private/qwidgetwindow_qpa_p.h>
+#else
 #include <private/qwidgetwindow_p.h>
-#include <qpa/qplatformgraphicsbuffer.h>
+#endif
 #include <qpa/qplatformscreen.h>
 #include <qpa/qplatformcursor.h>
 #include <qpa/qplatformnativeinterface.h>
@@ -521,32 +524,59 @@ void DXcbBackingStore::flush(QWindow *window, const QRegion &region, const QPoin
         window_hook->setWindowMargins(windowMargins);
 }
 
+#ifndef QT_NO_OPENGL
+#if QT_VERSION < QT_VERSION_CHECK(5, 4, 0)
+void DXcbBackingStore::composeAndFlush(QWindow *window, const QRegion &region, const QPoint &offset,
+                     QPlatformTextureList *textures, QOpenGLContext *context)
+{
+    Q_UNUSED(textures);
+    Q_UNUSED(context);
+
+    flush(window, region, offset);
+}
+#else
 void DXcbBackingStore::composeAndFlush(QWindow *window, const QRegion &region, const QPoint &offset,
                                        QPlatformTextureList *textures, QOpenGLContext *context,
                                        bool translucentBackground)
 {
-    Q_UNUSED(textures);
-    Q_UNUSED(context);
+    Q_UNUSED(textures)
+    Q_UNUSED(context)
     Q_UNUSED(translucentBackground)
 
     flush(window, region, offset);
 }
+#endif
 
 QImage DXcbBackingStore::toImage() const
 {
     return m_image;
 }
 
+#if QT_VERSION < QT_VERSION_CHECK(5, 4, 0)
+GLuint DXcbBackingStore::toTexture(const QRegion &dirtyRegion, QSize *textureSize) const
+{
+    return m_proxy->toTexture(dirtyRegion, textureSize);
+}
+#elif QT_VERSION < QT_VERSION_CHECK(5, 5, 0)
+GLuint DXcbBackingStore::toTexture(const QRegion &dirtyRegion, QSize *textureSize, bool *needsSwizzle) const
+{
+    return m_proxy->toTexture(dirtyRegion, textureSize, needsSwizzle);
+}
+#else
 GLuint DXcbBackingStore::toTexture(const QRegion &dirtyRegion, QSize *textureSize, TextureFlags *flags) const
 {
     return m_proxy->toTexture(dirtyRegion, textureSize, flags);
 }
+#endif
+#endif
 
+#if QT_VERSION >= QT_VERSION_CHECK(5, 5, 0)
 QPlatformGraphicsBuffer *DXcbBackingStore::graphicsBuffer() const
 {
 //    return m_graphicsBuffer;
     return m_proxy->graphicsBuffer();
 }
+#endif
 
 void DXcbBackingStore::resize(const QSize &size, const QRegion &staticContents)
 {

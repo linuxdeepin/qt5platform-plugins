@@ -1,7 +1,9 @@
 #ifndef TESTWINDOW_H
 #define TESTWINDOW_H
 
+#define private public
 #include "qxcbwindow.h"
+#undef private
 
 class XcbWindowHook
 {
