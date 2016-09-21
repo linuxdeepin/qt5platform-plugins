@@ -100,6 +100,9 @@ protected:
             e->l -= m_store->windowOffset();
             e->w -= m_store->windowOffset();
 
+            if (window->flags().testFlag(Qt::Popup))
+                break;
+
             const QRect &window_visible_rect = m_store->windowValidRect.translated(window_geometry.topLeft());
 
             if (window->minimumSize() == window->maximumSize() || !m_store->m_enableSystemResize)
