@@ -9,21 +9,21 @@ PLUGIN_CLASS_NAME = DXcbIntegrationPlugin
 !equals(TARGET, $$QT_DEFAULT_QPA_PLUGIN): PLUGIN_EXTENDS = -
 
 QT       += opengl x11extras
-QT       += core-private gui-private platformsupport-private #xcb_qpa_lib-private
+QT       += core-private platformsupport-private #xcb_qpa_lib-private
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets widgets-private
 
 TARGET = dxcb
 TEMPLATE = lib
 VERSION = $$QT_VERSION
-CONFIG += plugin c++11 pkg_config
+CONFIG += plugin c++11 #link_pkgconfig
 
-PKGCONFIG += x11-xcb xi xcb-renderutil sm ice xcb-render dbus-1 xcb \
-             xcb-image xcb-icccm xcb-sync xcb-xfixes xcb-shm xcb-randr xcb-shape \
-             xcb-keysyms xcb-xkb xkbcommon-x11
+#PKGCONFIG += x11-xcb xi xcb-renderutil sm ice xcb-render dbus-1 xcb \
+#             xcb-image xcb-icccm xcb-sync xcb-xfixes xcb-shm xcb-randr xcb-shape \
+#             xcb-keysyms xcb-xkb xkbcommon-x11
 
-greaterThan(QT_MINOR_VERSION, 5): PKGCONFIG += xcb-xinerama
+#greaterThan(QT_MINOR_VERSION, 5): PKGCONFIG += xcb-xinerama
 
-LIBS += -ldl
+#LIBS += -ldl
 
 greaterThan(QT_MINOR_VERSION, 4): LIBS += -lQt5XcbQpa
 
