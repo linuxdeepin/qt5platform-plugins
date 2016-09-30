@@ -15,13 +15,13 @@ greaterThan(QT_MAJOR_VERSION, 4): QT += widgets widgets-private
 TARGET = dxcb
 TEMPLATE = lib
 VERSION = $$QT_VERSION
-CONFIG += plugin c++11 #link_pkgconfig
+CONFIG += plugin c++11 link_pkgconfig
 
-#PKGCONFIG += x11-xcb xi xcb-renderutil sm ice xcb-render dbus-1 xcb \
-#             xcb-image xcb-icccm xcb-sync xcb-xfixes xcb-shm xcb-randr xcb-shape \
-#             xcb-keysyms xcb-xkb xkbcommon-x11
+PKGCONFIG += x11-xcb xi xcb-renderutil sm ice xcb-render dbus-1 xcb\
+             xcb-image xcb-icccm xcb-sync xcb-xfixes xcb-shm xcb-randr\
+             xcb-shape xcb-keysyms xcb-xkb xkbcommon-x11 mtdev egl
 
-#greaterThan(QT_MINOR_VERSION, 5): PKGCONFIG += xcb-xinerama
+greaterThan(QT_MINOR_VERSION, 5): PKGCONFIG += xcb-xinerama
 
 #LIBS += -ldl
 
