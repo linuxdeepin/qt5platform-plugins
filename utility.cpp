@@ -256,3 +256,31 @@ QRegion Utility::regionAddMargins(const QRegion &region, const QMargins &margins
 
     return tmp;
 }
+
+QByteArray Utility::windowProperty(uint WId, xcb_atom_t propAtom, xcb_atom_t typeAtom, quint32 len)
+{
+    QByteArray data;
+    xcb_connection_t* conn = QX11Info::connection();
+    xcb_get_property_cookie_t cookie = xcb_get_property(conn, false, WId, propAtom, typeAtom, 0, len);
+    xcb_generic_error_t* err = nullptr;
+    xcb_get_property_reply_t* reply = xcb_get_property_reply(conn, cookie, &err);
+
+    if (reply != nullptr) {
+        len = xcb_get_property_value_length(reply);
+        const char* buf = static_cast<const char*>(xcb_get_property_value(reply));
+        data.append(buf, len);
+        free(reply);
+    }
+
+    if (err != nullptr) {
+        free(err);
+    }
+
+    return data;
+}
+
+void Utility::setWindowProperty(uint WId, xcb_atom_t propAtom, xcb_atom_t typeAtom, const void *data, quint32 len)
+{
+    xcb_connection_t* conn = QX11Info::connection();
+    xcb_change_property(conn, XCB_PROP_MODE_REPLACE, WId, propAtom, typeAtom, 8, len, data);
+}
