@@ -34,16 +34,16 @@ XcbWindowHook::XcbWindowHook(QXcbWindow *window)
     HOOK_VFPTR(propagateSizeHints);
 
     QObject::connect(window->window(), &QWindow::destroyed, window->window(), [this] {
-        if (mapped.contains(xcbWindow))
+        if (mapped.contains(xcbWindow)) {
             delete this;
+            VtableHook::clearGhostVtable(static_cast<QPlatformWindow*>(xcbWindow));
+        }
     });
 }
 
 XcbWindowHook::~XcbWindowHook()
 {
     mapped.remove(xcbWindow);
-
-    VtableHook::clearGhostVtable(static_cast<QPlatformWindow*>(xcbWindow));
 }
 
 XcbWindowHook *XcbWindowHook::me() const
