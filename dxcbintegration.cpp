@@ -2,6 +2,7 @@
 #include "xcbwindowhook.h"
 #include "dxcbbackingstore.h"
 #include "global.h"
+#include "windoweventhook.h"
 
 #include "qxcbscreen.h"
 #include "qxcbbackingstore.h"
@@ -39,10 +40,13 @@ QPlatformWindow *DXcbIntegration::createPlatformWindow(QWindow *window) const
     }
 
     QPlatformWindow *w = QXcbIntegration::createPlatformWindow(window);
+    QXcbWindow *xw = dynamic_cast<QXcbWindow*>(w);
 
     if (isUseDxcb) {
-        (void)new XcbWindowHook(dynamic_cast<QXcbWindow*>(w));
+        Q_UNUSED(new XcbWindowHook(xw))
     }
+
+    Q_UNUSED(new WindowEventHook(xw))
 
     return w;
 }
