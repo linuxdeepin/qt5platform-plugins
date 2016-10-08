@@ -39,6 +39,8 @@ public:
 
     static QRegion regionAddMargins(const QRegion &region, const QMargins &margins, const QPoint &offset = QPoint(0, 0));
 
+    static QByteArray windowProperty(uint WId, xcb_atom_t propAtom, xcb_atom_t typeAtom, quint32 len);
+    static void setWindowProperty(uint WId, xcb_atom_t propAtom, xcb_atom_t typeAtom, const void *data, quint32 len);
 private:
     static void sendMoveResizeMessage(uint WId, uint32_t action, QPoint globalPos = QPoint(), Qt::MouseButton qbutton = Qt::LeftButton);
 };

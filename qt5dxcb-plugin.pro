@@ -33,7 +33,8 @@ SOURCES += \
     $$PWD/dxcbbackingstore.cpp \
     $$PWD/vtablehook.cpp \
     $$PWD/xcbwindowhook.cpp \
-    $$PWD/utility.cpp
+    $$PWD/utility.cpp \
+    $$PWD/windoweventhook.cpp
 
 HEADERS += \
     $$PWD/dxcbintegration.h \
@@ -41,7 +42,8 @@ HEADERS += \
     $$PWD/vtablehook.h \
     $$PWD/xcbwindowhook.h \
     $$PWD/utility.h \
-    $$PWD/global.h
+    $$PWD/global.h \
+    $$PWD/windoweventhook.h
 
 DISTFILES += \
     $$PWD/dxcb.json
@@ -57,7 +59,32 @@ CONFIG(release, debug|release) {
     DEFINES += QT_NO_DEBUG_OUTPUT
 }
 
-message(Qt Version: $$VERSION)
+contains(QT_CONFIG, xcb-xlib) {
+    DEFINES += XCB_USE_XLIB
+
+    contains(QT_CONFIG, xinput2) {
+        DEFINES += XCB_USE_XINPUT2
+        !isEmpty(QMAKE_LIBXI_VERSION_MAJOR) {
+            DEFINES += LIBXI_MAJOR=$$QMAKE_LIBXI_VERSION_MAJOR \
+                       LIBXI_MINOR=$$QMAKE_LIBXI_VERSION_MINOR \
+                       LIBXI_PATCH=$$QMAKE_LIBXI_VERSION_PATCH
+        }
+    }
+}
+
+# to support custom cursors with depth > 1
+contains(QT_CONFIG, xcb-render) {
+    DEFINES += XCB_USE_RENDER
+}
+
+# build with session management support
+contains(QT_CONFIG, xcb-sm) {
+    DEFINES += XCB_USE_SM
+}
+
+contains(QT_CONFIG, xcb-qt) {
+    DEFINES += XCB_USE_RENDER
+}
 
 exists($$PWD/libqt5xcbqpa-dev) {
     !system(cd $$PWD/libqt5xcbqpa-dev && git checkout $$VERSION) {
