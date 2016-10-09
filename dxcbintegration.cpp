@@ -46,7 +46,11 @@ QPlatformWindow *DXcbIntegration::createPlatformWindow(QWindow *window) const
         Q_UNUSED(new XcbWindowHook(xw))
     }
 
-    Q_UNUSED(new WindowEventHook(xw))
+    if (window->type() == Qt::Widget
+            || window->type() == Qt::Window
+            || window->type() == Qt::Dialog) {
+        Q_UNUSED(new WindowEventHook(xw))
+    }
 
     return w;
 }
