@@ -135,29 +135,12 @@ void XcbWindowHook::setWindowState(Qt::WindowState state)
     if (window->m_windowState == state)
         return;
 
-    if (state == Qt::WindowMinimized) {
-        xcb_atom_t atom = Utility::internAtom("_NET_WM_STATE_HIDDEN");
-
-        // unset old state
-        switch (window->m_windowState) {
-        case Qt::WindowMinimized:
-            Q_XCB_CALL(xcb_map_window(QX11Info::connection(), window->m_window));
-            break;
-        case Qt::WindowMaximized:
-            window->changeNetWmState(false,
-                                     window->atom(QXcbAtom::_NET_WM_STATE_MAXIMIZED_HORZ),
-                                     window->atom(QXcbAtom::_NET_WM_STATE_MAXIMIZED_VERT));
-            break;
-        case Qt::WindowFullScreen:
-            window->changeNetWmState(false, window->atom(QXcbAtom::_NET_WM_STATE_FULLSCREEN));
-            break;
-        default:
-            break;
-        }
-
-        // set new state
-        window->changeNetWmState(true, atom);
+    if (state == Qt::WindowMinimized
+            && (window->m_windowState == Qt::WindowMaximized
+                || window->m_windowState == Qt::WindowFullScreen)) {
+        window->changeNetWmState(true, Utility::internAtom("_NET_WM_STATE_HIDDEN"));
         XIconifyWindow(QX11Info::display(), window->m_window, QX11Info::appScreen());
+        window->connection()->sync();
 
         window->m_windowState = state;
     } else {
