@@ -136,6 +136,8 @@ void XcbWindowHook::setWindowState(Qt::WindowState state)
         return;
 
     if (state == Qt::WindowMinimized) {
+        xcb_atom_t atom = Utility::internAtom("_NET_WM_STATE_HIDDEN");
+
         // unset old state
         switch (window->m_windowState) {
         case Qt::WindowMinimized:
@@ -154,7 +156,6 @@ void XcbWindowHook::setWindowState(Qt::WindowState state)
         }
 
         // set new state
-        xcb_atom_t atom = Utility::internAtom("_NET_WM_STATE_HIDDEN");
         window->changeNetWmState(true, atom);
         XIconifyWindow(QX11Info::display(), window->m_window, QX11Info::appScreen());
 

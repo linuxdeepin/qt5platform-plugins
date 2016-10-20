@@ -666,7 +666,7 @@ void DXcbBackingStore::updateWindowMargins(bool repaintShadow)
 
     if (state == Qt::WindowMaximized || state == Qt::WindowFullScreen) {
         setWindowMargins(QMargins(0, 0, 0, 0));
-    } else {
+    } else if (state != Qt::WindowMinimized) {
         setWindowMargins(QMargins(m_shadowRadius - m_shadowOffset.x(),
                                   m_shadowRadius - m_shadowOffset.y(),
                                   m_shadowRadius + m_shadowOffset.x(),
@@ -1102,7 +1102,7 @@ void DXcbBackingStore::handlePropertyNotifyEvent(const xcb_property_notify_event
     window->QXcbWindow::handlePropertyNotifyEvent(event);
 
     if (event->window == window->xcb_window()
-            && event->atom == window->connection()->internAtom("_NET_WM_STATE")) {
+            && event->atom == window->atom(QXcbAtom::_NET_WM_STATE)) {
         QXcbWindow::NetWmStates states = window->netWmStates();
 
         ww->setProperty(netWmStates, (int)states);
