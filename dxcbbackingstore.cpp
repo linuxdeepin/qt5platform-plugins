@@ -460,7 +460,7 @@ DXcbBackingStore::DXcbBackingStore(QWindow *window, QXcbBackingStore *proxy)
 
     //! Warning: At this point you must be initialized window Margins and window Extents
     updateWindowMargins();
-    updateFrameExtents();
+//    updateFrameExtents();
 
     VtableHook::overrideVfptrFun(static_cast<QXcbWindow*>(window->handle()), &QXcbWindowEventListener::handlePropertyNotifyEvent,
                                  this, &DXcbBackingStore::handlePropertyNotifyEvent);
@@ -674,7 +674,7 @@ void DXcbBackingStore::updateWindowMargins(bool repaintShadow)
     }
 
     if (repaintShadow && old_margins != windowMargins) {
-        window()->setGeometry(window_geometry);
+        window()->handle()->setGeometry(window_geometry);
 
         repaintWindowShadow();
     }
