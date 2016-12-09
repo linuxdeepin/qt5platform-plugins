@@ -17,11 +17,13 @@ TEMPLATE = lib
 VERSION = $$QT_VERSION
 CONFIG += plugin c++11 link_pkgconfig
 
-PKGCONFIG += x11-xcb xi xcb-renderutil sm ice xcb-render dbus-1 xcb\
-             xcb-image xcb-icccm xcb-sync xcb-xfixes xcb-shm xcb-randr\
-             xcb-shape xcb-keysyms xcb-xkb xkbcommon-x11 mtdev egl
+PKGCONFIG += xcb-shape x11
 
-greaterThan(QT_MINOR_VERSION, 5): PKGCONFIG += xcb-xinerama
+#PKGCONFIG += x11-xcb xi xcb-renderutil sm ice xcb-render dbus-1 xcb\
+#             xcb-image xcb-icccm xcb-sync xcb-xfixes xcb-shm xcb-randr\
+#             xcb-shape xcb-keysyms xcb-xkb xkbcommon-x11 mtdev egl
+
+#greaterThan(QT_MINOR_VERSION, 5): PKGCONFIG += xcb-xinerama
 
 #LIBS += -ldl
 
