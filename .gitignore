@@ -37,4 +37,4 @@ Makefile*
 CMakeLists.txt.user
 
 # Qt xcb header files
-libqt5xcbqpa-dev/*
+libqt5xcbqpa-dev
