@@ -3,10 +3,11 @@ Section: devel
 Priority: optional
 Maintainer: Deepin Sysdev <sysdev@deepin.com>
 Build-Depends: debhelper (>= 9), qt5-default, qtbase5-dev, qtbase5-private-dev, 
- pkg-config, libqt5x11extras5-dev, libxcb-shape0-dev, libx11-dev, git, ca-certificates,
- libxcb1-dev, libxcb-xfixes0-dev, libxcb-randr0-dev, libxcb-xkb-dev, x11proto-input-dev,
- libxcb-image0-dev, libxcb-keysyms1-dev, libxkbcommon-dev, libxkbcommon-x11-dev,
- libxcb-xinerama0-dev, libxcb-randr0-dev, libxcb-sync-dev, libxcb-keysyms1-dev
+ pkg-config, libqt5x11extras5-dev, libxcb-xkb-dev, libxcb-render-util0-dev,
+ libxcb-image0-dev, libxcb-icccm4-dev, libxcb-keysyms1-dev, libegl1-mesa-dev,
+ libmtdev-dev, libxkbcommon-x11-dev, libdbus-1-dev, git, libqt5opengl5-dev,
+ libudev-dev, libxrender-dev, libxi-dev, libsm-dev, libice-dev, libfontconfig1-dev,
+ libfreetype6-dev, libglib2.0-dev, ca-certificates, libxcb-xinerama0-dev
 Standards-Version: 3.9.6
 
 Package: libqt5dxcb-plugin
