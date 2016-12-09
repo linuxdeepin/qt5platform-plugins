@@ -3,7 +3,7 @@ Section: devel
 Priority: optional
 Maintainer: Deepin Sysdev <sysdev@deepin.com>
 Build-Depends: debhelper (>= 9), qt5-default, qtbase5-dev, qtbase5-private-dev, 
- pkg-config, libqt5x11extras5-dev, libxcb-shape0-dev, libx11-dev
+ pkg-config, libqt5x11extras5-dev, libxcb-shape0-dev, libx11-dev, git
 Standards-Version: 3.9.6
 
 Package: libqt5dxcb-plugin
