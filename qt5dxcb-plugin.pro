@@ -17,7 +17,9 @@ TEMPLATE = lib
 VERSION = $$QT_VERSION
 CONFIG += plugin c++11 link_pkgconfig
 
-PKGCONFIG += xcb-shape x11
+PKGCONFIG += xcb-shape x11 xcb xcb-xfixes xcb-render xcb-xkb xcb-image\
+             xcb-keysyms xkbcommon xkbcommon-x11 xcb-xinerama xcb-randr\
+             xcb-sync xcb-keysyms
 
 #PKGCONFIG += x11-xcb xi xcb-renderutil sm ice xcb-render dbus-1 xcb\
 #             xcb-image xcb-icccm xcb-sync xcb-xfixes xcb-shm xcb-randr\
@@ -66,6 +68,7 @@ contains(QT_CONFIG, xcb-xlib) {
 
     contains(QT_CONFIG, xinput2) {
         DEFINES += XCB_USE_XINPUT2
+        PKGCONFIG += inputproto
         !isEmpty(QMAKE_LIBXI_VERSION_MAJOR) {
             DEFINES += LIBXI_MAJOR=$$QMAKE_LIBXI_VERSION_MAJOR \
                        LIBXI_MINOR=$$QMAKE_LIBXI_VERSION_MINOR \
