@@ -11,5 +11,7 @@ Standards-Version: 3.9.8
 
 Package: qt5dxcb-plugin
 Architecture: any
+Conflicts: libqt5dxcb-plugin, dde-qt5integration (< 0.2.8)
 Depends: ${shlibs:Depends}, ${misc:Depends}
 Description: Qt platform plugins for DDE
+ Qt platform plugins for DDE.
