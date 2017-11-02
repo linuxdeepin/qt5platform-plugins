@@ -57,7 +57,14 @@ HEADERS += \
 DISTFILES += \
     $$PWD/dpp.json
 
-target.path = $$[QT_INSTALL_PLUGINS]/platforms
+isEmpty(INSTALL_PATH) {
+    target.path = $$[QT_INSTALL_PLUGINS]/platforms
+} else {
+    target.path = $$INSTALL_PATH
+}
+
+message($$target.path)
+
 INSTALLS += target
 
 CONFIG(release, debug|release) {
