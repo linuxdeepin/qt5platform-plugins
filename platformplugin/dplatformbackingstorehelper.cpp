@@ -44,7 +44,8 @@ bool DPlatformBackingStoreHelper::addBackingStore(QPlatformBackingStore *store)
 
 void DPlatformBackingStoreHelper::flush(QWindow *window, const QRegion &region, const QPoint &offset)
 {
-    if (Q_LIKELY(DWMSupport::instance()->hasComposite())) {
+//    if (Q_LIKELY(DWMSupport::instance()->hasComposite()))
+    {
         DPlatformWindowHelper *window_helper = DPlatformWindowHelper::mapped.value(window->handle());
 
         if (window_helper && (window_helper->m_isUserSetClipPath || window_helper->m_windowRadius > 0)) {
@@ -62,12 +63,27 @@ void DPlatformBackingStoreHelper::flush(QWindow *window, const QRegion &region, 
             if (!pa.isActive())
                 goto end;
 
+            const QRect &geometry = window->handle()->QPlatformWindow::geometry();
+
             pa.setCompositionMode(QPainter::CompositionMode_Source);
             pa.setRenderHints(QPainter::Antialiasing);
             pa.setClipPath(path);
-            pa.drawImage(window_helper->m_windowVaildGeometry.topLeft(),
-                         window_helper->m_frameWindow->platformBackingStore->toImage(),
-                         window_helper->m_frameWindow->m_contentGeometry * device_pixel_ratio);
+            pa.fillRect(QRect(QPoint(0, 0), geometry.size()), Qt::transparent);
+            pa.drawImage((window_helper->m_windowVaildGeometry.topLeft()
+                          - window_helper->m_frameWindow->contentOffsetHint()) * device_pixel_ratio,
+                         window_helper->m_frameWindow->m_shadowImage);
+
+            if (window_helper->m_frameWindow->m_borderWidth > 0) {
+                QPen pen;
+
+                pen.setWidthF(window_helper->m_frameWindow->m_borderWidth * 2);
+                pen.setColor(window_helper->m_frameWindow->m_borderColor);
+                pen.setJoinStyle(Qt::MiterJoin);
+
+                pa.setPen(pen);
+                pa.drawPath(window_helper->m_frameWindow->m_clipPathOfContent * device_pixel_ratio);
+            }
+
             pa.end();
         }
     }

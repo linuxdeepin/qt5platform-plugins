@@ -208,10 +208,12 @@ static QVector<xcb_rectangle_t> qregion2XcbRectangles(const QRegion &region)
 
 static void setShapeRectangles(quint32 WId, const QVector<xcb_rectangle_t> &rectangles, bool onlyInput)
 {
-    if (rectangles.isEmpty()) {
-        xcb_shape_mask(QX11Info::connection(), XCB_SHAPE_SO_SET,
-                       onlyInput ? XCB_SHAPE_SK_INPUT : XCB_SHAPE_SK_BOUNDING, WId, 0, 0, XCB_NONE);
+    xcb_shape_mask(QX11Info::connection(), XCB_SHAPE_SO_SET,
+                   XCB_SHAPE_SK_INPUT, WId, 0, 0, XCB_NONE);
+    xcb_shape_mask(QX11Info::connection(), XCB_SHAPE_SO_SET,
+                   XCB_SHAPE_SK_BOUNDING, WId, 0, 0, XCB_NONE);
 
+    if (rectangles.isEmpty()) {
         return;
     }
 

@@ -32,9 +32,12 @@ QT_END_NAMESPACE
 
 DPP_BEGIN_NAMESPACE
 
+class DFrameWindowPrivate;
 class DFrameWindow : public QPaintDeviceWindow
 {
     Q_OBJECT
+
+    Q_DECLARE_PRIVATE(DFrameWindow)
 
 public:
     explicit DFrameWindow();
