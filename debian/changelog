@@ -1,4 +1,4 @@
-qt5integration (1.0.0) unstable; urgency=medium
+qt5dxcb-plugin (1.0.0) unstable; urgency=medium
 
   * Initial release (Closes: #nnnn)  <nnnn is the bug number of your ITP>
 
