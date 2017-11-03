@@ -135,14 +135,14 @@ QPlatformWindow *DPlatformIntegration::createPlatformWindow(QWindow *window) con
     }
 #endif
 
-    QWindow *tp_for_window = window->transientParent();
+//    QWindow *tp_for_window = window->transientParent();
 
-    if (tp_for_window) {
-        // reset transient parent
-        if (DPlatformWindowHelper *helper = DPlatformWindowHelper::mapped.value(tp_for_window->handle())) {
-            window->setTransientParent(helper->m_frameWindow);
-        }
-    }
+//    if (tp_for_window) {
+//        // reset transient parent
+//        if (DPlatformWindowHelper *helper = DPlatformWindowHelper::mapped.value(tp_for_window->handle())) {
+//            window->setTransientParent(helper->m_frameWindow);
+//        }
+//    }
 
     return xw;
 }
