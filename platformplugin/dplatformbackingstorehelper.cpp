@@ -63,12 +63,12 @@ void DPlatformBackingStoreHelper::flush(QWindow *window, const QRegion &region, 
             if (!pa.isActive())
                 goto end;
 
-            const QRect &geometry = window->handle()->QPlatformWindow::geometry();
-
             pa.setCompositionMode(QPainter::CompositionMode_Source);
-            pa.setRenderHints(QPainter::Antialiasing);
+            pa.setRenderHint(QPainter::Antialiasing);
+            pa.setRenderHint(QPainter::SmoothPixmapTransform);
+            pa.fillPath(path, Qt::transparent);
             pa.setClipPath(path);
-            pa.fillRect(QRect(QPoint(0, 0), geometry.size()), Qt::transparent);
+
             pa.drawImage((window_helper->m_windowVaildGeometry.topLeft()
                           - window_helper->m_frameWindow->contentOffsetHint()) * device_pixel_ratio,
                          window_helper->m_frameWindow->m_shadowImage);

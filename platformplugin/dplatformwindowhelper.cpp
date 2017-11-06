@@ -140,11 +140,15 @@ void DPlatformWindowHelper::setGeometry(const QRect &rect)
 
     bool position_automatic = qt_window_private(helper->m_nativeWindow->window())->positionAutomatic;
     QWindowPrivate::PositionPolicy position_policy = qt_window_private(helper->m_nativeWindow->window())->positionPolicy;
+    qreal device_pixel_ratio = helper->m_frameWindow->devicePixelRatio();
+
+    // update clip path
+    helper->updateClipPathByWindowRadius(rect.size() / device_pixel_ratio);
 
     qt_window_private(helper->m_nativeWindow->window())->positionAutomatic = false;
 
-    const QMargins &content_margins = helper->m_frameWindow->contentMarginsHint() * helper->m_frameWindow->devicePixelRatio();
-    const QPoint &content_offset = helper->m_frameWindow->contentOffsetHint() * helper->m_frameWindow->devicePixelRatio();
+    const QMargins &content_margins = helper->m_frameWindow->contentMarginsHint() * device_pixel_ratio;
+    const QPoint &content_offset = helper->m_frameWindow->contentOffsetHint() * device_pixel_ratio;
 
     if (!helper->overrideSetGeometry) {
         helper->m_nativeWindow->QNativeWindow::setGeometry(QRect(content_offset, rect.size()));
@@ -155,7 +159,7 @@ void DPlatformWindowHelper::setGeometry(const QRect &rect)
     }
 
     // save new size
-    helper->m_frameWindowSize =(rect + content_margins).size() / helper->m_frameWindow->devicePixelRatio();
+    helper->m_frameWindowSize =(rect + content_margins).size() / device_pixel_ratio;
 
     qt_window_private(helper->m_frameWindow)->positionAutomatic = position_automatic;
     qt_window_private(helper->m_frameWindow)->positionPolicy = position_policy;
@@ -770,7 +774,10 @@ bool DPlatformWindowHelper::updateWindowBlurAreasForWM()
 
         area *= device_pixel_ratio;
         path.addRoundedRect(area.x + offset.x(), area.y + offset.y(), area.width, area.height, area.xRadius, area.yRaduis);
-        newPathList << path.intersected(window_vaild_path);
+        path = path.intersected(window_vaild_path);
+
+        if (!path.isEmpty())
+            newPathList << path;
     }
 
     if (!m_blurPathList.isEmpty()) {
