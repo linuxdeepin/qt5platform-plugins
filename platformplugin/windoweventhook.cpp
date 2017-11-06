@@ -276,6 +276,11 @@ void WindowEventHook::handleFocusOutEvent(const xcb_focus_out_event_t *event)
 {
     Q_UNUSED(event)
 
+    // Ignore focus events that are being sent only because the pointer is over
+    // our window, even if the input focus is in a different window.
+    if (event->detail == XCB_NOTIFY_DETAIL_POINTER)
+        return;
+
     QXcbWindow *xcbWindow = window();
     QWindow *w = static_cast<QWindowPrivate *>(QObjectPrivate::get(xcbWindow->window()))->eventReceiver();
 
