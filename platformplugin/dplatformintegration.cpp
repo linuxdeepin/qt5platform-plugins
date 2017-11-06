@@ -97,6 +97,10 @@ QPlatformWindow *DPlatformIntegration::createPlatformWindow(QWindow *window) con
 {
     qDebug() << __FUNCTION__ << window << window->type() << window->parent();
 
+    if (qEnvironmentVariableIsSet("DXCB_PRINT_WINDOW_CREATE")) {
+        printf("New Window: %s(0x%llx, name: \"%s\")\n", window->metaObject()->className(), (quintptr)window, qPrintable(window->objectName()));
+    }
+
     // handle foreign native window
     if (window->type() == Qt::ForeignWindow && window->property("_q_foreignWinId").isValid()) {
         return new DForeignPlatformWindow(window);
