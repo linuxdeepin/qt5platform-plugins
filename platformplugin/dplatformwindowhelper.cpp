@@ -53,7 +53,7 @@ DPlatformWindowHelper::DPlatformWindowHelper(QNativeWindow *window)
     m_frameWindow->setFlags((window->window()->flags() | Qt::FramelessWindowHint | Qt::CustomizeWindowHint | Qt::NoDropShadowWindowHint) & ~Qt::WindowMinMaxButtonsHint);
     m_frameWindow->create();
     m_frameWindow->installEventFilter(this);
-    m_frameWindow->setShadowRaduis(getShadowRadius());
+    m_frameWindow->setShadowRadius(getShadowRadius());
     m_frameWindow->setShadowColor(m_shadowColor);
     m_frameWindow->setShadowOffset(m_shadowOffset);
     m_frameWindow->setBorderWidth(m_borderWidth);
@@ -635,6 +635,9 @@ bool DPlatformWindowHelper::eventFilter(QObject *watched, QEvent *event)
                 updateClipPathByWindowRadius(static_cast<QResizeEvent*>(event)->size());
             }
             break;
+        case QEvent::Leave: {
+            return m_nativeWindow->window()->geometry().contains(QCursor::pos());
+        }
         default: break;
         }
     }
@@ -915,7 +918,7 @@ void DPlatformWindowHelper::updateShadowRadiusFromProperty()
         m_shadowRadius = radius;
 
         if (DWMSupport::instance()->hasComposite())
-            m_frameWindow->setShadowRaduis(radius);
+            m_frameWindow->setShadowRadius(radius);
     }
 }
 
@@ -1064,9 +1067,11 @@ void DPlatformWindowHelper::onFrameWindowContentMarginsHintChanged(const QMargin
     QRect rect = m_nativeWindow->QNativeWindow::geometry();
     rect.moveTopLeft(m_frameWindow->contentOffsetHint() * m_nativeWindow->window()->devicePixelRatio());
     m_nativeWindow->window()->setProperty(::frameMargins, QVariant::fromValue(m_frameWindow->contentMarginsHint()));
-    m_nativeWindow->QNativeWindow::setGeometry(rect);
     m_frameWindowSize = (m_frameWindow->geometry() + m_frameWindow->contentMarginsHint() - oldMargins).size();
     m_frameWindow->setGeometry(m_frameWindow->geometry() + m_frameWindow->contentMarginsHint() - oldMargins);
+    m_nativeWindow->QNativeWindow::setGeometry(rect);
+    // hide in DFrameWindow::updateContentMarginsHint
+    m_nativeWindow->QNativeWindow::setVisible(true);
 }
 
 void DPlatformWindowHelper::onWMHasCompositeChanged()

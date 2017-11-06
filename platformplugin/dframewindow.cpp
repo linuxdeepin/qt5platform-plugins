@@ -16,6 +16,7 @@
  */
 
 #include "dframewindow.h"
+#include "dplatformwindowhelper.h"
 
 #ifdef Q_OS_LINUX
 #include "dwmsupport.h"
@@ -104,7 +105,7 @@ int DFrameWindow::shadowRadius() const
     return m_shadowRadius;
 }
 
-void DFrameWindow::setShadowRaduis(int radius)
+void DFrameWindow::setShadowRadius(int radius)
 {
     if (m_shadowRadius == radius)
         return;
@@ -521,6 +522,10 @@ void DFrameWindow::updateContentMarginsHint()
 
     if (margins == m_contentMarginsHint)
         return;
+
+    // show in DPlatformWindowHelper::onFrameWindowContentMarginsHintChanged
+    if (m_contentWindow && m_contentWindow->handle())
+        static_cast<QNativeWindow*>(m_contentWindow->handle())->QNativeWindow::setVisible(false);
 
     const QMargins old_margins = m_contentMarginsHint;
 

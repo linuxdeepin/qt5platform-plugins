@@ -44,7 +44,7 @@ public:
     ~DFrameWindow();
 
     int shadowRadius() const;
-    void setShadowRaduis(int radius);
+    void setShadowRadius(int radius);
     QPoint shadowOffset() const;
     void setShadowOffset(const QPoint &offset);
     QColor shadowColor() const;
