@@ -27,6 +27,7 @@
 
 #include <private/qwindow_p.h>
 #include <private/qguiapplication_p.h>
+#include <qpa/qplatformcursor.h>
 
 Q_DECLARE_METATYPE(QPainterPath)
 Q_DECLARE_METATYPE(QMargins)
@@ -640,7 +641,11 @@ bool DPlatformWindowHelper::eventFilter(QObject *watched, QEvent *event)
             }
             break;
         case QEvent::Leave: {
-            return m_nativeWindow->window()->geometry().contains(QCursor::pos());
+            const QPoint &pos = Utility::translateCoordinates(QPoint(0, 0), m_nativeWindow->winId(),
+                                                              DPlatformIntegration::instance()->defaultConnection()->rootWindow());
+            const QPoint &cursor_pos = qApp->primaryScreen()->handle()->cursor()->pos();
+
+            return m_clipPath.contains(QPointF(cursor_pos - pos) / m_nativeWindow->window()->devicePixelRatio());
         }
         default: break;
         }
