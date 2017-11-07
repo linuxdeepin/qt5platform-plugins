@@ -205,7 +205,10 @@ bool WindowEventHook::relayFocusToModalWindow(QWindow *w, QXcbConnection *connec
 
 void WindowEventHook::handleFocusInEvent(const xcb_focus_in_event_t *event)
 {
-    Q_UNUSED(event)
+    // Ignore focus events that are being sent only because the pointer is over
+    // our window, even if the input focus is in a different window.
+    if (event->detail == XCB_NOTIFY_DETAIL_POINTER)
+        return;
 
     QXcbWindow *xcbWindow = window();
     QWindow *w = static_cast<QWindowPrivate *>(QObjectPrivate::get(xcbWindow->window()))->eventReceiver();
@@ -337,6 +340,10 @@ void WindowEventHook::handleXIEnterLeave(xcb_ge_event_t *event)
             unsigned char *buttonMask = (unsigned char *) &ev[1];
             for (int i = 1; i <= 15; ++i) {
                 Qt::MouseButton b = me->connection()->translateMouseButton(i);
+
+                if (b == Qt::NoButton)
+                    continue;
+
                 bool isSet = XIMaskIsSet(buttonMask, i);
 
                 me->connection()->setButton(b, isSet);
