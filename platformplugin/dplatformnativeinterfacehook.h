@@ -20,26 +20,18 @@
 
 #include <QtGlobal>
 
-#ifdef Q_OS_LINUX
-#include "qxcbnativeinterface.h"
-typedef QXcbNativeInterface DPlatformNativeInterfaceParent;
-#elif defined(Q_OS_WIN)
-#include "qwindowsgdinativeinterface.h"
-typedef QWindowsGdiNativeInterface DPlatformNativeInterfaceParent;
-#endif
-
 #include "global.h"
+
+QT_BEGIN_NAMESPACE
+class QPlatformNativeInterface;
+QT_END_NAMESPACE
 
 DPP_BEGIN_NAMESPACE
 
-class DPlatformNativeInterface : public DPlatformNativeInterfaceParent
+class DPlatformNativeInterfaceHook
 {
 public:
-    DPlatformNativeInterface();
-
-#if QT_VERSION >= QT_VERSION_CHECK(5, 4, 0)
-    QFunctionPointer platformFunction(const QByteArray &function) const Q_DECL_OVERRIDE;
-#endif
+    static QFunctionPointer platformFunction(QPlatformNativeInterface *interface, const QByteArray &function);
 };
 
 DPP_END_NAMESPACE

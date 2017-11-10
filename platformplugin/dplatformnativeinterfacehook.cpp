@@ -15,22 +15,23 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "dplatformnativeinterface.h"
+#include "dplatformnativeinterfacehook.h"
 #include "global.h"
 #include "utility.h"
-#include "dplatformwindowhook.h"
 
 #include "dwmsupport.h"
 
+#ifdef Q_OS_LINUX
+#include "qxcbnativeinterface.h"
+typedef QXcbNativeInterface DPlatformNativeInterface;
+#elif defined(Q_OS_WIN)
+#include "qwindowsgdinativeinterface.h"
+typedef QWindowsGdiNativeInterface DPlatformNativeInterface;
+#endif
+
 DPP_BEGIN_NAMESPACE
 
-DPlatformNativeInterface::DPlatformNativeInterface()
-{
-
-}
-
-#if QT_VERSION >= QT_VERSION_CHECK(5, 4, 0)
-QFunctionPointer DPlatformNativeInterface::platformFunction(const QByteArray &function) const
+QFunctionPointer DPlatformNativeInterfaceHook::platformFunction(QPlatformNativeInterface *interface, const QByteArray &function)
 {
     if (function == setWmBlurWindowBackgroundArea) {
         return reinterpret_cast<QFunctionPointer>(&Utility::blurWindowBackground);
@@ -66,8 +67,10 @@ QFunctionPointer DPlatformNativeInterface::platformFunction(const QByteArray &fu
         return reinterpret_cast<QFunctionPointer>(&DWMSupport::connectWindowMotifWMHintsChanged);
     }
 
-    return DPlatformNativeInterfaceParent::platformFunction(function);
-}
+#if QT_VERSION >= QT_VERSION_CHECK(5, 4, 0)
+    return static_cast<DPlatformNativeInterface*>(interface)->DPlatformNativeInterface::platformFunction(function);
 #endif
+    return 0;
+}
 
 DPP_END_NAMESPACE

@@ -33,12 +33,10 @@
 
 #include "windoweventhook.h"
 #include "xcbnativeeventfilter.h"
-#include "dplatformnativeinterface.h"
+#include "dplatformnativeinterfacehook.h"
 
 #include "qxcbscreen.h"
 #include "qxcbbackingstore.h"
-#include "qxcbcursor.h"
-#include "qxcbxsettings.h"
 
 #include <X11/cursorfont.h>
 #include <xcb/xcb_image.h>
@@ -56,6 +54,7 @@
 #include <QLibrary>
 
 #include <private/qguiapplication_p.h>
+#include <qpa/qplatformnativeinterface.h>
 
 DPP_BEGIN_NAMESPACE
 
@@ -76,7 +75,9 @@ DPlatformIntegration::DPlatformIntegration(const QStringList &parameters, int &a
 #endif
 #endif
 
-    m_nativeInterface.reset(new DPlatformNativeInterface());
+    VtableHook::overrideVfptrFun(nativeInterface(),
+                                 &QPlatformNativeInterface::platformFunction,
+                                 &DPlatformNativeInterfaceHook::platformFunction);
 }
 
 DPlatformIntegration::~DPlatformIntegration()
@@ -108,7 +109,7 @@ QPlatformWindow *DPlatformIntegration::createPlatformWindow(QWindow *window) con
 
     bool isUseDxcb = window->type() != Qt::Desktop && window->property(useDxcb).toBool();
 
-    if (isUseDxcb) {
+    if (isUseDxcb && window->surfaceType() != QWindow::OpenGLSurface) {
         QSurfaceFormat format = window->format();
 
         const int oldAlpha = format.alphaBufferSize();
@@ -174,11 +175,6 @@ QPlatformOpenGLContext *DPlatformIntegration::createPlatformOpenGLContext(QOpenG
 //    m_contextHelper->addOpenGLContext(context, p_context);
 
     return p_context;
-}
-
-QPlatformNativeInterface *DPlatformIntegration::nativeInterface() const
-{
-    return m_nativeInterface.data();
 }
 
 QStringList DPlatformIntegration::themeNames() const
@@ -566,6 +562,10 @@ static void hookXcbCursor(QScreen *screen)
 
 void DPlatformIntegration::initialize()
 {
+    // 由于Qt很多代码中写死了是xcb，所以只能伪装成是xcb
+    *QGuiApplicationPrivate::platform_name = "xcb";
+    qApp->setProperty("_d_isDxcb", true);
+
     QXcbIntegration::initialize();
 
 #ifdef Q_OS_LINUX
