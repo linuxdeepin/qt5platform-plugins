@@ -1,4 +1,16 @@
 <a name=""></a>
+##  1.1.1 (2017-11-10)
+
+
+#### Bug Fixes
+
+*   crash on use the QWebEngineView ([c13bdeee](https://github.com/linuxdeepin/qt5integration/commit/c13bdeee242b0cbfebef78df925028f285913f2c))
+*   mouse enter of the window to receive the mouse to release the event ([7a6989e5](https://github.com/linuxdeepin/qt5integration/commit/7a6989e5cf8a2be0cc84644c9289e647704b06c6))
+*   mouse over the right border of the window to receive the mouse to leave the event ([cad2e037](https://github.com/linuxdeepin/qt5integration/commit/cad2e0379abf745e5d59fbca5902a1008edfff4f))
+
+
+
+<a name=""></a>
 ##  1.1 (2017-11-06)
 
 
