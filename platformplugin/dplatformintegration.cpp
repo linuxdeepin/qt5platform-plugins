@@ -33,12 +33,11 @@
 
 #include "windoweventhook.h"
 #include "xcbnativeeventfilter.h"
-#include "dplatformnativeinterface.h"
+#include "dplatformnativeinterfacehook.h"
 
 #include "qxcbscreen.h"
 #include "qxcbbackingstore.h"
-#include "qxcbcursor.h"
-#include "qxcbxsettings.h"
+#include "qxcbnativeinterface.h"
 
 #include <X11/cursorfont.h>
 #include <xcb/xcb_image.h>
@@ -76,7 +75,9 @@ DPlatformIntegration::DPlatformIntegration(const QStringList &parameters, int &a
 #endif
 #endif
 
-    m_nativeInterface.reset(new DPlatformNativeInterface());
+    VtableHook::overrideVfptrFun(nativeInterface(),
+                                 &QPlatformNativeInterface::platformFunction,
+                                 &DPlatformNativeInterfaceHook::platformFunction);
 }
 
 DPlatformIntegration::~DPlatformIntegration()
@@ -108,7 +109,7 @@ QPlatformWindow *DPlatformIntegration::createPlatformWindow(QWindow *window) con
 
     bool isUseDxcb = window->type() != Qt::Desktop && window->property(useDxcb).toBool();
 
-    if (isUseDxcb) {
+    if (isUseDxcb && window->surfaceType() != QWindow::OpenGLSurface) {
         QSurfaceFormat format = window->format();
 
         const int oldAlpha = format.alphaBufferSize();
@@ -174,11 +175,6 @@ QPlatformOpenGLContext *DPlatformIntegration::createPlatformOpenGLContext(QOpenG
 //    m_contextHelper->addOpenGLContext(context, p_context);
 
     return p_context;
-}
-
-QPlatformNativeInterface *DPlatformIntegration::nativeInterface() const
-{
-    return m_nativeInterface.data();
 }
 
 QStringList DPlatformIntegration::themeNames() const
@@ -258,6 +254,30 @@ static int cursorIdForShape(int cshape)
         break;
     case Qt::BusyCursor:
         cursorId = XC_watch;
+        break;
+    case Utility::TopEdge:
+        cursorId = XC_top_side;
+        break;
+    case Utility::TopRightCorner:
+        cursorId = XC_top_right_corner;
+        break;
+    case Utility::RightEdge:
+        cursorId = XC_right_side;
+        break;
+    case Utility::BottomRightCorner:
+        cursorId = XC_bottom_right_corner;
+        break;
+    case Utility::BottomEdge:
+        cursorId = XC_bottom_side;
+        break;
+    case Utility::BottomLeftCorner:
+        cursorId = XC_bottom_left_corner;
+        break;
+    case Utility::LeftEdge:
+        cursorId = XC_left_side;
+        break;
+    case Utility::TopLeftCorner:
+        cursorId = XC_top_left_corner;
         break;
     default:
         break;
@@ -566,6 +586,10 @@ static void hookXcbCursor(QScreen *screen)
 
 void DPlatformIntegration::initialize()
 {
+    // 由于Qt很多代码中写死了是xcb，所以只能伪装成是xcb
+    *QGuiApplicationPrivate::platform_name = "xcb";
+    qApp->setProperty("_d_isDxcb", true);
+
     QXcbIntegration::initialize();
 
 #ifdef Q_OS_LINUX

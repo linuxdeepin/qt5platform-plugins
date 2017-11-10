@@ -33,7 +33,7 @@ SOURCES += \
     $$PWD/dplatformbackingstore.cpp \
     $$PWD/vtablehook.cpp \
     $$PWD/dplatformwindowhook.cpp \
-    $$PWD/dplatformnativeinterface.cpp \
+    $$PWD/dplatformnativeinterfacehook.cpp \
     $$PWD/dframewindow.cpp \
     $$PWD/dplatformwindowhelper.cpp \
     $$PWD/dplatformbackingstorehelper.cpp \
@@ -46,7 +46,7 @@ HEADERS += \
     $$PWD/dplatformwindowhook.h \
     $$PWD/utility.h \
     $$PWD/global.h \
-    $$PWD/dplatformnativeinterface.h \
+    $$PWD/dplatformnativeinterfacehook.h \
     $$PWD/dforeignplatformwindow.h \
     $$PWD/dframewindow.h \
     $$PWD/dplatformwindowhelper.h \

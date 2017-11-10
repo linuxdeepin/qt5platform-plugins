@@ -34,14 +34,14 @@ class Utility
 {
 public:
     enum CornerEdge {
-        TopLeftCorner = 0,
-        TopEdge = 1,
-        TopRightCorner = 2,
-        RightEdge = 3,
-        BottomRightCorner = 4,
-        BottomEdge = 5,
-        BottomLeftCorner = 6,
-        LeftEdge = 7
+        TopLeftCorner = Qt::CustomCursor + 0,
+        TopEdge = Qt::CustomCursor + 1,
+        TopRightCorner = Qt::CustomCursor + 2,
+        RightEdge = Qt::CustomCursor + 3,
+        BottomRightCorner = Qt::CustomCursor + 4,
+        BottomEdge = Qt::CustomCursor + 5,
+        BottomLeftCorner = Qt::CustomCursor + 6,
+        LeftEdge = Qt::CustomCursor + 7
     };
 
     static QImage dropShadow(const QPixmap &px, qreal radius, const QColor &color);
