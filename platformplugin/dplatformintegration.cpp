@@ -563,7 +563,11 @@ static void hookXcbCursor(QScreen *screen)
 void DPlatformIntegration::initialize()
 {
     // 由于Qt很多代码中写死了是xcb，所以只能伪装成是xcb
-    *QGuiApplicationPrivate::platform_name = "xcb";
+    // FIXME: set platform_name to xcb to avoid webengine crash
+    // It need dtk update tag, make it default when dtk udate
+    if (qEnvironmentVariableIsSet("DXCB_FAKE_PLATFORM_NAME_XCB")) {
+        *QGuiApplicationPrivate::platform_name = "xcb";
+    }
     qApp->setProperty("_d_isDxcb", true);
 
     QXcbIntegration::initialize();
