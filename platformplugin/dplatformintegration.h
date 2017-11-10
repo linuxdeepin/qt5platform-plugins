@@ -47,8 +47,6 @@ public:
     QPlatformBackingStore *createPlatformBackingStore(QWindow *window) const Q_DECL_OVERRIDE;
     QPlatformOpenGLContext *createPlatformOpenGLContext(QOpenGLContext *context) const Q_DECL_OVERRIDE;
 
-    QPlatformNativeInterface *nativeInterface()const Q_DECL_OVERRIDE;
-
     QStringList themeNames() const Q_DECL_OVERRIDE;
 
     void initialize() Q_DECL_OVERRIDE;
@@ -72,7 +70,6 @@ private:
     // handle the DFrameWindow modal blocked state
     bool isWindowBlockedHandle(QWindow *window, QWindow **blockingWindow);
 
-    QScopedPointer<QPlatformNativeInterface> m_nativeInterface;
     DPlatformBackingStoreHelper *m_storeHelper;
     DPlatformOpenGLContextHelper *m_contextHelper;
 };
