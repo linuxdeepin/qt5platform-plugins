@@ -44,8 +44,7 @@ bool DPlatformBackingStoreHelper::addBackingStore(QPlatformBackingStore *store)
 
 void DPlatformBackingStoreHelper::flush(QWindow *window, const QRegion &region, const QPoint &offset)
 {
-//    if (Q_LIKELY(DWMSupport::instance()->hasComposite()))
-    {
+    if (Q_LIKELY(DWMSupport::instance()->hasComposite())) {
         DPlatformWindowHelper *window_helper = DPlatformWindowHelper::mapped.value(window->handle());
 
         if (window_helper && (window_helper->m_isUserSetClipPath || window_helper->m_windowRadius > 0)) {
@@ -63,27 +62,14 @@ void DPlatformBackingStoreHelper::flush(QWindow *window, const QRegion &region, 
             if (!pa.isActive())
                 goto end;
 
+            QBrush border_brush(window_helper->m_frameWindow->platformBackingStore->toImage());
+            const QPoint &offset = window_helper->m_frameWindow->contentOffsetHint() * device_pixel_ratio;
+
+            border_brush.setMatrix(QMatrix(1, 0, 0, 1, -offset.x(), -offset.y()));
+
             pa.setCompositionMode(QPainter::CompositionMode_Source);
             pa.setRenderHint(QPainter::Antialiasing);
-            pa.setRenderHint(QPainter::SmoothPixmapTransform);
-            pa.fillPath(path, Qt::transparent);
-            pa.setClipPath(path);
-
-            pa.drawImage((window_helper->m_windowVaildGeometry.topLeft()
-                          - window_helper->m_frameWindow->contentOffsetHint()) * device_pixel_ratio,
-                         window_helper->m_frameWindow->m_shadowImage);
-
-            if (window_helper->m_frameWindow->m_borderWidth > 0) {
-                QPen pen;
-
-                pen.setWidthF(window_helper->m_frameWindow->m_borderWidth * 2);
-                pen.setColor(window_helper->m_frameWindow->m_borderColor);
-                pen.setJoinStyle(Qt::MiterJoin);
-
-                pa.setPen(pen);
-                pa.drawPath(window_helper->m_frameWindow->m_clipPathOfContent * device_pixel_ratio);
-            }
-
+            pa.fillPath(path, border_brush);
             pa.end();
         }
     }

@@ -110,6 +110,7 @@ private:
     int m_borderWidth = 1;
     QColor m_borderColor = QColor(0, 0, 0, 255 * 0.15);
     QPainterPath m_clipPathOfContent;
+    QPainterPath m_borderPath;
     QRect m_contentGeometry;
     QMargins m_contentMarginsHint;
     bool m_pathIsRoundedRect = true;

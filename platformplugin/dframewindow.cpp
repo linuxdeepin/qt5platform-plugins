@@ -280,22 +280,21 @@ void DFrameWindow::paintEvent(QPaintEvent *)
 
     QPainter pa(this);
 
-    pa.drawImage(offset * device_pixel_ratio, m_shadowImage);
+
+    if (Q_LIKELY(DXcbWMSupport::instance()->hasComposite())) {
+        pa.drawImage(offset * device_pixel_ratio, m_shadowImage);
+    }
 
     if (m_borderWidth > 0) {
-        QPen pen;
-
-        pen.setWidthF(m_borderWidth * 2);
-        pen.setColor(m_borderColor);
-        pen.setJoinStyle(Qt::MiterJoin);
-
-        const QPainterPath &path = m_clipPathOfContent.translated(contentOffsetHint()) * device_pixel_ratio;
-
-        pa.setPen(pen);
-        pa.setRenderHint(QPainter::Antialiasing);
-        pa.drawPath(path);
-        pa.fillPath(path, m_borderColor);
+        if (Q_LIKELY(DXcbWMSupport::instance()->hasComposite())) {
+            pa.setRenderHint(QPainter::Antialiasing);
+            pa.fillPath(m_borderPath, m_borderColor);
+        } else {
+            pa.fillRect(QRect(QPoint(0, 0), handle()->geometry().size()), m_borderColor);
+        }
     }
+
+    pa.end();
 }
 
 void DFrameWindow::showEvent(QShowEvent *event)
@@ -565,7 +564,9 @@ void DFrameWindow::updateMask()
             stroker.setWidth(mouse_margins * 2);
             p = stroker.createStroke(path);
             p = p.united(path);
-            p.translate(-0.5, -0.5);
+
+            stroker.setWidth(m_borderWidth);
+            m_borderPath = stroker.createStroke(path);
         } else {
             p = path;
         }
@@ -577,6 +578,7 @@ void DFrameWindow::updateMask()
     }
 
     updateFrameMask();
+    update();
 }
 
 void DFrameWindow::updateFrameMask()
