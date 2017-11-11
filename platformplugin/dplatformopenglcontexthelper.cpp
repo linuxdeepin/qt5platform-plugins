@@ -23,6 +23,7 @@
 
 #include <qpa/qplatformsurface.h>
 #include <qpa/qplatformopenglcontext.h>
+#include <qpa/qplatformbackingstore.h>
 
 #include <QOpenGLPaintDevice>
 #include <QPainter>
@@ -39,7 +40,7 @@ DPlatformOpenGLContextHelper::DPlatformOpenGLContextHelper()
 
 bool DPlatformOpenGLContextHelper::addOpenGLContext(QOpenGLContext *object, QPlatformOpenGLContext *context)
 {
-    QObject::connect(object, &QOpenGLContext::aboutToBeDestroyed, object, [context] {
+    QObject::connect(object, &QObject::destroyed, object, [context] {
         VtableHook::clearGhostVtable(context);
     });
 
@@ -61,28 +62,27 @@ void DPlatformOpenGLContextHelper::swapBuffers(QPlatformSurface *surface)
         if (!window_helper->m_isUserSetClipPath && window_helper->m_windowRadius <= 0)
             goto end;
 
+        qreal device_pixel_ratio = window_helper->m_nativeWindow->window()->devicePixelRatio();
         QPainterPath path;
-        const QSize &window_size = window->size();
+        const QPainterPath &real_clip_path = window_helper->m_clipPath * device_pixel_ratio;
+        const QSize &window_size = window->handle()->geometry().size();
 
         path.addRect(QRect(QPoint(0, 0), window_size));
-        path -= window_helper->m_clipPath;
+        path -= real_clip_path;
 
         if (path.isEmpty())
             goto end;
 
         QOpenGLPaintDevice device(window_size);
         QPainter pa_device(&device);
+        const QRect &rect = QRect(window_helper->m_frameWindow->contentOffsetHint() * device_pixel_ratio, window_size);
 
-        window_helper->m_frameWindow->setClearContentAreaForShadowPixmap(true);
+        QBrush border_brush(window_helper->m_frameWindow->platformBackingStore->toImage());
 
-        pa_device.drawImage(window_helper->m_windowVaildGeometry.topLeft(),
-                            window_helper->m_frameWindow->m_shadowImage,
-                            window_helper->m_frameWindow->m_contentGeometry);
+        border_brush.setMatrix(QMatrix(1, 0, 0, 1, -rect.x(), -rect.y()));
+
         pa_device.setCompositionMode(QPainter::CompositionMode_Source);
-        pa_device.setClipPath(path);
-        pa_device.drawImage(window_helper->m_windowVaildGeometry.topLeft(),
-                            window_helper->m_frameWindow->m_shadowImage,
-                            window_helper->m_frameWindow->m_contentGeometry);
+        pa_device.fillPath(path, border_brush);
         pa_device.end();
     }
 

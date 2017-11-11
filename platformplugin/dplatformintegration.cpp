@@ -109,7 +109,7 @@ QPlatformWindow *DPlatformIntegration::createPlatformWindow(QWindow *window) con
 
     bool isUseDxcb = window->type() != Qt::Desktop && window->property(useDxcb).toBool();
 
-    if (isUseDxcb && window->surfaceType() != QWindow::OpenGLSurface) {
+    if (isUseDxcb) {
         QSurfaceFormat format = window->format();
 
         const int oldAlpha = format.alphaBufferSize();
@@ -172,7 +172,7 @@ QPlatformOpenGLContext *DPlatformIntegration::createPlatformOpenGLContext(QOpenG
 {
     QPlatformOpenGLContext *p_context = DPlatformIntegrationParent::createPlatformOpenGLContext(context);
 
-//    m_contextHelper->addOpenGLContext(context, p_context);
+    m_contextHelper->addOpenGLContext(context, p_context);
 
     return p_context;
 }
