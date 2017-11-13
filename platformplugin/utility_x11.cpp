@@ -257,7 +257,7 @@ void Utility::sendMoveResizeMessage(quint32 WId, uint32_t action, QPoint globalP
                XCB_BUTTON_INDEX_ANY;
 
     if (globalPos.isNull()) {
-        globalPos = QCursor::pos() * getWindowDevicePixelRatio(WId);
+        globalPos = QCursor::pos() * qApp->primaryScreen()->devicePixelRatio();
     }
 
     xcb_client_message_event_t xev;

@@ -231,6 +231,10 @@ bool DXcbWMSupport::connectWindowMotifWMHintsChanged(QObject *object, std::funct
 
 void DXcbWMSupport::setMWMFunctions(quint32 winId, quint32 func)
 {
+    // FIXME(zccrs): The Openbox window manager is not support the Motif Hints
+    if (instance()->windowManagerName() == "Openbox")
+        return;
+
     Utility::QtMotifWmHints hints = Utility::getMotifWmHints(winId);
 
     hints.flags |= MWM_HINTS_FUNCTIONS;
