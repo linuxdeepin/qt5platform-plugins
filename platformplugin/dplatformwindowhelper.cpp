@@ -100,6 +100,7 @@ DPlatformWindowHelper::DPlatformWindowHelper(QNativeWindow *window)
     HOOK_VFPTR(lower);
 //    HOOK_VFPTR(isExposed);
     HOOK_VFPTR(isEmbedded);
+    HOOK_VFPTR(setOpacity);
     HOOK_VFPTR(propagateSizeHints);
     HOOK_VFPTR(requestActivateWindow);
 //    HOOK_VFPTR(setKeyboardGrabEnabled);
@@ -118,6 +119,11 @@ DPlatformWindowHelper::DPlatformWindowHelper(QNativeWindow *window)
             this, &DPlatformWindowHelper::onWMHasCompositeChanged);
     connect(DWMSupport::instance(), &DXcbWMSupport::windowManagerChanged,
             this, &DPlatformWindowHelper::updateWindowBlurAreasForWM);
+    connect(m_frameWindow, &DFrameWindow::screenChanged,
+            window->window(), &QWindow::setScreen);
+    connect(m_frameWindow, &DFrameWindow::contentOrientationChanged,
+            window->window(), &QWindow::reportContentOrientationChange);
+
 
     static_cast<QPlatformWindow*>(window)->propagateSizeHints();
 }
@@ -421,6 +427,11 @@ void DPlatformWindowHelper::propagateSizeHints()
     }
 }
 
+void DPlatformWindowHelper::setOpacity(qreal level)
+{
+    me()->m_frameWindow->setOpacity(level);
+}
+
 void DPlatformWindowHelper::requestActivateWindow()
 {
     DPlatformWindowHelper *helper = me();
@@ -487,10 +498,21 @@ bool DPlatformWindowHelper::eventFilter(QObject *watched, QEvent *event)
             break;
         case QEvent::KeyPress:
         case QEvent::KeyRelease:
-        case QEvent::Move:
         case QEvent::WindowDeactivate:
             QCoreApplication::sendEvent(m_nativeWindow->window(), event);
             return true;
+        case QEvent::Move: {
+            QRect geometry = m_frameWindow->handle()->geometry();
+
+            if (geometry.topLeft() != QPoint(0, 0) || geometry.size() != QSize(0, 0)) {
+                geometry.translate(-m_frameWindow->contentOffsetHint());
+                geometry.setSize(m_nativeWindow->QNativeWindow::geometry().size());
+            }
+
+            m_nativeWindow->QPlatformWindow::setGeometry(geometry);
+            QWindowSystemInterface::handleGeometryChange(m_nativeWindow->window(), geometry);
+            return true;
+        }
         case QEvent::FocusIn:
             QWindowSystemInterface::handleWindowActivated(m_nativeWindow->window(), static_cast<QFocusEvent*>(event)->reason());
             return true;

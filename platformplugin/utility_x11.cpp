@@ -30,6 +30,8 @@
 #include <QtX11Extras/QX11Info>
 #include <QGuiApplication>
 #include <qpa/qplatformwindow.h>
+#include <qpa/qplatformcursor.h>
+#include <private/qhighdpiscaling_p.h>
 
 #if QT_VERSION >= QT_VERSION_CHECK(5, 8, 0)
 #include <QtWidgets/qtwidgetsglobal.h>
@@ -257,7 +259,11 @@ void Utility::sendMoveResizeMessage(quint32 WId, uint32_t action, QPoint globalP
                XCB_BUTTON_INDEX_ANY;
 
     if (globalPos.isNull()) {
+<<<<<<< HEAD
+        globalPos = qApp->primaryScreen()->handle()->cursor()->pos();
+=======
         globalPos = QCursor::pos() * qApp->primaryScreen()->devicePixelRatio();
+>>>>>>> af64d84dfc7d98e2bf5b8ea5a11507e200111431
     }
 
     xcb_client_message_event_t xev;
