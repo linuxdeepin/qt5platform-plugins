@@ -68,7 +68,7 @@ public:
     void lower();
 
     bool isExposed() const;
-    bool isActive() const;
+//    bool isActive() const;
 #if QT_VERSION >= QT_VERSION_CHECK(5, 9, 0)
     bool isEmbedded() const;
 #else
@@ -76,6 +76,8 @@ public:
 #endif
 
     void propagateSizeHints();
+
+    void setOpacity(qreal level);
 
     void requestActivateWindow();
 

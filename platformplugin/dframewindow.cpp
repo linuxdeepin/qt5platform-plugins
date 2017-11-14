@@ -643,7 +643,7 @@ void DFrameWindow::adsorbCursor(Utility::CornerEdge cornerEdge)
 
 void DFrameWindow::startCursorAnimation()
 {
-    QPoint cursorPos = QCursor::pos();
+    const QPoint &cursorPos = QCursor::pos();
     QPoint toPos = mapFromGlobal(cursorPos);
     const QRect geometry = m_contentGeometry.adjusted(-1, -1, 1, 1);
 
