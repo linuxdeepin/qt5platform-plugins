@@ -96,6 +96,7 @@ public:
 
 private:
     bool eventFilter(QObject *watched, QEvent *event) Q_DECL_OVERRIDE;
+    void setNativeWindowGeometry(const QRect &rect);
 
     void updateClipPathByWindowRadius(const QSize &windowSize);
     void setClipPath(const QPainterPath &path);

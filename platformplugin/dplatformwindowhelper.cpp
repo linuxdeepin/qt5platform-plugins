@@ -67,6 +67,7 @@ DPlatformWindowHelper::DPlatformWindowHelper(QNativeWindow *window)
 
     window->setParent(m_frameWindow->handle());
     window->window()->installEventFilter(this);
+    window->window()->setScreen(m_frameWindow->screen());
     updateClipPathByWindowRadius(window->window()->size());
 
     updateClipPathFromProperty();
@@ -158,7 +159,7 @@ void DPlatformWindowHelper::setGeometry(const QRect &rect)
     const QPoint &content_offset = helper->m_frameWindow->contentOffsetHint() * device_pixel_ratio;
 
     if (!helper->overrideSetGeometry) {
-        helper->m_nativeWindow->QNativeWindow::setGeometry(QRect(content_offset, rect.size()));
+        helper->setNativeWindowGeometry(QRect(content_offset, rect.size()));
         // reset
         qt_window_private(helper->m_nativeWindow->window())->positionAutomatic = position_automatic;
         qt_window_private(helper->m_nativeWindow->window())->positionPolicy = position_policy;
@@ -171,7 +172,7 @@ void DPlatformWindowHelper::setGeometry(const QRect &rect)
     qt_window_private(helper->m_frameWindow)->positionAutomatic = position_automatic;
     qt_window_private(helper->m_frameWindow)->positionPolicy = position_policy;
     helper->m_frameWindow->handle()->setGeometry(rect + content_margins);
-    helper->m_nativeWindow->QNativeWindow::setGeometry(QRect(content_offset, rect.size()));
+    helper->setNativeWindowGeometry(QRect(content_offset, rect.size()));
     // reset
     qt_window_private(helper->m_nativeWindow->window())->positionAutomatic = position_automatic;
     qt_window_private(helper->m_nativeWindow->window())->positionPolicy = position_policy;
@@ -676,6 +677,13 @@ bool DPlatformWindowHelper::eventFilter(QObject *watched, QEvent *event)
     return false;
 }
 
+void DPlatformWindowHelper::setNativeWindowGeometry(const QRect &rect)
+{
+    qt_window_private(m_nativeWindow->window())->parentWindow = m_frameWindow;
+    m_nativeWindow->QNativeWindow::setGeometry(rect);
+    qt_window_private(m_nativeWindow->window())->parentWindow = 0;
+}
+
 void DPlatformWindowHelper::updateClipPathByWindowRadius(const QSize &windowSize)
 {
     if (!m_isUserSetClipPath) {
@@ -1109,7 +1117,7 @@ void DPlatformWindowHelper::onFrameWindowContentMarginsHintChanged(const QMargin
     m_nativeWindow->window()->setProperty(::frameMargins, QVariant::fromValue(m_frameWindow->contentMarginsHint()));
     m_frameWindowSize = (m_frameWindow->geometry() + m_frameWindow->contentMarginsHint() - oldMargins).size();
     m_frameWindow->setGeometry(m_frameWindow->geometry() + m_frameWindow->contentMarginsHint() - oldMargins);
-    m_nativeWindow->QNativeWindow::setGeometry(rect);
+    setNativeWindowGeometry(rect);
     // hide in DFrameWindow::updateContentMarginsHint
     m_nativeWindow->QNativeWindow::setVisible(true);
 }
