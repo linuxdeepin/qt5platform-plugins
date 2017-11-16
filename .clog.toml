@@ -1,5 +1,5 @@
 [clog]
-repository = "https://github.com/linuxdeepin/qt5integration"
+repository = "https://github.com/linuxdeepin/qt5dxcb-plugin"
 from-latest-tag = true
 
 changelog = "CHANGELOG.md"
