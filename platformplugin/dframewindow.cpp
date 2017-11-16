@@ -476,7 +476,6 @@ void DFrameWindow::setContentPath(const QPainterPath &path, bool isRoundedRect, 
         } else {
             m_shadowImage = Utility::borderImage(QPixmap::fromImage(m_shadowImage), margins * devicePixelRatio(),
                                                  (m_contentGeometry + contentMarginsHint()).size() * devicePixelRatio());
-            update();
         }
     } else {
         m_pathIsRoundedRect = isRoundedRect;
@@ -554,9 +553,10 @@ void DFrameWindow::updateMask()
     else
         mouse_margins = m_borderWidth;
 
+    const QPainterPath &path = m_clipPathOfContent.translated(contentOffsetHint()) * devicePixelRatio();
+
     if (m_enableAutoInputMaskByContentPath && (!m_pathIsRoundedRect || m_roundedRectRadius > 0)) {
         QPainterPath p;
-        const QPainterPath &path = m_clipPathOfContent.translated(contentOffsetHint()) * devicePixelRatio();
 
         if (Q_LIKELY(mouse_margins > 0)) {
             QPainterPathStroker stroker;
@@ -564,9 +564,6 @@ void DFrameWindow::updateMask()
             stroker.setWidth(mouse_margins * 2);
             p = stroker.createStroke(path);
             p = p.united(path);
-
-            stroker.setWidth(m_borderWidth);
-            m_borderPath = stroker.createStroke(path);
         } else {
             p = path;
         }
@@ -576,6 +573,12 @@ void DFrameWindow::updateMask()
         QRegion region((m_contentGeometry * devicePixelRatio()).adjusted(-mouse_margins, -mouse_margins, mouse_margins, mouse_margins));
         Utility::setShapeRectangles(winId(), region, DWMSupport::instance()->hasComposite());
     }
+
+    QPainterPathStroker stroker;
+
+    stroker.setJoinStyle(Qt::MiterJoin);
+    stroker.setWidth(m_borderWidth);
+    m_borderPath = stroker.createStroke(path);
 
     updateFrameMask();
     update();
