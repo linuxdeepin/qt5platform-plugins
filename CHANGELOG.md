@@ -1,4 +1,23 @@
 <a name=""></a>
+##  1.1.2 (2017-11-16)
+
+
+#### Features
+
+*   support set the window radius for QOpenGLWindow ([431fa688](https://github.com/linuxdeepin/qt5integration/commit/431fa688a6fad3a5057c89396342dfcc53987b04))
+*   use fake platform name when set DXCB_FAKE_PLATFORM_NAME_XCB ([471216b2](https://github.com/linuxdeepin/qt5integration/commit/471216b22d3ab08129d6d6e5c9e47696947adaaa))
+
+#### Bug Fixes
+
+*   the drag window position when dragging from one screen to another ([3905a0a0](https://github.com/linuxdeepin/qt5integration/commit/3905a0a02e1f17092b6c324516ae130172e247c9))
+*   the DFrameWindow's border path is wrong ([4882b916](https://github.com/linuxdeepin/qt5integration/commit/4882b91676593eadb8dcc98fb2a86ae82d0fe87a))
+*   the content window screen is wrong ([20f7695f](https://github.com/linuxdeepin/qt5integration/commit/20f7695f59a3a07981fc9bc5dde874385e215328))
+*   update screen for content window when the frame window screen changed ([f40a66ab](https://github.com/linuxdeepin/qt5integration/commit/f40a66abdaea1af1d8c00079717dc8d8c2622748))
+*   can not move window on openbox wm ([af64d84d](https://github.com/linuxdeepin/qt5integration/commit/af64d84dfc7d98e2bf5b8ea5a11507e200111431))
+
+
+
+<a name=""></a>
 ##  1.1.1 (2017-11-10)
 
 
