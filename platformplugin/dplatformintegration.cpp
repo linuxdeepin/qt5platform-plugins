@@ -54,6 +54,9 @@
 #include <QLibrary>
 
 #include <private/qguiapplication_p.h>
+#define protected public
+#include <private/qsimpledrag_p.h>
+#undef protected
 #include <qpa/qplatformnativeinterface.h>
 
 DPP_BEGIN_NAMESPACE
@@ -560,6 +563,15 @@ static void hookXcbCursor(QScreen *screen)
 }
 #endif
 
+static bool hookDragObjectEventFilter(QObject *drag, QObject *o, QEvent *e)
+{
+    if (e->type() == QEvent::MouseMove) {
+        return static_cast<QBasicDrag*>(drag)->QBasicDrag::eventFilter(o, e);
+    }
+
+    return VtableHook::callOriginalFun(drag, &QObject::eventFilter, o, e);
+}
+
 void DPlatformIntegration::initialize()
 {
     // 由于Qt很多代码中写死了是xcb，所以只能伪装成是xcb
@@ -611,6 +623,9 @@ void DPlatformIntegration::initialize()
 
     VtableHook::overrideVfptrFun(qApp->d_func(), &QGuiApplicationPrivate::isWindowBlocked,
                                  this, &DPlatformIntegration::isWindowBlockedHandle);
+
+    // FIXME(zccrs): 修复启动drag后鼠标从一块屏幕移动到另一块后图标窗口位置不对
+    VtableHook::overrideVfptrFun(static_cast<QBasicDrag*>(drag()), &QObject::eventFilter, &hookDragObjectEventFilter);
 }
 
 bool DPlatformIntegration::isWindowBlockedHandle(QWindow *window, QWindow **blockingWindow)
