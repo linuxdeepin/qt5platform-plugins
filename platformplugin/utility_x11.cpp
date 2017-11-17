@@ -48,6 +48,7 @@
 #define XATOM_MOVE_RESIZE "_NET_WM_MOVERESIZE"
 #define XDEEPIN_BLUR_REGION "_NET_WM_DEEPIN_BLUR_REGION"
 #define XDEEPIN_BLUR_REGION_ROUNDED "_NET_WM_DEEPIN_BLUR_REGION_ROUNDED"
+#define _GTK_SHOW_WINDOW_MENU "_GTK_SHOW_WINDOW_MENU"
 
 QT_BEGIN_NAMESPACE
 //extern Q_WIDGETS_EXPORT void qt_blurImage(QImage &blurImage, qreal radius, bool quality, int transposed = 0);
@@ -167,6 +168,28 @@ void Utility::startWindowSystemMove(quint32 WId)
 void Utility::cancelWindowMoveResize(quint32 WId)
 {
     sendMoveResizeMessage(WId, _NET_WM_MOVERESIZE_CANCEL);
+}
+
+void Utility::showWindowSystemMenu(quint32 WId, QPoint globalPos)
+{
+    if (globalPos.isNull()) {
+        globalPos = qApp->primaryScreen()->handle()->cursor()->pos();
+    }
+
+    xcb_client_message_event_t xev;
+
+    xev.response_type = XCB_CLIENT_MESSAGE;
+    xev.type = internAtom(_GTK_SHOW_WINDOW_MENU);
+    xev.window = WId;
+    xev.format = 32;
+    xev.data.data32[1] = globalPos.x();
+    xev.data.data32[2] = globalPos.y();
+
+    xcb_send_event(QX11Info::connection(), false, QX11Info::appRootWindow(QX11Info::appScreen()),
+                   XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT | XCB_EVENT_MASK_SUBSTRUCTURE_NOTIFY,
+                   (const char *)&xev);
+
+    xcb_flush(QX11Info::connection());
 }
 
 void Utility::setFrameExtents(quint32 WId, const QMargins &margins)
