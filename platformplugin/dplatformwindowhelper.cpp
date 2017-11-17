@@ -579,10 +579,15 @@ bool DPlatformWindowHelper::eventFilter(QObject *watched, QEvent *event)
         }
     } else if (watched == m_nativeWindow->window()) {
         switch ((int)event->type()) {
-        case QEvent::MouseMove: {
+        case QEvent::MouseMove:
             if (qApp->mouseButtons() != Qt::LeftButton)
                 break;
-
+        case QEvent::MouseButtonPress:
+            if (event->type() == QEvent::MouseButtonPress
+                    && qApp->mouseButtons() != Qt::RightButton) {
+                return false;
+            }
+        {
             static QEvent *last_event = NULL;
 
             if (last_event == event) {
@@ -595,11 +600,17 @@ bool DPlatformWindowHelper::eventFilter(QObject *watched, QEvent *event)
             QCoreApplication::sendEvent(watched, event);
 
             if (!event->isAccepted()) {
-                DQMouseEvent *e = static_cast<DQMouseEvent*>(event);
+                if (event->type() == QEvent::MouseMove) {
+                    DQMouseEvent *e = static_cast<DQMouseEvent*>(event);
 
-                e->l = e->w = m_frameWindow->mapFromGlobal(e->globalPos());
-                QGuiApplicationPrivate::setMouseEventSource(e, Qt::MouseEventSynthesizedByQt);
-                m_frameWindow->mouseMoveEvent(e);
+                    e->l = e->w = m_frameWindow->mapFromGlobal(e->globalPos());
+                    QGuiApplicationPrivate::setMouseEventSource(e, Qt::MouseEventSynthesizedByQt);
+                    m_frameWindow->mouseMoveEvent(e);
+                } else {
+                    Utility::showWindowSystemMenu(m_frameWindow->winId());
+                }
+
+                return true;
             }
             break;
         }

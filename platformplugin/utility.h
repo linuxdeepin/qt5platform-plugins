@@ -53,6 +53,7 @@ public:
     static xcb_atom_t internAtom(const char *name);
     static void startWindowSystemMove(quint32 WId);
     static void cancelWindowMoveResize(quint32 WId);
+    static void showWindowSystemMenu(quint32 WId, QPoint globalPos = QPoint());
     static void setFrameExtents(quint32 WId, const QMargins &margins);
     static void setShapeRectangles(quint32 WId, const QRegion &region, bool onlyInput = true);
     static void setShapePath(quint32 WId, const QPainterPath &path, bool onlyInput = true);
