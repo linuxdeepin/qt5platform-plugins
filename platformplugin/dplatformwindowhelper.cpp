@@ -810,7 +810,10 @@ bool DPlatformWindowHelper::updateWindowBlurAreasForWM()
 
     newPathList.reserve(newAreas.size());
 
-    QPainterPath window_vaild_path = (m_clipPath * device_pixel_ratio).translated(offset);
+    QPainterPath window_vaild_path;
+
+    window_vaild_path.addRect(m_nativeWindow->QPlatformWindow::geometry());
+    window_vaild_path = window_vaild_path.intersected((m_clipPath * device_pixel_ratio).translated(offset));
 
     foreach (Utility::BlurArea area, m_blurAreaList) {
         QPainterPath path;
