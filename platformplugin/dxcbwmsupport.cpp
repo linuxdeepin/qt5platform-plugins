@@ -289,6 +289,11 @@ quint32 DXcbWMSupport::getMWMDecorations(quint32 winId)
     return MWM_DECOR_ALL;
 }
 
+void DXcbWMSupport::popupSystemWindowMenu(quint32 winId)
+{
+    Utility::showWindowSystemMenu(winId);
+}
+
 QString DXcbWMSupport::windowManagerName() const
 {
     return m_wmName;

@@ -50,6 +50,7 @@ DEFINE_CONST_CHAR(userWindowMaximumSize);
 DEFINE_CONST_CHAR(windowBlurAreas);
 DEFINE_CONST_CHAR(windowBlurPaths);
 DEFINE_CONST_CHAR(autoInputMaskByClipPath);
+DEFINE_CONST_CHAR(popupSystemWindowMenu);
 
 // functions
 DEFINE_CONST_CHAR(setWmBlurWindowBackgroundArea);

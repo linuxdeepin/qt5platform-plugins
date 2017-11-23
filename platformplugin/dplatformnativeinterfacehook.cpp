@@ -65,6 +65,8 @@ QFunctionPointer DPlatformNativeInterfaceHook::platformFunction(QPlatformNativeI
         return reinterpret_cast<QFunctionPointer>(&DWMSupport::getMWMDecorations);
     } else if (function == connectWindowMotifWMHintsChanged) {
         return reinterpret_cast<QFunctionPointer>(&DWMSupport::connectWindowMotifWMHintsChanged);
+    } else if (function == popupSystemWindowMenu) {
+        return reinterpret_cast<QFunctionPointer>(&DWMSupport::popupSystemWindowMenu);
     }
 
 #if QT_VERSION >= QT_VERSION_CHECK(5, 4, 0)
