@@ -27,6 +27,10 @@
 
 #include <functional>
 
+QT_BEGIN_NAMESPACE
+class QWindow;
+QT_END_NAMESPACE
+
 DPP_BEGIN_NAMESPACE
 
 class DXcbWMSupport : public QObject
@@ -75,6 +79,8 @@ public:
     static quint32 getMWMFunctions(quint32 winId);
     static void setMWMDecorations(quint32 windId, quint32 decor);
     static quint32 getMWMDecorations(quint32 winId);
+
+    static void popupSystemWindowMenu(const QWindow *window);
 
     bool isDeepinWM() const;
     bool isKwin() const;
