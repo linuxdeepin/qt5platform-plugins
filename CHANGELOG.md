@@ -1,4 +1,21 @@
 <a name=""></a>
+##  1.1.3 (2017-11-28)
+
+
+#### Features
+
+*   add native function: popupSystemWindowMenu ([0e741b1e](https://github.com/linuxdeepin/qt5dxcb-plugin/commit/0e741b1ef87e77df108c9cccd3fb24e5a9010a88))
+*   add showWindowSystemMenu function ([915c6d3f](https://github.com/linuxdeepin/qt5dxcb-plugin/commit/915c6d3f75723c4574c00a786511ea098345d0d8))
+*   support for Qt 5.9.2 ([715bb1e4](https://github.com/linuxdeepin/qt5dxcb-plugin/commit/715bb1e411ebf5283a4aec5416c9b7d19d09a55d))
+
+#### Bug Fixes
+
+*   window vaild path is empty ([c2b1a1b5](https://github.com/linuxdeepin/qt5dxcb-plugin/commit/c2b1a1b52324f668a45213bebf1282aeec2c64e2))
+*   blur area overstep the content window area ([69f5edef](https://github.com/linuxdeepin/qt5dxcb-plugin/commit/69f5edef4453780c1566bc000b63307a5417b14d))
+
+
+
+<a name=""></a>
 ##  1.1.2 (2017-11-16)
 
 
