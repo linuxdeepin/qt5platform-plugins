@@ -31,6 +31,7 @@
 #include <private/qpaintdevicewindow_p.h>
 #include <qpa/qplatformbackingstore.h>
 #include <qpa/qplatformintegration.h>
+#include <qpa/qplatformcursor.h>
 
 DPP_BEGIN_NAMESPACE
 
@@ -81,7 +82,7 @@ DFrameWindow::DFrameWindow()
 
     connect(&m_cursorAnimation, &QVariantAnimation::valueChanged,
             this, [this] (const QVariant &value) {
-        QCursor::setPos(value.toPoint());
+        qApp->primaryScreen()->handle()->cursor()->setPos(value.toPoint());
     });
 
     m_startAnimationTimer.setSingleShot(true);
@@ -646,9 +647,9 @@ void DFrameWindow::adsorbCursor(Utility::CornerEdge cornerEdge)
 
 void DFrameWindow::startCursorAnimation()
 {
-    const QPoint &cursorPos = QCursor::pos();
-    QPoint toPos = mapFromGlobal(cursorPos);
-    const QRect geometry = m_contentGeometry.adjusted(-1, -1, 1, 1);
+    const QPoint &cursorPos = qApp->primaryScreen()->handle()->cursor()->pos();
+    QPoint toPos = cursorPos - handle()->geometry().topLeft();
+    const QRect geometry = (m_contentGeometry * devicePixelRatioF()).adjusted(-1, -1, 1, 1);
 
     switch (m_lastCornerEdge) {
     case Utility::TopLeftCorner:
@@ -679,7 +680,7 @@ void DFrameWindow::startCursorAnimation()
         break;
     }
 
-    toPos = mapToGlobal(toPos);
+    toPos += handle()->geometry().topLeft();
     const QPoint &tmp = toPos - cursorPos;
 
     if (qAbs(tmp.x()) < 3 && qAbs(tmp.y()) < 3)
