@@ -70,6 +70,8 @@ public:
     bool isEnableSystemMove() const;
     void setEnableSystemMove(bool enable);
 
+    QSize size() const Q_DECL_OVERRIDE;
+
 signals:
     void contentMarginsHintChanged(const QMargins &oldMargins) const;
 

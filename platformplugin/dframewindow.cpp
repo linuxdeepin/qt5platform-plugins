@@ -42,11 +42,12 @@ public:
     void beginPaint(const QRegion &region) Q_DECL_OVERRIDE
     {
         Q_Q(DFrameWindow);
-        if (size != q->size()) {
-            size = q->size();
-            q->platformBackingStore->resize(size * q->devicePixelRatio(), QRegion());
+        if (size != q->handle()->QPlatformWindow::geometry().size()) {
+            size = q->handle()->QPlatformWindow::geometry().size();
+            q->platformBackingStore->resize(size, QRegion());
             markWindowAsDirty();
         }
+
         q->platformBackingStore->beginPaint(region * q->devicePixelRatio());
     }
 
@@ -272,6 +273,20 @@ void DFrameWindow::setEnableSystemMove(bool enable)
 
         Utility::cancelWindowMoveResize(Utility::getNativeTopLevelWindow(winId()));
     }
+}
+
+QSize DFrameWindow::size() const
+{
+    Q_D(const DFrameWindow);
+
+    QSize s = QPaintDeviceWindow::size();
+
+    if (s * devicePixelRatio() != d->size) {
+        s.setWidth(s.width() + 1);
+        s.setHeight(s.height() + 1);
+    }
+
+    return s;
 }
 
 void DFrameWindow::paintEvent(QPaintEvent *)
