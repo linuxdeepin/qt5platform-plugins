@@ -31,6 +31,7 @@
 
 #include <QPainter>
 #include <QOpenGLPaintDevice>
+#include <QThreadStorage>
 
 DPP_BEGIN_NAMESPACE
 
@@ -46,8 +47,24 @@ bool DPlatformBackingStoreHelper::addBackingStore(QPlatformBackingStore *store)
     });
 
     VtableHook::overrideVfptrFun(store, &QPlatformBackingStore::beginPaint, this, &DPlatformBackingStoreHelper::beginPaint);
+    VtableHook::overrideVfptrFun(store, &QPlatformBackingStore::paintDevice, this, &DPlatformBackingStoreHelper::paintDevice);
 
     return VtableHook::overrideVfptrFun(store, &QPlatformBackingStore::flush, this, &DPlatformBackingStoreHelper::flush);
+}
+
+static QThreadStorage<bool> _d_dxcb_overridePaintDevice;
+
+QPaintDevice *DPlatformBackingStoreHelper::paintDevice()
+{
+    QPlatformBackingStore *store = backingStore();
+
+    if (_d_dxcb_overridePaintDevice.hasLocalData() && _d_dxcb_overridePaintDevice.localData()) {
+        static QImage device;
+
+        return &device;
+    }
+
+    return VtableHook::callOriginalFun(store, &QPlatformBackingStore::paintDevice);
 }
 
 void DPlatformBackingStoreHelper::beginPaint(const QRegion &region)
@@ -55,26 +72,12 @@ void DPlatformBackingStoreHelper::beginPaint(const QRegion &region)
     QPlatformBackingStore *store = backingStore();
     bool has_alpha = store->window()->property("_d_dxcb_TransparentBackground").toBool();
 
-#if (QT_VERSION >= QT_VERSION_CHECK(5, 7, 0))
-    int region_size = static_cast<QXcbBackingStore*>(store)->m_paintRegions.size();
-#endif
+    if (!has_alpha)
+        _d_dxcb_overridePaintDevice.setLocalData(true);
 
-    VtableHook::callOriginalFun(store, &QPlatformBackingStore::beginPaint, has_alpha ? region : QRegion());
+    VtableHook::callOriginalFun(store, &QPlatformBackingStore::beginPaint, region);
 
-#ifdef Q_OS_LINUX
-    if (Q_LIKELY(!has_alpha)) {
-        QXcbBackingStore *xcb_store = static_cast<QXcbBackingStore*>(store);
-
-#if (QT_VERSION < QT_VERSION_CHECK(5, 7, 0))
-        xcb_store->m_paintRegion = region;
-#else
-        if (region_size < xcb_store->m_paintRegions.size()) {
-            xcb_store->m_paintRegions.pop();
-            xcb_store->m_paintRegions.push(region);
-        }
-#endif
-    }
-#endif
+    _d_dxcb_overridePaintDevice.setLocalData(false);
 }
 
 void DPlatformBackingStoreHelper::flush(QWindow *window, const QRegion &region, const QPoint &offset)

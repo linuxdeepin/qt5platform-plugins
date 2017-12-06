@@ -27,6 +27,7 @@ class QPlatformBackingStore;
 class QWindow;
 class QRegion;
 class QPoint;
+class QPaintDevice;
 QT_END_NAMESPACE
 
 DPP_BEGIN_NAMESPACE
@@ -41,6 +42,7 @@ public:
     QPlatformBackingStore *backingStore() const
     { return reinterpret_cast<QPlatformBackingStore*>(const_cast<DPlatformBackingStoreHelper*>(this));}
 
+    QPaintDevice *paintDevice();
     void beginPaint(const QRegion &);
     void flush(QWindow *window, const QRegion &region, const QPoint &offset);
 };
