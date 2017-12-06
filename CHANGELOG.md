@@ -1,4 +1,20 @@
 <a name=""></a>
+##  1.1.3.1 (2017-12-06)
+
+
+#### Features
+
+*   not clean when begin paint on opaque window ([635a8252](https://github.com/linuxdeepin/qt5dxcb-plugin/commit/635a8252efe0500e2a299b0f336bab6b0362da1e))
+
+#### Bug Fixes
+
+*   visible lines at bottom/right on frame window ([40f53663](https://github.com/linuxdeepin/qt5dxcb-plugin/commit/40f536630fac0222f6e2ae29d0cfcd604f9e6b77))
+*   content window area path on window maximized/fullscreen ([4dd1dc20](https://github.com/linuxdeepin/qt5dxcb-plugin/commit/4dd1dc204125a62137ad735bc8e387ef0150314b))
+*   mouse position error on automatic adsorption ([196e34cb](https://github.com/linuxdeepin/qt5dxcb-plugin/commit/196e34cbade9e665b4b766e9c62332930cb34f54))
+
+
+
+<a name=""></a>
 ##  1.1.3 (2017-11-28)
 
 
