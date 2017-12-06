@@ -118,6 +118,8 @@ QPlatformWindow *DPlatformIntegration::createPlatformWindow(QWindow *window) con
         const int oldAlpha = format.alphaBufferSize();
         const int newAlpha = 8;
 
+        window->setProperty("_d_dxcb_TransparentBackground", format.hasAlpha());
+
         if (oldAlpha != newAlpha) {
             format.setAlphaBufferSize(newAlpha);
             window->setFormat(format);

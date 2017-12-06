@@ -21,6 +21,12 @@
 #include "dframewindow.h"
 #include "dwmsupport.h"
 
+#ifdef Q_OS_LINUX
+#define private public
+#include "qxcbbackingstore.h"
+#undef private
+#endif
+
 #include <qpa/qplatformbackingstore.h>
 
 #include <QPainter>
@@ -39,7 +45,22 @@ bool DPlatformBackingStoreHelper::addBackingStore(QPlatformBackingStore *store)
         VtableHook::clearGhostVtable(store);
     });
 
+    VtableHook::overrideVfptrFun(store, &QPlatformBackingStore::beginPaint, this, &DPlatformBackingStoreHelper::beginPaint);
+
     return VtableHook::overrideVfptrFun(store, &QPlatformBackingStore::flush, this, &DPlatformBackingStoreHelper::flush);
+}
+
+void DPlatformBackingStoreHelper::beginPaint(const QRegion &region)
+{
+    QPlatformBackingStore *store = backingStore();
+    bool has_alpha = store->window()->property("_d_dxcb_TransparentBackground").toBool();
+
+    VtableHook::callOriginalFun(store, &QPlatformBackingStore::beginPaint, has_alpha ? region : QRegion());
+
+#ifdef Q_OS_LINUX
+    if (Q_LIKELY(!has_alpha))
+        static_cast<QXcbBackingStore*>(store)->m_paintRegion = region;
+#endif
 }
 
 void DPlatformBackingStoreHelper::flush(QWindow *window, const QRegion &region, const QPoint &offset)

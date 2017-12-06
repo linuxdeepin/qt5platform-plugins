@@ -41,6 +41,7 @@ public:
     QPlatformBackingStore *backingStore() const
     { return reinterpret_cast<QPlatformBackingStore*>(const_cast<DPlatformBackingStoreHelper*>(this));}
 
+    void beginPaint(const QRegion &);
     void flush(QWindow *window, const QRegion &region, const QPoint &offset);
 };
 
