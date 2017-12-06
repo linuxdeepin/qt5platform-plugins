@@ -55,11 +55,25 @@ void DPlatformBackingStoreHelper::beginPaint(const QRegion &region)
     QPlatformBackingStore *store = backingStore();
     bool has_alpha = store->window()->property("_d_dxcb_TransparentBackground").toBool();
 
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 7, 0))
+    int region_size = static_cast<QXcbBackingStore*>(store)->m_paintRegions.size();
+#endif
+
     VtableHook::callOriginalFun(store, &QPlatformBackingStore::beginPaint, has_alpha ? region : QRegion());
 
 #ifdef Q_OS_LINUX
-    if (Q_LIKELY(!has_alpha))
-        static_cast<QXcbBackingStore*>(store)->m_paintRegion = region;
+    if (Q_LIKELY(!has_alpha)) {
+        QXcbBackingStore *xcb_store = static_cast<QXcbBackingStore*>(store);
+
+#if (QT_VERSION < QT_VERSION_CHECK(5, 7, 0))
+        xcb_store->m_paintRegion = region;
+#else
+        if (region_size < xcb_store->m_paintRegions.size()) {
+            xcb_store->m_paintRegions.pop();
+            xcb_store->m_paintRegions.push(region);
+        }
+#endif
+    }
 #endif
 }
 
