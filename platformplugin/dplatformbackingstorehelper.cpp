@@ -58,8 +58,14 @@ void DPlatformBackingStoreHelper::beginPaint(const QRegion &region)
     VtableHook::callOriginalFun(store, &QPlatformBackingStore::beginPaint, has_alpha ? region : QRegion());
 
 #ifdef Q_OS_LINUX
-    if (Q_LIKELY(!has_alpha))
+    if (Q_LIKELY(!has_alpha)) {
+#if QT_VERSION < QT_VERSION_CHECK(5, 7, 0)
         static_cast<QXcbBackingStore*>(store)->m_paintRegion = region;
+#else
+        static_cast<QXcbBackingStore*>(store)->m_paintRegions.pop();
+        static_cast<QXcbBackingStore*>(store)->m_paintRegions.push(region);
+#endif
+    }
 #endif
 }
 
