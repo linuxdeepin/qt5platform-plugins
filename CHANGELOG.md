@@ -1,4 +1,18 @@
 <a name=""></a>
+##  1.1.4 (2017-12-06)
+
+
+#### Features
+
+*   support for Qt 5.9.3 ([32ec6503](https://github.com/linuxdeepin/qt5dxcb-plugin/commit/32ec650304f12e3107c7dd13677c0cbb0afb1023))
+
+#### Bug Fixes
+
+*   compiling failed in Qt5.7.0 and above ([790377a5](https://github.com/linuxdeepin/qt5dxcb-plugin/commit/790377a5ecadbcd86a0bb62bc71cf71144873984))
+
+
+
+<a name=""></a>
 ##  1.1.3.1 (2017-12-06)
 
 
