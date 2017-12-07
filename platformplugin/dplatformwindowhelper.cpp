@@ -671,6 +671,9 @@ bool DPlatformWindowHelper::eventFilter(QObject *watched, QEvent *event)
                                                               DPlatformIntegration::instance()->defaultConnection()->rootWindow());
             const QPoint &cursor_pos = qApp->primaryScreen()->handle()->cursor()->pos();
 
+            if (m_clipPath.isEmpty())
+                return QRectF(m_windowVaildGeometry).contains(QPointF(cursor_pos - pos) / m_nativeWindow->window()->devicePixelRatio());
+
             return m_clipPath.contains(QPointF(cursor_pos - pos) / m_nativeWindow->window()->devicePixelRatio());
         }
         default: break;
@@ -694,6 +697,10 @@ void DPlatformWindowHelper::updateClipPathByWindowRadius(const QSize &windowSize
 
         int window_radius = getWindowRadius();
 
+        if (window_radius <= 0) {
+            return setClipPath(QPainterPath());
+        }
+
         QPainterPath path;
 
         path.addRoundedRect(m_windowVaildGeometry, window_radius, window_radius);
@@ -713,15 +720,19 @@ void DPlatformWindowHelper::setClipPath(const QPainterPath &path)
         setWindowVaildGeometry(m_clipPath.boundingRect().toRect() & QRect(QPoint(0, 0), m_nativeWindow->window()->size()));
     }
 
-    const QPainterPath &real_path = m_clipPath * m_nativeWindow->window()->devicePixelRatio();
-    QPainterPathStroker stroker;
+    if (path.isEmpty()) {
+        Utility::setShapeRectangles(m_nativeWindow->QNativeWindow::winId(), QRegion());
+    } else {
+        const QPainterPath &real_path = m_clipPath * m_nativeWindow->window()->devicePixelRatio();
+        QPainterPathStroker stroker;
 
-    stroker.setJoinStyle(Qt::MiterJoin);
-    stroker.setWidth(1);
+        stroker.setJoinStyle(Qt::MiterJoin);
+        stroker.setWidth(1);
 
-    Utility::setShapePath(m_nativeWindow->QNativeWindow::winId(),
-                          stroker.createStroke(real_path).united(real_path),
-                          false);
+        Utility::setShapePath(m_nativeWindow->QNativeWindow::winId(),
+                              stroker.createStroke(real_path).united(real_path),
+                              false);
+    }
 
     updateWindowBlurAreasForWM();
     updateContentPathForFrameWindow();
@@ -814,7 +825,9 @@ bool DPlatformWindowHelper::updateWindowBlurAreasForWM()
     QPainterPath window_vaild_path;
 
     window_vaild_path.addRect(QRect(offset, m_nativeWindow->QPlatformWindow::geometry().size()));
-    window_vaild_path &= (m_clipPath * device_pixel_ratio).translated(offset);
+
+    if (!m_clipPath.isEmpty())
+        window_vaild_path &= (m_clipPath * device_pixel_ratio).translated(offset);
 
     foreach (Utility::BlurArea area, m_blurAreaList) {
         QPainterPath path;
@@ -898,6 +911,16 @@ static QColor colorBlend(const QColor &color1, const QColor &color2)
 QColor DPlatformWindowHelper::getBorderColor() const
 {
     return DWMSupport::instance()->hasComposite() ? m_borderColor : colorBlend(QColor("#e0e0e0"), m_borderColor);
+}
+
+QPainterPath DPlatformWindowHelper::getClipPath() const
+{
+    QPainterPath path = m_clipPath;
+
+    if (path.isEmpty())
+        path.addRect(m_windowVaildGeometry);
+
+    return path;
 }
 
 void DPlatformWindowHelper::updateWindowRadiusFromProperty()
@@ -1140,19 +1163,23 @@ void DPlatformWindowHelper::onWMHasCompositeChanged()
 
 //    m_frameWindow->setShadowRaduis(getShadowRadius());
 
-    QPainterPath clip_path = m_clipPath * m_nativeWindow->window()->devicePixelRatio();
+    if (m_clipPath.isEmpty()) {
+        Utility::setShapeRectangles(m_nativeWindow->QNativeWindow::winId(), QRegion());
+    } else {
+        QPainterPath clip_path = m_clipPath * m_nativeWindow->window()->devicePixelRatio();
 
-    if (DXcbWMSupport::instance()->hasComposite()) {
-        QPainterPathStroker stroker;
+        if (DXcbWMSupport::instance()->hasComposite()) {
+            QPainterPathStroker stroker;
 
-        stroker.setJoinStyle(Qt::MiterJoin);
-        stroker.setWidth(1);
-        clip_path = stroker.createStroke(clip_path).united(clip_path);
+            stroker.setJoinStyle(Qt::MiterJoin);
+            stroker.setWidth(1);
+            clip_path = stroker.createStroke(clip_path).united(clip_path);
+        }
+
+        Utility::setShapePath(m_nativeWindow->QNativeWindow::winId(),
+                              clip_path,
+                              false);
     }
-
-    Utility::setShapePath(m_nativeWindow->QNativeWindow::winId(),
-                          clip_path,
-                          false);
 
     m_frameWindow->updateMask();
     m_frameWindow->setBorderColor(getBorderColor());

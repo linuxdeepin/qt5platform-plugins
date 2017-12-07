@@ -108,6 +108,7 @@ private:
     int getWindowRadius() const;
     int getShadowRadius() const;
     QColor getBorderColor() const;
+    QPainterPath getClipPath() const;
 
     // update propertys
     void updateClipPathFromProperty();
