@@ -1,4 +1,15 @@
 <a name=""></a>
+##  1.1.5 (2017-12-07)
+
+
+#### Bug Fixes
+
+*   visable black border when maximize window ([9a25eccc](https://github.com/linuxdeepin/qt5dxcb-plugin/commit/9a25eccc5e50ccd2cf196671d898ca83ed468f19))
+*   output "QPainter::begin: Paint device returned engine == 0, type: 3" ([d424dd61](https://github.com/linuxdeepin/qt5dxcb-plugin/commit/d424dd61e2adc6cb4f96315354128751a2ac60cf))
+
+
+
+<a name=""></a>
 ##  1.1.4 (2017-12-06)
 
 
