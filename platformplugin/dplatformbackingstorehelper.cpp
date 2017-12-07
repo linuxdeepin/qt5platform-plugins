@@ -90,7 +90,7 @@ void DPlatformBackingStoreHelper::flush(QWindow *window, const QRegion &region, 
             QPainterPath path;
 
             path.addRegion(region);
-            path -= window_helper->m_clipPath * device_pixel_ratio;
+            path -= window_helper->getClipPath() * device_pixel_ratio;
 
             if (path.isEmpty())
                 goto end;

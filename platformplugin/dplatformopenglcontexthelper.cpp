@@ -64,7 +64,7 @@ void DPlatformOpenGLContextHelper::swapBuffers(QPlatformSurface *surface)
 
         qreal device_pixel_ratio = window_helper->m_nativeWindow->window()->devicePixelRatio();
         QPainterPath path;
-        const QPainterPath &real_clip_path = window_helper->m_clipPath * device_pixel_ratio;
+        const QPainterPath &real_clip_path = window_helper->getClipPath() * device_pixel_ratio;
         const QSize &window_size = window->handle()->geometry().size();
 
         path.addRect(QRect(QPoint(0, 0), window_size));
