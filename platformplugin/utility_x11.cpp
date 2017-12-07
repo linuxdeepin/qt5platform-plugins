@@ -31,7 +31,6 @@
 #include <QGuiApplication>
 #include <qpa/qplatformwindow.h>
 #include <qpa/qplatformcursor.h>
-#include <private/qhighdpiscaling_p.h>
 
 #if QT_VERSION >= QT_VERSION_CHECK(5, 8, 0)
 #include <QtWidgets/qtwidgetsglobal.h>
