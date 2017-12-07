@@ -199,7 +199,11 @@ void DFrameWindow::setContentRoundedRect(const QRect &rect, int radius)
 
     path.addRoundedRect(rect, radius, radius);
     m_contentGeometry = rect.translated(contentOffsetHint());
-    setContentPath(path, true, radius);
+
+    bool repaint_shadow = windowState() != Qt::WindowFullScreen
+                            && windowState() != Qt::WindowMaximized;
+
+    setContentPath(path, true, radius, !repaint_shadow);
 }
 
 QMargins DFrameWindow::contentMarginsHint() const
@@ -468,7 +472,8 @@ QPaintDevice *DFrameWindow::redirected(QPoint *) const
     return platformBackingStore->paintDevice();
 }
 
-void DFrameWindow::setContentPath(const QPainterPath &path, bool isRoundedRect, int radius)
+void DFrameWindow::setContentPath(const QPainterPath &path, bool isRoundedRect,
+                                  int radius, bool noRepaint)
 {
     if (m_clipPathOfContent == path)
         return;
@@ -486,8 +491,10 @@ void DFrameWindow::setContentPath(const QPainterPath &path, bool isRoundedRect, 
         const QSize &margins_size = margins2Size(margins);
         const QSize &shadow_size = m_shadowImage.size() / devicePixelRatio();
 
-        if (margins_size.width() > m_contentGeometry.width() || margins_size.height() > m_contentGeometry.height()
-                || margins_size.width() > shadow_size.width() || margins_size.height() > shadow_size.height()) {
+        if (noRepaint && (margins_size.width() > m_contentGeometry.width()
+                          || margins_size.height() > m_contentGeometry.height()
+                          || margins_size.width() > shadow_size.width()
+                          || margins_size.height() > shadow_size.height())) {
             updateShadow();
         } else {
             m_shadowImage = Utility::borderImage(QPixmap::fromImage(m_shadowImage), margins * devicePixelRatio(),
@@ -497,7 +504,8 @@ void DFrameWindow::setContentPath(const QPainterPath &path, bool isRoundedRect, 
         m_pathIsRoundedRect = isRoundedRect;
         m_roundedRectRadius = radius;
 
-        updateShadow();
+        if (!noRepaint)
+            updateShadow();
     }
 
     updateMask();

@@ -86,7 +86,8 @@ protected:
 private:
     QPaintDevice *redirected(QPoint *) const Q_DECL_OVERRIDE;
 
-    void setContentPath(const QPainterPath &path, bool isRoundedRect, int radius = 0);
+    void setContentPath(const QPainterPath &path, bool isRoundedRect,
+                        int radius = 0, bool noRepaint = false);
 
     void updateShadow();
     void updateContentMarginsHint();
