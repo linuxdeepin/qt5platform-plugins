@@ -56,7 +56,11 @@ public:
 
     void setVisible(bool visible);
     void setWindowFlags(Qt::WindowFlags flags);
+#if QT_VERSION < QT_VERSION_CHECK(5, 10, 0)
     void setWindowState(Qt::WindowState state);
+#else
+    void setWindowState(Qt::WindowStates state);
+#endif
 
     WId winId() const;
     void setParent(const QPlatformWindow *window);
