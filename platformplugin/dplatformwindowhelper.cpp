@@ -329,7 +329,11 @@ void DPlatformWindowHelper::setWindowFlags(Qt::WindowFlags flags)
     window()->QNativeWindow::setWindowFlags(flags);
 }
 
+#if QT_VERSION < QT_VERSION_CHECK(5, 10, 0)
 void DPlatformWindowHelper::setWindowState(Qt::WindowState state)
+#else
+void DPlatformWindowHelper::setWindowState(Qt::WindowStates state)
+#endif
 {
 #ifdef Q_OS_LINUX
     DQNativeWindow *window = static_cast<DQNativeWindow*>(me()->m_frameWindow->handle());
@@ -349,7 +353,11 @@ void DPlatformWindowHelper::setWindowState(Qt::WindowState state)
     } else
 #endif
     {
+#if QT_VERSION < QT_VERSION_CHECK(5, 10, 0)
         me()->m_frameWindow->setWindowState(state);
+#else
+        me()->m_frameWindow->setWindowStates(state);
+#endif
     }
 }
 
@@ -443,7 +451,11 @@ void DPlatformWindowHelper::requestActivateWindow()
 #ifdef Q_OS_LINUX
     if (helper->m_frameWindow->handle()->isExposed() && !DXcbWMSupport::instance()->hasComposite()
             && helper->m_frameWindow->windowState() == Qt::WindowMinimized) {
+#ifdef Q_XCB_CALL
         Q_XCB_CALL(xcb_map_window(DPlatformIntegration::xcbConnection()->xcb_connection(), helper->m_frameWindow->winId()));
+#else
+        xcb_map_window(DPlatformIntegration::xcbConnection()->xcb_connection(), helper->m_frameWindow->winId());
+#endif
     }
 #endif
 
