@@ -1,17 +1,13 @@
-# qt5integration
+# qt5dxcb-plugin
 
-qt5integration is the Qt platform theme integration plugins for Deepin Desktop Environment. It includes multiple Qt5 plugins
-to make make DDE more Qt5 Apps friendly.
+qt5dxcb-plugin is the Qt platform integration plugin for Deepin Desktop Environment.
 
 ## Dependencies
 
 ### Build dependencies
 
 * qmake (>= 5.3)
-* gtk+-2.0
 * mtdev
-* [dtk](https://github.com/linuxdeepin/deepin-tool-kit)
-* [libqtxdg](https://github.com/lxde/libqtxdg)
 * Qt5 (>= 5.3)
   * Qt5-Core
   * Qt5-Gui
@@ -25,10 +21,6 @@ to make make DDE more Qt5 Apps friendly.
   * Qt5-Core-Private
   * Qt5-Widgets-Private
 
-### Runtime dependencies
-
-* DDE File Manager (suggestion, to make Qt5 file dialogs more elegant)
-
 ## Installation
 
 ### Build from source code
@@ -37,7 +29,7 @@ to make make DDE more Qt5 Apps friendly.
 
 2. Build:
 ```
-$ cd qt5integration
+$ cd qt5dxcb-plugin
 $ mkdir build
 $ cd build
 $ qmake ..
@@ -60,9 +52,15 @@ You may also find these channels useful if you encounter any other issues:
 * [Gitter](https://gitter.im/orgs/linuxdeepin/rooms)
 * [IRC Channel](https://webchat.freenode.net/?channels=deepin)
 * [Official Forum](https://bbs.deepin.org/)
-* [Wiki](http://wiki.deepin.org/)
+* [Wiki](https://wiki.deepin.org/)
+
+## Getting involved
+
+We encourage you to report issues and contribute changes
+
+* [Contribution guide for developers](https://github.com/linuxdeepin/developer-center/wiki/Contribution-Guidelines-for-Developers-en). (English)
+* [开发者代码贡献指南](https://github.com/linuxdeepin/developer-center/wiki/Contribution-Guidelines-for-Developers) (中文)
 
 ## License
 
 qt5integration is licensed under [GPLv3](LICENSE).
-
