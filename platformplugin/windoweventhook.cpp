@@ -125,7 +125,12 @@ void WindowEventHook::handleClientMessageEvent(const xcb_client_message_event_t 
             dropData = drag->currentDrag()->mimeData();
             supported_drop_actions = Qt::DropActions(l[4]);
         } else {
+#if QT_VERSION < QT_VERSION_CHECK(5, 10, 0)
             dropData = drag->platformDropData();
+#else
+            //FIXME(zccrs): must use the drop data object
+            dropData = reinterpret_cast<QMimeData*>(drag->m_dropData);
+#endif
             supported_drop_actions = drag->accepted_drop_action;
 
             // Drop coming from another app? Update keyboard modifiers.
@@ -174,8 +179,13 @@ void WindowEventHook::handleClientMessageEvent(const xcb_client_message_event_t 
         finished.data.data32[0] = drag->currentWindow ? xcb_window(drag->currentWindow.data()) : XCB_NONE;
         finished.data.data32[1] = response.isAccepted(); // flags
         finished.data.data32[2] = toXdndAction(drag, response.acceptedAction());
+#ifdef Q_XCB_CALL
         Q_XCB_CALL(xcb_send_event(drag->xcb_connection(), false, drag->current_proxy_target,
                                   XCB_EVENT_MASK_NO_EVENT, (char *)&finished));
+#else
+        xcb_send_event(drag->xcb_connection(), false, drag->current_proxy_target,
+                       XCB_EVENT_MASK_NO_EVENT, (char *)&finished);
+#endif
 
         drag->xdnd_dragsource = 0;
         drag->currentWindow.clear();
@@ -335,7 +345,11 @@ void WindowEventHook::handleXIEnterLeave(xcb_ge_event_t *event)
 
     if (ev->evtype == XI_Enter) {
         if (ev->buttons_len > 0) {
+#if QT_VERSION < QT_VERSION_CHECK(5, 10, 0)
             Qt::MouseButtons buttons = me->connection()->buttons();
+#else
+            Qt::MouseButtons buttons = me->connection()->buttonState();
+#endif
             const Qt::KeyboardModifiers modifiers = translateModifiers(me->connection()->keyboard()->rmod_masks, ev->mods.effective_mods);
             unsigned char *buttonMask = (unsigned char *) &ev[1];
             for (int i = 1; i <= 15; ++i) {
@@ -346,7 +360,11 @@ void WindowEventHook::handleXIEnterLeave(xcb_ge_event_t *event)
 
                 bool isSet = XIMaskIsSet(buttonMask, i);
 
+#if QT_VERSION < QT_VERSION_CHECK(5, 10, 0)
                 me->connection()->setButton(b, isSet);
+#else
+                me->connection()->setButtonState(b, isSet);
+#endif
 
                 const int event_x = fixed1616ToInt(ev->event_x);
                 const int event_y = fixed1616ToInt(ev->event_y);

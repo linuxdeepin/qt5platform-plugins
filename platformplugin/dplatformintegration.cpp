@@ -16,15 +16,19 @@
  */
 
 #include "dplatformintegration.h"
-#include "dplatformbackingstore.h"
 #include "global.h"
-#include "dplatformwindowhelper.h"
 #include "dforeignplatformwindow.h"
+#include "vtablehook.h"
+
+#ifdef USE_NEW_IMPLEMENTING
+#include "dplatformwindowhelper.h"
 #include "dplatformbackingstorehelper.h"
 #include "dplatformopenglcontexthelper.h"
 #include "dframewindow.h"
-#include "vtablehook.h"
+#else
+#include "dplatformbackingstore.h"
 #include "dplatformwindowhook.h"
+#endif
 
 #ifdef Q_OS_LINUX
 #define private public
@@ -69,8 +73,10 @@ DPlatformIntegration *DPlatformIntegration::m_instance = Q_NULLPTR;
 
 DPlatformIntegration::DPlatformIntegration(const QStringList &parameters, int &argc, char **argv)
     : DPlatformIntegrationParent(parameters, argc, argv)
+#ifdef USE_NEW_IMPLEMENTING
     , m_storeHelper(new DPlatformBackingStoreHelper)
     , m_contextHelper(new DPlatformOpenGLContextHelper)
+#endif
 {
 #ifdef Q_OS_LINUX
 #if QT_VERSION < QT_VERSION_CHECK(5, 5, 0)
@@ -93,8 +99,10 @@ DPlatformIntegration::~DPlatformIntegration()
     delete m_eventFilter;
 #endif
 
+#ifdef USE_NEW_IMPLEMENTING
     delete m_storeHelper;
     delete m_contextHelper;
+#endif
 }
 
 QPlatformWindow *DPlatformIntegration::createPlatformWindow(QWindow *window) const
@@ -497,7 +505,11 @@ static xcb_cursor_t overrideCreateFontCursor(QXcbCursor *xcb_cursor, QCursor *c,
     if (cursor)
         return cursor;
     if (!cursor && cursorId) {
+#ifdef DISPLAY_FROM_XCB
         cursor = XCreateFontCursor(DISPLAY_FROM_XCB(xcb_cursor), cursorId);
+#else
+        cursor = XCreateFontCursor(static_cast<Display *>(xcb_cursor->connection()->xlib_display()), cursorId);
+#endif
         if (cursor)
             return cursor;
     }
