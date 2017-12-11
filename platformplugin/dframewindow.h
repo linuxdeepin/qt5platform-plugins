@@ -90,6 +90,7 @@ private:
                         int radius = 0, bool noRepaint = false);
 
     void updateShadow();
+    void updateShadowAsync();
     void updateContentMarginsHint();
     void updateMask();
     void updateFrameMask();

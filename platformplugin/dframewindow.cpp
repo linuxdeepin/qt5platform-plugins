@@ -25,6 +25,7 @@
 
 #include <QPainter>
 #include <QGuiApplication>
+#include <QtConcurrent/QtConcurrent>
 #include <QDebug>
 
 #include <private/qguiapplication_p.h>
@@ -144,7 +145,7 @@ void DFrameWindow::setShadowColor(const QColor &color)
 
     m_shadowColor = color;
 
-    updateShadow();
+    updateShadowAsync();
 }
 
 int DFrameWindow::borderWidth() const
@@ -174,7 +175,7 @@ void DFrameWindow::setBorderColor(const QColor &color)
 
     m_borderColor = color;
 
-    updateShadow();
+    updateShadowAsync();
 }
 
 QPainterPath DFrameWindow::contentPath() const
@@ -495,7 +496,7 @@ void DFrameWindow::setContentPath(const QPainterPath &path, bool isRoundedRect,
                            || margins_size.height() > m_contentGeometry.height()
                            || margins_size.width() > shadow_size.width()
                            || margins_size.height() > shadow_size.height())) {
-            updateShadow();
+            updateShadowAsync();
         } else {
             m_shadowImage = Utility::borderImage(QPixmap::fromImage(m_shadowImage), margins * devicePixelRatio(),
                                                  (m_contentGeometry + contentMarginsHint()).size() * devicePixelRatio());
@@ -505,7 +506,7 @@ void DFrameWindow::setContentPath(const QPainterPath &path, bool isRoundedRect,
         m_roundedRectRadius = radius;
 
         if (!noRepaint)
-            updateShadow();
+            updateShadowAsync();
     }
 
     updateMask();
@@ -530,7 +531,12 @@ void DFrameWindow::updateShadow()
     pa.end();
 
     m_shadowImage = Utility::dropShadow(pixmap, m_shadowRadius * device_pixel_ratio, m_shadowColor);
-    update();
+    metaObject()->invokeMethod(this, "update", Qt::AutoConnection);
+}
+
+void DFrameWindow::updateShadowAsync()
+{
+    QtConcurrent::run(this, &DFrameWindow::updateShadow);
 }
 
 void DFrameWindow::updateContentMarginsHint()
@@ -555,7 +561,7 @@ void DFrameWindow::updateContentMarginsHint()
     m_contentGeometry.translate(m_contentMarginsHint.left() - old_margins.left(),
                                 m_contentMarginsHint.top() - old_margins.top());
 
-    updateShadow();
+    updateShadowAsync();
 
     if (isVisible()) {
         // Set frame extents
