@@ -789,7 +789,12 @@ bool DPlatformWindowHelper::updateWindowBlurAreasForWM()
         return Utility::blurWindowBackground(top_level_w, newAreas);
     }
 
-    if (!m_isUserSetClipPath && m_windowRadius <=0 && m_blurPathList.isEmpty()) {
+    QPainterPath window_vaild_path;
+
+    window_vaild_path.addRect(QRect(offset, m_nativeWindow->QPlatformWindow::geometry().size()));
+    window_vaild_path &= (m_clipPath * device_pixel_ratio).translated(offset);
+
+    if (m_blurPathList.isEmpty()) {
         if (m_blurAreaList.isEmpty())
             return true;
 
@@ -798,35 +803,34 @@ bool DPlatformWindowHelper::updateWindowBlurAreasForWM()
         foreach (Utility::BlurArea area, m_blurAreaList) {
             area *= device_pixel_ratio;
 
-            if (area.x < 0) {
-                area.width += area.x;
-                area.x = 0;
+            if (area.x < windowValidRect.x() || area.y < windowValidRect.y()
+                    || area.x + area.width > windowValidRect.right() + 1
+                    || area.y + area.height > windowValidRect.bottom() + 1) {
+                break;
             }
 
-            if (area.y < 0) {
-                area.height += area.y;
-                area.y = 0;
-            }
-
-            area.width = qMin(area.x + area.width, windowValidRect.right() + 1) - area.x;
-            area.height = qMin(area.y + area.height, windowValidRect.bottom() + 1) - area.y;
             area.x += offset.x();
             area.y += offset.y();
+
+            if (m_isUserSetClipPath) {
+                QPainterPath path;
+
+                path.addRoundedRect(area.x, area.y, area.width, area.height, area.xRadius, area.yRaduis);
+
+                if (!window_vaild_path.contains(path))
+                    break;
+            }
 
             newAreas.append(std::move(area));
         }
 
-        return Utility::blurWindowBackground(top_level_w, newAreas);
+        if (newAreas.size() == m_blurAreaList.size())
+            return Utility::blurWindowBackground(top_level_w, newAreas);
     }
 
     QList<QPainterPath> newPathList;
 
-    newPathList.reserve(newAreas.size());
-
-    QPainterPath window_vaild_path;
-
-    window_vaild_path.addRect(QRect(offset, m_nativeWindow->QPlatformWindow::geometry().size()));
-    window_vaild_path &= (m_clipPath * device_pixel_ratio).translated(offset);
+    newPathList.reserve(m_blurAreaList.size());
 
     foreach (Utility::BlurArea area, m_blurAreaList) {
         QPainterPath path;
