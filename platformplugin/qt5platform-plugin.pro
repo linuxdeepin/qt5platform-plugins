@@ -10,7 +10,7 @@ PLUGIN_CLASS_NAME = DXcbIntegrationPlugin
 
 DESTDIR = $$_PRO_FILE_PWD_/../bin/plugins/platforms
 
-QT       += opengl x11extras
+QT       += opengl x11extras concurrent
 QT       += core-private #xcb_qpa_lib-private
 greaterThan(QT_MAJOR_VERSION, 4) {
     QT += widgets widgets-private

@@ -554,10 +554,12 @@ bool DPlatformWindowHelper::eventFilter(QObject *watched, QEvent *event)
             break;
         }
         case QEvent::MouseButtonPress:
-        case QEvent::MouseButtonRelease: {
+        case QEvent::MouseButtonRelease:
+        case QEvent::MouseMove: {
             DQMouseEvent *e = static_cast<DQMouseEvent*>(event);
 
             if (QRectF(m_windowVaildGeometry).contains(e->localPos() - m_frameWindow->contentOffsetHint())) {
+                m_frameWindow->setCursor(Qt::ArrowCursor);
                 e->l = e->w = m_nativeWindow->window()->mapFromGlobal(e->globalPos());
                 qApp->sendEvent(m_nativeWindow->window(), e);
 
@@ -845,8 +847,7 @@ void DPlatformWindowHelper::updateContentPathForFrameWindow()
 
 int DPlatformWindowHelper::getWindowRadius() const
 {
-    if (m_frameWindow->windowState() == Qt::WindowMaximized
-            || m_frameWindow->windowState() == Qt::WindowFullScreen)
+    if (m_frameWindow->windowState() == Qt::WindowFullScreen)
         return 0;
 
     return (m_isUserSetWindowRadius || DWMSupport::instance()->hasComposite()) ? m_windowRadius : 0;
