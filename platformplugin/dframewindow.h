@@ -90,6 +90,7 @@ private:
                         int radius = 0, bool noRepaint = false);
 
     void updateShadow();
+    void updateShadowAsync(int delaye = 30);
     void updateContentMarginsHint();
     void updateMask();
     void updateFrameMask();
@@ -98,6 +99,8 @@ private:
     void cancelAdsorbCursor();
     void adsorbCursor(Utility::CornerEdge cornerEdge);
     void startCursorAnimation();
+
+    bool disableFrame() const;
 
     static QList<DFrameWindow*> frameWindowList;
 
@@ -131,6 +134,8 @@ private:
     QVariantAnimation m_cursorAnimation;
 
     QPointer<QWindow> m_contentWindow;
+
+    QTimer m_updateShadowTimer;
 
     friend class DPlatformWindowHelper;
     friend class DPlatformBackingStoreHelper;

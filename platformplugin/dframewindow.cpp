@@ -95,6 +95,11 @@ DFrameWindow::DFrameWindow()
     updateContentMarginsHint();
 
     frameWindowList.append(this);
+
+    connect(this, &DFrameWindow::windowStateChanged,
+            this, &DFrameWindow::updateMask);
+    connect(&m_updateShadowTimer, &QTimer::timeout,
+            this, &DFrameWindow::updateShadow);
 }
 
 DFrameWindow::~DFrameWindow()
@@ -144,7 +149,7 @@ void DFrameWindow::setShadowColor(const QColor &color)
 
     m_shadowColor = color;
 
-    updateShadow();
+    updateShadowAsync();
 }
 
 int DFrameWindow::borderWidth() const
@@ -174,7 +179,7 @@ void DFrameWindow::setBorderColor(const QColor &color)
 
     m_borderColor = color;
 
-    updateShadow();
+    updateShadowAsync();
 }
 
 QPainterPath DFrameWindow::contentPath() const
@@ -200,8 +205,7 @@ void DFrameWindow::setContentRoundedRect(const QRect &rect, int radius)
     path.addRoundedRect(rect, radius, radius);
     m_contentGeometry = rect.translated(contentOffsetHint());
 
-    bool repaint_shadow = windowState() != Qt::WindowFullScreen
-                            && windowState() != Qt::WindowMaximized;
+    bool repaint_shadow = !disableFrame();
 
     setContentPath(path, true, radius, !repaint_shadow);
 }
@@ -338,10 +342,10 @@ void DFrameWindow::mouseMoveEvent(QMouseEvent *event)
         return;
     }
 
+    setCursor(Qt::ArrowCursor);
+
     if (!canResize())
         return;
-
-    setCursor(Qt::ArrowCursor);
 
     if (qApp->mouseButtons() != Qt::LeftButton && m_contentGeometry.contains(event->pos())) {
         return;
@@ -495,7 +499,7 @@ void DFrameWindow::setContentPath(const QPainterPath &path, bool isRoundedRect,
                            || margins_size.height() > m_contentGeometry.height()
                            || margins_size.width() > shadow_size.width()
                            || margins_size.height() > shadow_size.height())) {
-            updateShadow();
+            updateShadowAsync();
         } else {
             m_shadowImage = Utility::borderImage(QPixmap::fromImage(m_shadowImage), margins * devicePixelRatio(),
                                                  (m_contentGeometry + contentMarginsHint()).size() * devicePixelRatio());
@@ -505,7 +509,7 @@ void DFrameWindow::setContentPath(const QPainterPath &path, bool isRoundedRect,
         m_roundedRectRadius = radius;
 
         if (!noRepaint)
-            updateShadow();
+            updateShadowAsync();
     }
 
     updateMask();
@@ -513,7 +517,7 @@ void DFrameWindow::setContentPath(const QPainterPath &path, bool isRoundedRect,
 
 void DFrameWindow::updateShadow()
 {
-    if (m_contentGeometry.isEmpty())
+    if (m_contentGeometry.isEmpty() || !isVisible())
         return;
 
     qreal device_pixel_ratio = devicePixelRatio();
@@ -531,6 +535,15 @@ void DFrameWindow::updateShadow()
 
     m_shadowImage = Utility::dropShadow(pixmap, m_shadowRadius * device_pixel_ratio, m_shadowColor);
     update();
+}
+
+void DFrameWindow::updateShadowAsync(int delaye)
+{
+    if (m_updateShadowTimer.isActive())
+        return;
+
+    m_updateShadowTimer.setSingleShot(true);
+    m_updateShadowTimer.start(delaye);
 }
 
 void DFrameWindow::updateContentMarginsHint()
@@ -555,7 +568,7 @@ void DFrameWindow::updateContentMarginsHint()
     m_contentGeometry.translate(m_contentMarginsHint.left() - old_margins.left(),
                                 m_contentMarginsHint.top() - old_margins.top());
 
-    updateShadow();
+    updateShadowAsync();
 
     if (isVisible()) {
         // Set frame extents
@@ -569,6 +582,16 @@ void DFrameWindow::updateContentMarginsHint()
 
 void DFrameWindow::updateMask()
 {
+    if (windowState() == Qt::WindowMinimized)
+        return;
+
+    if (disableFrame()) {
+        QRegion region(m_contentGeometry * devicePixelRatio());
+        Utility::setShapeRectangles(winId(), region, DWMSupport::instance()->hasComposite());
+
+        return;
+    }
+
     // Set window clip mask
     int mouse_margins;
 
@@ -633,7 +656,8 @@ bool DFrameWindow::canResize() const
     bool ok = m_enableSystemResize
             && !flags().testFlag(Qt::Popup)
             && !flags().testFlag(Qt::BypassWindowManagerHint)
-            && minimumSize() != maximumSize();
+            && minimumSize() != maximumSize()
+            && !disableFrame();
 
 #ifdef Q_OS_LINUX
     if (!ok)
@@ -714,6 +738,13 @@ void DFrameWindow::startCursorAnimation()
     m_cursorAnimation.setStartValue(cursorPos);
     m_cursorAnimation.setEndValue(toPos);
     m_cursorAnimation.start();
+}
+
+bool DFrameWindow::disableFrame() const
+{
+    return windowState() == Qt::WindowFullScreen
+            || windowState() == Qt::WindowMaximized
+            || windowState() == Qt::WindowMinimized;
 }
 
 DPP_END_NAMESPACE
