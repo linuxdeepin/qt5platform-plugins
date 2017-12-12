@@ -59,7 +59,7 @@ QPaintDevice *DPlatformBackingStoreHelper::paintDevice()
     QPlatformBackingStore *store = backingStore();
 
     if (_d_dxcb_overridePaintDevice.hasLocalData() && _d_dxcb_overridePaintDevice.localData()) {
-        static __thread QImage device(1, 1, QImage::Format_Alpha8);
+        static thread_local QImage device(1, 1, QImage::Format_Alpha8);
 
         return &device;
     }
