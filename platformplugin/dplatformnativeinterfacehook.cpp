@@ -18,6 +18,7 @@
 #include "dplatformnativeinterfacehook.h"
 #include "global.h"
 #include "utility.h"
+#include "dplatformwindowhelper.h"
 
 #include "dwmsupport.h"
 
@@ -67,6 +68,8 @@ QFunctionPointer DPlatformNativeInterfaceHook::platformFunction(QPlatformNativeI
         return reinterpret_cast<QFunctionPointer>(&DWMSupport::connectWindowMotifWMHintsChanged);
     } else if (function == popupSystemWindowMenu) {
         return reinterpret_cast<QFunctionPointer>(&DWMSupport::popupSystemWindowMenu);
+    } else if (function == setWindowProperty) {
+        return reinterpret_cast<QFunctionPointer>(&DPlatformWindowHelper::setWindowProperty);
     }
 
 #if QT_VERSION >= QT_VERSION_CHECK(5, 4, 0)

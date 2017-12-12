@@ -634,43 +634,6 @@ bool DPlatformWindowHelper::eventFilter(QObject *watched, QEvent *event)
 
             break;
         }
-        case QEvent::DynamicPropertyChange: {
-            QDynamicPropertyChangeEvent *e = static_cast<QDynamicPropertyChangeEvent*>(event);
-
-            if (e->propertyName() == netWmStates) {
-//                m_store->onWindowStateChanged();
-            } else if (e->propertyName() == windowRadius) {
-                updateWindowRadiusFromProperty();
-            } else if (e->propertyName() == borderWidth) {
-                updateBorderWidthFromProperty();
-            } else if (e->propertyName() == borderColor) {
-                updateBorderColorFromProperty();
-            } else if (e->propertyName() == shadowRadius) {
-                updateShadowRadiusFromProperty();
-            } else if (e->propertyName() == shadowOffset) {
-                updateShadowOffsetFromProperty();
-            } else if (e->propertyName() == shadowColor) {
-                updateShadowColorFromProperty();
-            } else if (e->propertyName() == clipPath) {
-                updateClipPathFromProperty();
-            } else if (e->propertyName() == frameMask) {
-                updateFrameMaskFromProperty();
-            } else if (e->propertyName() == enableSystemResize) {
-                updateEnableSystemResizeFromProperty();
-            } else if (e->propertyName() == enableSystemMove) {
-                updateEnableSystemMoveFromProperty();
-            } else if (e->propertyName() == enableBlurWindow) {
-                updateEnableBlurWindowFromProperty();
-            } else if (e->propertyName() == windowBlurAreas) {
-                updateWindowBlurAreasFromProperty();
-            } else if (e->propertyName() == windowBlurPaths) {
-                updateWindowBlurPathsFromProperty();
-            } else if (e->propertyName() == autoInputMaskByClipPath) {
-                updateAutoInputMaskByClipPathFromProperty();
-            }
-
-            break;
-        }
         case QEvent::Resize:
             if (m_isUserSetClipPath) {
                 setWindowVaildGeometry(m_clipPath.boundingRect().toRect() & QRect(QPoint(0, 0), static_cast<QResizeEvent*>(event)->size()));
@@ -1130,6 +1093,44 @@ void DPlatformWindowHelper::updateAutoInputMaskByClipPathFromProperty()
     }
 
     m_frameWindow->m_enableAutoInputMaskByContentPath = m_autoInputMaskByClipPath;
+}
+
+void DPlatformWindowHelper::setWindowProperty(QWindow *window, const char *name, const QVariant &value)
+{
+    const QVariant &old_value = window->property(name);
+
+    if (old_value == value)
+        return;
+
+    if (value.typeName() == QByteArray("QPainterPath")) {
+        const QPainterPath &old_path = qvariant_cast<QPainterPath>(old_value);
+        const QPainterPath &new_path = qvariant_cast<QPainterPath>(value);
+
+        if (old_path == new_path) {
+            return;
+        }
+    }
+
+    window->setProperty(name, value);
+
+    if (!mapped.value(window->handle()))
+        return;
+
+    QByteArray name_array(name);
+
+    if (!name_array.startsWith("_d_"))
+        return;
+
+    // to upper
+    name_array[3] = name_array.at(3) & ~0x20;
+
+    const QByteArray slot_name = "update" + name_array.mid(3) + "FromProperty";
+
+    if (!QMetaObject::invokeMethod(mapped.value(window->handle()),
+                                   slot_name.constData(),
+                                   Qt::DirectConnection)) {
+        qWarning() << "Failed to update property:" << slot_name;
+    }
 }
 
 void DPlatformWindowHelper::onFrameWindowContentMarginsHintChanged(const QMargins &oldMargins)

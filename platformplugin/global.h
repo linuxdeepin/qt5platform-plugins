@@ -69,6 +69,7 @@ DEFINE_CONST_CHAR(getMWMFunctions);
 DEFINE_CONST_CHAR(setMWMDecorations);
 DEFINE_CONST_CHAR(getMWMDecorations);
 DEFINE_CONST_CHAR(connectWindowMotifWMHintsChanged);
+DEFINE_CONST_CHAR(setWindowProperty);
 
 // others
 DEFINE_CONST_CHAR(WmWindowTypes);
