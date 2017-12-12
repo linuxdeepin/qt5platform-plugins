@@ -39,6 +39,8 @@ DPP_BEGIN_NAMESPACE
 class DFrameWindow;
 class DPlatformWindowHelper : public QObject
 {
+    Q_OBJECT
+
 public:
     explicit DPlatformWindowHelper(QNativeWindow *window);
     ~DPlatformWindowHelper();
@@ -114,20 +116,22 @@ private:
     QColor getBorderColor() const;
 
     // update propertys
-    void updateClipPathFromProperty();
-    void updateFrameMaskFromProperty();
-    void updateWindowRadiusFromProperty();
-    void updateBorderWidthFromProperty();
-    void updateBorderColorFromProperty();
-    void updateShadowRadiusFromProperty();
-    void updateShadowOffsetFromProperty();
-    void updateShadowColorFromProperty();
-    void updateEnableSystemResizeFromProperty();
-    void updateEnableSystemMoveFromProperty();
-    void updateEnableBlurWindowFromProperty();
-    void updateWindowBlurAreasFromProperty();
-    void updateWindowBlurPathsFromProperty();
-    void updateAutoInputMaskByClipPathFromProperty();
+    Q_SLOT void updateClipPathFromProperty();
+    Q_SLOT void updateFrameMaskFromProperty();
+    Q_SLOT void updateWindowRadiusFromProperty();
+    Q_SLOT void updateBorderWidthFromProperty();
+    Q_SLOT void updateBorderColorFromProperty();
+    Q_SLOT void updateShadowRadiusFromProperty();
+    Q_SLOT void updateShadowOffsetFromProperty();
+    Q_SLOT void updateShadowColorFromProperty();
+    Q_SLOT void updateEnableSystemResizeFromProperty();
+    Q_SLOT void updateEnableSystemMoveFromProperty();
+    Q_SLOT void updateEnableBlurWindowFromProperty();
+    Q_SLOT void updateWindowBlurAreasFromProperty();
+    Q_SLOT void updateWindowBlurPathsFromProperty();
+    Q_SLOT void updateAutoInputMaskByClipPathFromProperty();
+
+    static void setWindowProperty(QWindow *window, const char *name, const QVariant &value);
 
     void onFrameWindowContentMarginsHintChanged(const QMargins &old_margins);
     void onWMHasCompositeChanged();
@@ -169,6 +173,7 @@ private:
     friend class DPlatformBackingStoreHelper;
     friend class DPlatformOpenGLContextHelper;
     friend class DPlatformIntegration;
+    friend class DPlatformNativeInterfaceHook;
     friend QWindow *topvelWindow(QWindow *);
 };
 
