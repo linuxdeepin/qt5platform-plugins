@@ -205,9 +205,7 @@ void DFrameWindow::setContentRoundedRect(const QRect &rect, int radius)
     path.addRoundedRect(rect, radius, radius);
     m_contentGeometry = rect.translated(contentOffsetHint());
 
-    bool repaint_shadow = !disableFrame();
-
-    setContentPath(path, true, radius, !repaint_shadow);
+    setContentPath(path, true, radius);
 }
 
 QMargins DFrameWindow::contentMarginsHint() const
@@ -305,7 +303,7 @@ void DFrameWindow::paintEvent(QPaintEvent *)
     QPainter pa(this);
 
 
-    if (Q_LIKELY(DXcbWMSupport::instance()->hasComposite())) {
+    if (!disableFrame() && Q_LIKELY(DXcbWMSupport::instance()->hasComposite())) {
         pa.drawImage(offset * device_pixel_ratio, m_shadowImage);
     }
 
@@ -476,8 +474,7 @@ QPaintDevice *DFrameWindow::redirected(QPoint *) const
     return platformBackingStore->paintDevice();
 }
 
-void DFrameWindow::setContentPath(const QPainterPath &path, bool isRoundedRect,
-                                  int radius, bool noRepaint)
+void DFrameWindow::setContentPath(const QPainterPath &path, bool isRoundedRect, int radius)
 {
     if (m_clipPathOfContent == path)
         return;
@@ -495,10 +492,10 @@ void DFrameWindow::setContentPath(const QPainterPath &path, bool isRoundedRect,
         const QSize &margins_size = margins2Size(margins);
         const QSize &shadow_size = m_shadowImage.size() / devicePixelRatio();
 
-        if (!noRepaint && (margins_size.width() > m_contentGeometry.width()
-                           || margins_size.height() > m_contentGeometry.height()
-                           || margins_size.width() > shadow_size.width()
-                           || margins_size.height() > shadow_size.height())) {
+        if (margins_size.width() > m_contentGeometry.width()
+                || margins_size.height() > m_contentGeometry.height()
+                || margins_size.width() > shadow_size.width()
+                || margins_size.height() > shadow_size.height()) {
             updateShadowAsync();
         } else {
             m_shadowImage = Utility::borderImage(QPixmap::fromImage(m_shadowImage), margins * devicePixelRatio(),
@@ -508,8 +505,7 @@ void DFrameWindow::setContentPath(const QPainterPath &path, bool isRoundedRect,
         m_pathIsRoundedRect = isRoundedRect;
         m_roundedRectRadius = radius;
 
-        if (!noRepaint)
-            updateShadowAsync();
+        updateShadowAsync();
     }
 
     updateMask();
@@ -517,7 +513,7 @@ void DFrameWindow::setContentPath(const QPainterPath &path, bool isRoundedRect,
 
 void DFrameWindow::updateShadow()
 {
-    if (m_contentGeometry.isEmpty() || !isVisible())
+    if (m_contentGeometry.isEmpty() || !isVisible() || disableFrame())
         return;
 
     qreal device_pixel_ratio = devicePixelRatio();
