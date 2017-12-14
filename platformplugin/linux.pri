@@ -65,6 +65,8 @@ contains(QT_CONFIG, xcb-qt) {
 
 exists($$PWD/libqt5xcbqpa-dev/$$VERSION) {
     INCLUDEPATH += $$PWD/libqt5xcbqpa-dev/$$VERSION
+} else:exists($$[QT_INSTALL_HEADERS]/QtXcb/$$[QT_VERSION]) {
+    INCLUDEPATH += $$[QT_INSTALL_HEADERS]/QtXcb/$$[QT_VERSION]/QtXcb/private
 } else {
     error(Not support Qt Version: $$VERSION)
 }
