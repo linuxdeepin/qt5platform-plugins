@@ -296,7 +296,9 @@ void Utility::sendMoveResizeMessage(quint32 WId, uint32_t action, QPoint globalP
     xev.data.data32[3] = xbtn;
     xev.data.data32[4] = 0;
 
-    xcb_ungrab_pointer(QX11Info::connection(), QX11Info::appTime());
+    if (action != _NET_WM_MOVERESIZE_CANCEL)
+        xcb_ungrab_pointer(QX11Info::connection(), QX11Info::appTime());
+
     xcb_send_event(QX11Info::connection(), false, QX11Info::appRootWindow(QX11Info::appScreen()),
                    XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT | XCB_EVENT_MASK_SUBSTRUCTURE_NOTIFY,
                    (const char *)&xev);

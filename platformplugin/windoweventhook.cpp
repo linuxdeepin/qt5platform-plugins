@@ -375,13 +375,13 @@ void WindowEventHook::handleXIEnterLeave(xcb_ge_event_t *event)
                     if (!isSet) {
                         QGuiApplicationPrivate::lastCursorPosition = QPointF(root_x, root_y);
                         me->handleButtonReleaseEvent(event_x, event_y, root_x, root_y,
-                                                     ev->detail, modifiers, ev->time,
+                                                     0, modifiers, ev->time,
                                                      Qt::MouseEventSynthesizedBySystem);
                     }
                 } else if (isSet) {
                     QGuiApplicationPrivate::lastCursorPosition = QPointF(root_x, root_y);
                     me->handleButtonPressEvent(event_x, event_y, root_x, root_y,
-                                               ev->detail, modifiers, ev->time,
+                                               0, modifiers, ev->time,
                                                Qt::MouseEventSynthesizedBySystem);
                 }
             }
