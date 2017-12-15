@@ -768,22 +768,35 @@ bool DPlatformWindowHelper::updateWindowBlurAreasForWM()
         foreach (Utility::BlurArea area, m_blurAreaList) {
             area *= device_pixel_ratio;
 
-            if (area.x < windowValidRect.x() || area.y < windowValidRect.y()
-                    || area.x + area.width > windowValidRect.right() + 1
-                    || area.y + area.height > windowValidRect.bottom() + 1) {
-                break;
-            }
-
             area.x += offset.x();
             area.y += offset.y();
 
-            if (m_isUserSetClipPath) {
-                QPainterPath path;
+            QPainterPath path;
 
-                path.addRoundedRect(area.x, area.y, area.width, area.height, area.xRadius, area.yRaduis);
+            path.addRoundedRect(area.x, area.y, area.width, area.height,
+                                area.xRadius * device_pixel_ratio,
+                                area.yRaduis * device_pixel_ratio);
 
-                if (!window_vaild_path.contains(path))
-                    break;
+            if (!window_vaild_path.contains(path)) {
+                const QPainterPath vaild_blur_path = window_vaild_path & path;
+                const QRectF vaild_blur_rect = vaild_blur_path.boundingRect();
+
+                if (path.boundingRect() != vaild_blur_rect) {
+                    area.x = vaild_blur_rect.x();
+                    area.y = vaild_blur_rect.y();
+                    area.width = vaild_blur_rect.width();
+                    area.height = vaild_blur_rect.height();
+
+                    path = QPainterPath();
+                    path.addRoundedRect(vaild_blur_rect.x(), vaild_blur_rect.y(),
+                                        vaild_blur_rect.width(), vaild_blur_rect.height(),
+                                        area.xRadius * device_pixel_ratio,
+                                        area.yRaduis * device_pixel_ratio);
+
+                    if (vaild_blur_path != path) {
+                        break;
+                    }
+                }
             }
 
             newAreas.append(std::move(area));
@@ -801,7 +814,8 @@ bool DPlatformWindowHelper::updateWindowBlurAreasForWM()
         QPainterPath path;
 
         area *= device_pixel_ratio;
-        path.addRoundedRect(area.x + offset.x(), area.y + offset.y(), area.width, area.height, area.xRadius, area.yRaduis);
+        path.addRoundedRect(area.x + offset.x(), area.y + offset.y(), area.width, area.height,
+                            area.xRadius * device_pixel_ratio, area.yRaduis * device_pixel_ratio);
         path = path.intersected(window_vaild_path);
 
         if (!path.isEmpty())
