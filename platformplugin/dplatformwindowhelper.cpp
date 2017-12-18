@@ -796,6 +796,8 @@ bool DPlatformWindowHelper::updateWindowBlurAreasForWM()
                     if (vaild_blur_path != path) {
                         break;
                     }
+                } else if (vaild_blur_path != path) {
+                    break;
                 }
             }
 
