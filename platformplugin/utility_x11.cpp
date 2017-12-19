@@ -191,7 +191,7 @@ void Utility::showWindowSystemMenu(quint32 WId, QPoint globalPos)
     xcb_flush(QX11Info::connection());
 }
 
-void Utility::setFrameExtents(quint32 WId, const QMargins &margins)
+void Utility::setFrameExtents(WId wid, const QMargins &margins)
 {
     xcb_atom_t frameExtents = internAtom("_GTK_FRAME_EXTENTS");
 
@@ -200,14 +200,13 @@ void Utility::setFrameExtents(quint32 WId, const QMargins &margins)
         return;
     }
 
-    uint32_t value[4] = {
-        (uint32_t)margins.left(),
-        (uint32_t)margins.right(),
-        (uint32_t)margins.top(),
-        (uint32_t)margins.bottom()
-    };
+    int32_t datas[4];
+    datas[0] = int32_t(margins.left());
+    datas[1] = int32_t(margins.right());
+    datas[2] = int32_t(margins.top());
+    datas[3] = int32_t(margins.bottom());
 
-    xcb_change_property(QX11Info::connection(), XCB_PROP_MODE_REPLACE, WId, frameExtents, XCB_ATOM_CARDINAL, 32, 4, value);
+    xcb_change_property_checked(QX11Info::connection(), XCB_PROP_MODE_REPLACE, xcb_window_t(wid), frameExtents, XCB_ATOM_CARDINAL, 32, 4, datas);
 }
 
 static QVector<xcb_rectangle_t> qregion2XcbRectangles(const QRegion &region)
