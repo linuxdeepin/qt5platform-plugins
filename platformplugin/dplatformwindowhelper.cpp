@@ -116,7 +116,7 @@ DPlatformWindowHelper::DPlatformWindowHelper(QNativeWindow *window)
     HOOK_VFPTR(isAlertState);
 
     connect(m_frameWindow, &DFrameWindow::contentMarginsHintChanged,
-            this, &DPlatformWindowHelper::onFrameWindowContentMarginsHintChanged);
+            this, &DPlatformWindowHelper::onFrameWindowContentMarginsHintChanged, Qt::DirectConnection);
     connect(DWMSupport::instance(), &DXcbWMSupport::hasCompositeChanged,
             this, &DPlatformWindowHelper::onWMHasCompositeChanged);
     connect(DWMSupport::instance(), &DXcbWMSupport::windowManagerChanged,
@@ -1156,13 +1156,19 @@ void DPlatformWindowHelper::onFrameWindowContentMarginsHintChanged(const QMargin
     updateWindowBlurAreasForWM();
     updateSizeHints();
 
+    const auto windowRatio = m_nativeWindow->window()->devicePixelRatio();
+    const auto &contentMargins = m_frameWindow->contentMarginsHint();
+    const auto &contentPlatformMargins = contentMargins * windowRatio;
+
     // update the content window gemetry
-    QRect rect = m_nativeWindow->QNativeWindow::geometry();
-    rect.moveTopLeft(m_frameWindow->contentOffsetHint() * m_nativeWindow->window()->devicePixelRatio());
-    m_nativeWindow->window()->setProperty(::frameMargins, QVariant::fromValue(m_frameWindow->contentMarginsHint()));
-    m_frameWindowSize = (m_frameWindow->geometry() + m_frameWindow->contentMarginsHint() - oldMargins).size();
-    m_frameWindow->setGeometry(m_frameWindow->geometry() + m_frameWindow->contentMarginsHint() - oldMargins);
-    setNativeWindowGeometry(rect);
+    const QRect &rect = m_nativeWindow->QNativeWindow::geometry();
+    setNativeWindowGeometry(QRect(QPoint(contentPlatformMargins.left(), contentPlatformMargins.top()), rect.size()));
+    Utility::setFrameExtents(m_frameWindow->winId(), contentPlatformMargins);
+
+    m_nativeWindow->window()->setProperty(::frameMargins, QVariant::fromValue(contentMargins));
+    m_frameWindowSize = (m_frameWindow->geometry() + contentMargins - oldMargins).size();
+    m_frameWindow->setGeometry(m_frameWindow->geometry() + contentMargins - oldMargins);
+
     // hide in DFrameWindow::updateContentMarginsHint
     m_nativeWindow->QNativeWindow::setVisible(true);
 }
