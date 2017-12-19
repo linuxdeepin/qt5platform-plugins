@@ -555,8 +555,8 @@ void DFrameWindow::updateContentMarginsHint()
         return;
 
     // show in DPlatformWindowHelper::onFrameWindowContentMarginsHintChanged
-    if (m_contentWindow && m_contentWindow->handle())
-        static_cast<QNativeWindow*>(m_contentWindow->handle())->QNativeWindow::setVisible(false);
+//    if (m_contentWindow && m_contentWindow->handle())
+//        static_cast<QNativeWindow*>(m_contentWindow->handle())->QNativeWindow::setVisible(false);
 
     const QMargins old_margins = m_contentMarginsHint;
 
@@ -564,15 +564,15 @@ void DFrameWindow::updateContentMarginsHint()
     m_contentGeometry.translate(m_contentMarginsHint.left() - old_margins.left(),
                                 m_contentMarginsHint.top() - old_margins.top());
 
-    updateShadowAsync();
-
     if (isVisible()) {
         // Set frame extents
-        Utility::setFrameExtents(winId(), margins * devicePixelRatio());
+//        Utility::setFrameExtents(winId(), margins * devicePixelRatio());
     }
 
-    updateMask();
+//    updateShadowAsync();
+    updateShadow();
 
+    updateMask();
     emit contentMarginsHintChanged(old_margins);
 }
 

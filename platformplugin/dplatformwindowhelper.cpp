@@ -115,7 +115,7 @@ DPlatformWindowHelper::DPlatformWindowHelper(QNativeWindow *window)
     HOOK_VFPTR(isAlertState);
 
     connect(m_frameWindow, &DFrameWindow::contentMarginsHintChanged,
-            this, &DPlatformWindowHelper::onFrameWindowContentMarginsHintChanged);
+            this, &DPlatformWindowHelper::onFrameWindowContentMarginsHintChanged, Qt::DirectConnection);
     connect(DWMSupport::instance(), &DXcbWMSupport::hasCompositeChanged,
             this, &DPlatformWindowHelper::onWMHasCompositeChanged);
     connect(DWMSupport::instance(), &DXcbWMSupport::windowManagerChanged,
@@ -1158,12 +1158,15 @@ void DPlatformWindowHelper::onFrameWindowContentMarginsHintChanged(const QMargin
     // update the content window gemetry
     QRect rect = m_nativeWindow->QNativeWindow::geometry();
     rect.moveTopLeft(m_frameWindow->contentOffsetHint() * m_nativeWindow->window()->devicePixelRatio());
-    m_nativeWindow->window()->setProperty(::frameMargins, QVariant::fromValue(m_frameWindow->contentMarginsHint()));
+    setNativeWindowGeometry(rect);
+//    m_nativeWindow->window()->setProperty(::frameMargins, QVariant::fromValue(m_frameWindow->contentMarginsHint()));
     m_frameWindowSize = (m_frameWindow->geometry() + m_frameWindow->contentMarginsHint() - oldMargins).size();
     m_frameWindow->setGeometry(m_frameWindow->geometry() + m_frameWindow->contentMarginsHint() - oldMargins);
-    setNativeWindowGeometry(rect);
     // hide in DFrameWindow::updateContentMarginsHint
-    m_nativeWindow->QNativeWindow::setVisible(true);
+//    m_nativeWindow->QNativeWindow::setVisible(true);
+
+    m_nativeWindow->postSyncWindowRequest();
+    m_frameWindow->update();
 }
 
 void DPlatformWindowHelper::onWMHasCompositeChanged()
