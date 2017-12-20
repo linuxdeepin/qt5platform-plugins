@@ -68,6 +68,7 @@ DPlatformWindowHelper::DPlatformWindowHelper(QNativeWindow *window)
     window->setParent(m_frameWindow->handle());
     window->window()->installEventFilter(this);
     window->window()->setScreen(m_frameWindow->screen());
+    window->window()->setProperty("_d_real_winId", window->winId());
     updateClipPathByWindowRadius(window->window()->size());
 
     updateClipPathFromProperty();
