@@ -88,6 +88,7 @@ bool XcbNativeEventFilter::nativeEventFilter(const QByteArray &eventType, void *
             QXcbClipboard *xcbClipboard = m_connection->m_clipboard;
             xcbClipboard->emitChanged(mode);
         }
+        break;
     } else {
         switch (response_type) {
         case XCB_PROPERTY_NOTIFY: {
@@ -162,6 +163,7 @@ bool XcbNativeEventFilter::nativeEventFilter(const QByteArray &eventType, void *
 
                 XIFreeDeviceInfo(xiDeviceInfo);
             }
+            break;
         }
         default: break;
         }
