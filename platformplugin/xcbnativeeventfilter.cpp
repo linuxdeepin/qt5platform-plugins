@@ -110,6 +110,7 @@ bool XcbNativeEventFilter::nativeEventFilter(const QByteArray &eventType, void *
                     emit DXcbWMSupport::instance()->windowListChanged();
                 }
             }
+            break;
         }
             // 修复Qt程序对触摸板的自然滚动开关后不能实时生效
             // 由于在收到xi的DeviceChanged事件后，Qt更新ScrollingDevice时没有更新verticalIncrement字段
@@ -162,6 +163,7 @@ bool XcbNativeEventFilter::nativeEventFilter(const QByteArray &eventType, void *
 
                 XIFreeDeviceInfo(xiDeviceInfo);
             }
+            break;
         }
         default: break;
         }
