@@ -23,6 +23,8 @@
 
 #ifdef Q_OS_LINUX
 #include "qxcbwindow.h"
+
+#include <xcb/xcb_icccm.h>
 #endif
 
 #include <private/qwindow_p.h>
@@ -116,7 +118,7 @@ DPlatformWindowHelper::DPlatformWindowHelper(QNativeWindow *window)
     HOOK_VFPTR(isAlertState);
 
     connect(m_frameWindow, &DFrameWindow::contentMarginsHintChanged,
-            this, &DPlatformWindowHelper::onFrameWindowContentMarginsHintChanged, Qt::DirectConnection);
+            this, &DPlatformWindowHelper::onFrameWindowContentMarginsHintChanged);
     connect(DWMSupport::instance(), &DXcbWMSupport::hasCompositeChanged,
             this, &DPlatformWindowHelper::onWMHasCompositeChanged);
     connect(DWMSupport::instance(), &DXcbWMSupport::windowManagerChanged,
@@ -125,7 +127,6 @@ DPlatformWindowHelper::DPlatformWindowHelper(QNativeWindow *window)
             window->window(), &QWindow::setScreen);
     connect(m_frameWindow, &DFrameWindow::contentOrientationChanged,
             window->window(), &QWindow::reportContentOrientationChange);
-
 
     static_cast<QPlatformWindow*>(window)->propagateSizeHints();
 }
@@ -147,36 +148,15 @@ void DPlatformWindowHelper::setGeometry(const QRect &rect)
 {
     DPlatformWindowHelper *helper = me();
 
-    bool position_automatic = qt_window_private(helper->m_nativeWindow->window())->positionAutomatic;
-    QWindowPrivate::PositionPolicy position_policy = qt_window_private(helper->m_nativeWindow->window())->positionPolicy;
     qreal device_pixel_ratio = helper->m_frameWindow->devicePixelRatio();
 
     // update clip path
     helper->updateClipPathByWindowRadius(rect.size() / device_pixel_ratio);
 
-    qt_window_private(helper->m_nativeWindow->window())->positionAutomatic = false;
-
     const QMargins &content_margins = helper->m_frameWindow->contentMarginsHint() * device_pixel_ratio;
-    const QPoint &content_offset = helper->m_frameWindow->contentOffsetHint() * device_pixel_ratio;
 
-    if (!helper->overrideSetGeometry) {
-        helper->setNativeWindowGeometry(QRect(content_offset, rect.size()));
-        // reset
-        qt_window_private(helper->m_nativeWindow->window())->positionAutomatic = position_automatic;
-        qt_window_private(helper->m_nativeWindow->window())->positionPolicy = position_policy;
-        return;
-    }
-
-    // save new size
-    helper->m_frameWindowSize =(rect + content_margins).size() / device_pixel_ratio;
-
-    qt_window_private(helper->m_frameWindow)->positionAutomatic = position_automatic;
-    qt_window_private(helper->m_frameWindow)->positionPolicy = position_policy;
+    qt_window_private(helper->m_frameWindow)->positionAutomatic = qt_window_private(helper->m_nativeWindow->window())->positionAutomatic;
     helper->m_frameWindow->handle()->setGeometry(rect + content_margins);
-    helper->setNativeWindowGeometry(QRect(content_offset, rect.size()));
-    // reset
-    qt_window_private(helper->m_nativeWindow->window())->positionAutomatic = position_automatic;
-    qt_window_private(helper->m_nativeWindow->window())->positionPolicy = position_policy;
 }
 
 QRect DPlatformWindowHelper::geometry() const
@@ -304,6 +284,7 @@ void DPlatformWindowHelper::setVisible(bool visible)
 #endif
 
         helper->m_frameWindow->setVisible(visible);
+        helper->updateContentWindowGeometry();
         helper->m_nativeWindow->QNativeWindow::setVisible(visible);
         helper->updateWindowBlurAreasForWM();
 
@@ -534,24 +515,7 @@ bool DPlatformWindowHelper::eventFilter(QObject *watched, QEvent *event)
             QWindowSystemInterface::handleWindowActivated(m_nativeWindow->window(), Qt::OtherFocusReason);
             return true;
         case QEvent::Resize: {
-            const QResizeEvent *e = static_cast<QResizeEvent*>(event);
-
-            if (m_frameWindowSize == e->size()) {
-                break;
-            } else {
-                m_frameWindowSize = e->size();
-            }
-
-            const QMargins &margins = m_frameWindow->contentMarginsHint();
-            const QSize size_dif(margins.left() + margins.right(), margins.top() + margins.bottom());
-
-            QResizeEvent new_e(e->size() - size_dif, e->oldSize() - size_dif);
-
-            overrideSetGeometry = false;
-            m_nativeWindow->window()->resize(new_e.size());
-            overrideSetGeometry = true;
-            qApp->sendEvent(m_nativeWindow->window(), &new_e);
-
+            updateContentWindowGeometry();
             break;
         }
         case QEvent::MouseButtonPress:
@@ -658,11 +622,14 @@ bool DPlatformWindowHelper::eventFilter(QObject *watched, QEvent *event)
     return false;
 }
 
-void DPlatformWindowHelper::setNativeWindowGeometry(const QRect &rect)
+void DPlatformWindowHelper::setNativeWindowGeometry(const QRect &rect, bool onlyResize)
 {
     qt_window_private(m_nativeWindow->window())->parentWindow = m_frameWindow;
+    qt_window_private(m_nativeWindow->window())->positionAutomatic = onlyResize;
     m_nativeWindow->QNativeWindow::setGeometry(rect);
     qt_window_private(m_nativeWindow->window())->parentWindow = 0;
+    qt_window_private(m_nativeWindow->window())->positionAutomatic = false;
+    updateContentWindowNormalHints();
 }
 
 void DPlatformWindowHelper::updateClipPathByWindowRadius(const QSize &windowSize)
@@ -775,8 +742,7 @@ bool DPlatformWindowHelper::updateWindowBlurAreasForWM()
             QPainterPath path;
 
             path.addRoundedRect(area.x, area.y, area.width, area.height,
-                                area.xRadius * device_pixel_ratio,
-                                area.yRaduis * device_pixel_ratio);
+                                area.xRadius, area.yRaduis);
 
             if (!window_vaild_path.contains(path)) {
                 const QPainterPath vaild_blur_path = window_vaild_path & path;
@@ -791,8 +757,7 @@ bool DPlatformWindowHelper::updateWindowBlurAreasForWM()
                     path = QPainterPath();
                     path.addRoundedRect(vaild_blur_rect.x(), vaild_blur_rect.y(),
                                         vaild_blur_rect.width(), vaild_blur_rect.height(),
-                                        area.xRadius * device_pixel_ratio,
-                                        area.yRaduis * device_pixel_ratio);
+                                        area.xRadius, area.yRaduis);
 
                     if (vaild_blur_path != path) {
                         break;
@@ -818,7 +783,7 @@ bool DPlatformWindowHelper::updateWindowBlurAreasForWM()
 
         area *= device_pixel_ratio;
         path.addRoundedRect(area.x + offset.x(), area.y + offset.y(), area.width, area.height,
-                            area.xRadius * device_pixel_ratio, area.yRaduis * device_pixel_ratio);
+                            area.xRadius, area.yRaduis);
         path = path.intersected(window_vaild_path);
 
         if (!path.isEmpty())
@@ -851,6 +816,7 @@ void DPlatformWindowHelper::updateSizeHints()
     qt_window_private(m_frameWindow)->sizeIncrement = m_nativeWindow->window()->sizeIncrement();
 
     m_frameWindow->handle()->propagateSizeHints();
+    updateContentWindowNormalHints();
 }
 
 void DPlatformWindowHelper::updateContentPathForFrameWindow()
@@ -861,6 +827,32 @@ void DPlatformWindowHelper::updateContentPathForFrameWindow()
         m_frameWindow->setContentRoundedRect(m_windowVaildGeometry, getWindowRadius());
     }
 }
+
+void DPlatformWindowHelper::updateContentWindowGeometry()
+{
+    const auto windowRatio = m_nativeWindow->window()->devicePixelRatio();
+    const auto &contentMargins = m_frameWindow->contentMarginsHint();
+    const auto &contentPlatformMargins = contentMargins * windowRatio;
+    const QSize &size = Utility::windowGeometry(m_frameWindow->winId()).marginsRemoved(contentPlatformMargins).size();
+
+    // update the content window gemetry
+    setNativeWindowGeometry(QRect(contentPlatformMargins.left(),
+                                  contentPlatformMargins.top(),
+                                  size.width(), size.height()));
+}
+
+#ifdef Q_OS_LINUX
+void DPlatformWindowHelper::updateContentWindowNormalHints()
+{
+    // update WM_NORMAL_HINTS
+    xcb_size_hints_t hints;
+    memset(&hints, 0, sizeof(hints));
+
+    xcb_icccm_size_hints_set_resize_inc(&hints, 1, 1);
+    xcb_icccm_set_wm_normal_hints(m_nativeWindow->xcb_connection(),
+                                  m_nativeWindow->xcb_window(), &hints);
+}
+#endif
 
 int DPlatformWindowHelper::getWindowRadius() const
 {
@@ -1155,18 +1147,14 @@ void DPlatformWindowHelper::onFrameWindowContentMarginsHintChanged(const QMargin
 {
     updateWindowBlurAreasForWM();
     updateSizeHints();
+    updateContentWindowGeometry();
 
-    const auto windowRatio = m_nativeWindow->window()->devicePixelRatio();
-    const auto &contentMargins = m_frameWindow->contentMarginsHint();
-    const auto &contentPlatformMargins = contentMargins * windowRatio;
+    const QMargins &contentMargins = m_frameWindow->contentMarginsHint();
 
-    // update the content window gemetry
-    const QRect &rect = m_nativeWindow->QNativeWindow::geometry();
-    setNativeWindowGeometry(QRect(QPoint(contentPlatformMargins.left(), contentPlatformMargins.top()), rect.size()));
-    Utility::setFrameExtents(m_frameWindow->winId(), contentPlatformMargins);
+    Utility::setFrameExtents(m_frameWindow->winId(),
+                             contentMargins * m_frameWindow->devicePixelRatio());
 
     m_nativeWindow->window()->setProperty(::frameMargins, QVariant::fromValue(contentMargins));
-    m_frameWindowSize = (m_frameWindow->geometry() + contentMargins - oldMargins).size();
     m_frameWindow->setGeometry(m_frameWindow->geometry() + contentMargins - oldMargins);
 }
 

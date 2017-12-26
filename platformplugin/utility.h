@@ -84,8 +84,8 @@ public:
             new_area.y = qRound64(y * scale);
             new_area.width = qRound64(width * scale);
             new_area.height = qRound64(height * scale);
-            new_area.xRadius = xRadius;
-            new_area.yRaduis = yRaduis;
+            new_area.xRadius = qRound64(xRadius * scale);
+            new_area.yRaduis = qRound64(yRaduis * scale);
 
             return new_area;
         }

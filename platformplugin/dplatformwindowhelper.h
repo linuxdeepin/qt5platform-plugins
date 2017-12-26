@@ -102,7 +102,7 @@ public:
 
 private:
     bool eventFilter(QObject *watched, QEvent *event) Q_DECL_OVERRIDE;
-    void setNativeWindowGeometry(const QRect &rect);
+    void setNativeWindowGeometry(const QRect &rect, bool onlyResize = false);
 
     void updateClipPathByWindowRadius(const QSize &windowSize);
     void setClipPath(const QPainterPath &path);
@@ -110,6 +110,10 @@ private:
     bool updateWindowBlurAreasForWM();
     void updateSizeHints();
     void updateContentPathForFrameWindow();
+    void updateContentWindowGeometry();
+#ifdef Q_OS_LINUX
+    void updateContentWindowNormalHints();
+#endif
 
     int getWindowRadius() const;
     int getShadowRadius() const;
@@ -140,10 +144,8 @@ private:
 
     QNativeWindow *m_nativeWindow;
     DFrameWindow *m_frameWindow;
-    QSize m_frameWindowSize;
 
     QRect m_windowVaildGeometry;
-    bool overrideSetGeometry = true;
 
     // propertys
     bool m_isUserSetClipPath = false;
