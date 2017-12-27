@@ -494,8 +494,8 @@ void DFrameWindow::setContentPath(const QPainterPath &path, bool isRoundedRect, 
 
         if (margins_size.width() > m_contentGeometry.width()
                 || margins_size.height() > m_contentGeometry.height()
-                || margins_size.width() > shadow_size.width()
-                || margins_size.height() > shadow_size.height()) {
+                || margins_size.width() >= shadow_size.width()
+                || margins_size.height() >= shadow_size.height()) {
             updateShadowAsync();
         } else {
             m_shadowImage = Utility::borderImage(QPixmap::fromImage(m_shadowImage), margins * devicePixelRatio(),
