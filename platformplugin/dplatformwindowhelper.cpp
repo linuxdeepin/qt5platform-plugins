@@ -71,6 +71,7 @@ DPlatformWindowHelper::DPlatformWindowHelper(QNativeWindow *window)
     window->window()->installEventFilter(this);
     window->window()->setScreen(m_frameWindow->screen());
     window->window()->setProperty("_d_real_winId", window->winId());
+    window->window()->setProperty(::frameMargins, QVariant::fromValue(m_frameWindow->contentMarginsHint()));
     updateClipPathByWindowRadius(window->window()->size());
 
     updateClipPathFromProperty();
@@ -833,7 +834,7 @@ void DPlatformWindowHelper::updateContentWindowGeometry()
     const auto windowRatio = m_nativeWindow->window()->devicePixelRatio();
     const auto &contentMargins = m_frameWindow->contentMarginsHint();
     const auto &contentPlatformMargins = contentMargins * windowRatio;
-    const QSize &size = Utility::windowGeometry(m_frameWindow->winId()).marginsRemoved(contentPlatformMargins).size();
+    const QSize &size = m_frameWindow->handle()->geometry().marginsRemoved(contentPlatformMargins).size();
 
     // update the content window gemetry
     setNativeWindowGeometry(QRect(contentPlatformMargins.left(),
@@ -1147,15 +1148,13 @@ void DPlatformWindowHelper::onFrameWindowContentMarginsHintChanged(const QMargin
 {
     updateWindowBlurAreasForWM();
     updateSizeHints();
-    updateContentWindowGeometry();
 
     const QMargins &contentMargins = m_frameWindow->contentMarginsHint();
 
-    Utility::setFrameExtents(m_frameWindow->winId(),
-                             contentMargins * m_frameWindow->devicePixelRatio());
-
     m_nativeWindow->window()->setProperty(::frameMargins, QVariant::fromValue(contentMargins));
     m_frameWindow->setGeometry(m_frameWindow->geometry() + contentMargins - oldMargins);
+
+    updateContentWindowGeometry();
 }
 
 void DPlatformWindowHelper::onWMHasCompositeChanged()

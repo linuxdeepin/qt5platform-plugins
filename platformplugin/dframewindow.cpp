@@ -554,6 +554,8 @@ void DFrameWindow::updateContentMarginsHint()
     if (margins == m_contentMarginsHint)
         return;
 
+    Utility::setFrameExtents(winId(), margins * devicePixelRatio());
+
     const QMargins old_margins = m_contentMarginsHint;
     m_contentMarginsHint = margins;
     m_contentGeometry.translate(m_contentMarginsHint.left() - old_margins.left(),
