@@ -1,4 +1,29 @@
 <a name=""></a>
+##  1.1.6 (2017-12-28)
+
+
+#### Bug Fixes
+
+*   send resize event to content window on frame window size changed ([fc88f619](https://github.com/linuxdeepin/qt5dxcb-plugin/commit/fc88f6198c3273acc49f566f95efc459b5a357ba))
+*   the content window frame margins is invalid ([bb069366](https://github.com/linuxdeepin/qt5dxcb-plugin/commit/bb069366555c07d1750f376677b20b19fa09e8d3))
+*   content window position is wrong at show ([2f74cd2c](https://github.com/linuxdeepin/qt5dxcb-plugin/commit/2f74cd2ce4db37009141d181f9752f3b124dee09))
+*   add break for switch/case ([ca84b062](https://github.com/linuxdeepin/qt5dxcb-plugin/commit/ca84b0622ebee89d7454401d261f99f577850f36))
+*   fcitx input method can not work in QTextEdit ([cbd74f2a](https://github.com/linuxdeepin/qt5dxcb-plugin/commit/cbd74f2a6a9f137d0081848a53a40bd50d350ca6))
+*   window blur area is a rounded rect if set clip path ([a89e7d0c](https://github.com/linuxdeepin/qt5dxcb-plugin/commit/a89e7d0c035137bf1f85c7993eb14cb190f98ce0))
+*   LICENSE ([f8013823](https://github.com/linuxdeepin/qt5dxcb-plugin/commit/f801382355dd62618fa0548c87cf6752b53673e8))
+*   after moving the window release the mouse and then move the mouse will receive a mouse release event ([10a73727](https://github.com/linuxdeepin/qt5dxcb-plugin/commit/10a73727fe067bbe395d38c46890508ddd1ef559))
+*   Adapt lintian ([1f862c11](https://github.com/linuxdeepin/qt5dxcb-plugin/commit/1f862c1175a2342520a3340621cb122e4478f88a))
+*   also search for libqt5xcbqpa private headers in system ([e47d510f](https://github.com/linuxdeepin/qt5dxcb-plugin/commit/e47d510f9c2d371f59c33a290d27347840318f44))
+*   do not paint shadow on window maximized ([b1483de1](https://github.com/linuxdeepin/qt5dxcb-plugin/commit/b1483de187d26ac360aa6b6f08469fad61b32077))
+
+#### Features
+
+*   eat focus event on grab/ungrab ([936da4ca](https://github.com/linuxdeepin/qt5dxcb-plugin/commit/936da4ca99900ee4256ede4ca33b8767f189e5a2))
+*   support for Qt 5.10.0 ([247cabb7](https://github.com/linuxdeepin/qt5dxcb-plugin/commit/247cabb70d2f97de4e6cec062e1106c9678d97a5))
+
+
+
+<a name=""></a>
 ##  1.1.5 (2017-12-07)
 
 
