@@ -43,6 +43,8 @@ public:
     explicit DFrameWindow();
     ~DFrameWindow();
 
+    QWindow *contentWindow() const;
+
     int shadowRadius() const;
     void setShadowRadius(int radius);
     QPoint shadowOffset() const;

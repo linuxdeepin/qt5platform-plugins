@@ -107,6 +107,11 @@ DFrameWindow::~DFrameWindow()
     frameWindowList.removeOne(this);
 }
 
+QWindow *DFrameWindow::contentWindow() const
+{
+    return m_contentWindow.data();
+}
+
 int DFrameWindow::shadowRadius() const
 {
     return m_shadowRadius;
