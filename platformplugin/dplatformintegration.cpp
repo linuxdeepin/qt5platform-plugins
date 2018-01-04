@@ -130,7 +130,7 @@ QPlatformWindow *DPlatformIntegration::createPlatformWindow(QWindow *window) con
 
         if (oldAlpha != newAlpha) {
             format.setAlphaBufferSize(newAlpha);
-            window->setFormat(format);
+            //window->setFormat(format);
         }
     }
 
