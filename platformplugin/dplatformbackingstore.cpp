@@ -537,7 +537,7 @@ DPlatformBackingStore::DPlatformBackingStore(QWindow *window, QXcbBackingStore *
     });
 #endif
 
-    initUserPropertys();
+    initUserProperties();
     //! Warning: At this point you must be initialized window Margins and window Extents
     updateWindowMargins();
 //    updateFrameExtents();
@@ -983,7 +983,7 @@ void DPlatformBackingStore::endPaint()
 //    qDebug() << "end paint";
 }
 
-void DPlatformBackingStore::initUserPropertys()
+void DPlatformBackingStore::initUserProperties()
 {
     updateWindowRadius();
     updateBorderWidth();

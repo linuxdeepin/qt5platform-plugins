@@ -119,7 +119,7 @@ private:
     int getShadowRadius() const;
     QColor getBorderColor() const;
 
-    // update propertys
+    // update properties
     Q_SLOT void updateClipPathFromProperty();
     Q_SLOT void updateFrameMaskFromProperty();
     Q_SLOT void updateWindowRadiusFromProperty();
@@ -147,7 +147,7 @@ private:
 
     QRect m_windowVaildGeometry;
 
-    // propertys
+    // properties
     bool m_isUserSetClipPath = false;
     QPainterPath m_clipPath;
 

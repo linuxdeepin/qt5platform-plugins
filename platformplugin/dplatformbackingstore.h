@@ -88,7 +88,7 @@ public:
     static bool isWidgetWindow(const QWindow *window);
 
 private:
-    void initUserPropertys();
+    void initUserProperties();
 
     bool updateWindowMargins(bool repaintShadow = true);
     void updateFrameExtents();
@@ -98,7 +98,7 @@ private:
     bool updateWindowBlurAreasForWM();
     void doDelayedUpdateWindowShadow(int delaye = 30);
 
-    /// update of user propertys
+    /// update of user properties
     void updateWindowRadius();
     void updateBorderWidth();
     void updateBorderColor();
