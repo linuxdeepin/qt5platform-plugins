@@ -27,10 +27,13 @@ DPP_BEGIN_NAMESPACE
 class WindowEventHook
 {
 public:
-    WindowEventHook(QXcbWindow *window);
+    WindowEventHook(QXcbWindow *window, bool useDxcb);
 
     QXcbWindow *window() const
     { return static_cast<QXcbWindow*>(reinterpret_cast<QXcbWindowEventListener*>(const_cast<WindowEventHook*>(this)));}
+
+    void handleConfigureNotifyEvent(const xcb_configure_notify_event_t *);
+    void handleMapNotifyEvent(const xcb_map_notify_event_t *);
 
     void handleClientMessageEvent(const xcb_client_message_event_t *event);
     void handleFocusInEvent(const xcb_focus_in_event_t *event);

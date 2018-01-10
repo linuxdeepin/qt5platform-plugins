@@ -3,7 +3,8 @@ CONFIG += link_pkgconfig
 
 PKGCONFIG += x11-xcb xi xcb-renderutil sm ice xcb-render dbus-1 xcb\
              xcb-image xcb-icccm xcb-sync xcb-xfixes xcb-shm xcb-randr\
-             xcb-shape xcb-keysyms xcb-xkb xkbcommon-x11 mtdev egl
+             xcb-shape xcb-keysyms xcb-xkb xcb-composite xkbcommon-x11\
+             xcb-damage mtdev egl cairo
 
 greaterThan(QT_MINOR_VERSION, 5): PKGCONFIG += xcb-xinerama
 

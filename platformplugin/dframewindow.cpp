@@ -17,10 +17,15 @@
 
 #include "dframewindow.h"
 #include "dplatformwindowhelper.h"
+#include "dplatformintegration.h"
 
 #ifdef Q_OS_LINUX
 #include "dwmsupport.h"
 #include "qxcbwindow.h"
+#include "qxcbscreen.h"
+
+#include <xcb/damage.h>
+#include <xcb/composite.h>
 #endif
 
 #include <QPainter>
@@ -32,6 +37,11 @@
 #include <qpa/qplatformbackingstore.h>
 #include <qpa/qplatformintegration.h>
 #include <qpa/qplatformcursor.h>
+#include <qpa/qplatformgraphicsbuffer.h>
+
+#ifdef Q_OS_LINUX
+#include <cairo-xlib.h>
+#endif
 
 DPP_BEGIN_NAMESPACE
 
@@ -60,7 +70,7 @@ public:
     void flush(const QRegion &region) Q_DECL_OVERRIDE
     {
         Q_Q(DFrameWindow);
-        q->platformBackingStore->flush(q, region * q->devicePixelRatio(), QPoint());
+        q->platformBackingStore->flush(q, region * q->devicePixelRatio(), QPoint(0, 0));
     }
 
     QSize size;
@@ -71,6 +81,9 @@ QList<DFrameWindow*> DFrameWindow::frameWindowList;
 DFrameWindow::DFrameWindow()
     : QPaintDeviceWindow(*new DFrameWindowPrivate, 0)
     , platformBackingStore(QGuiApplicationPrivate::platformIntegration()->createPlatformBackingStore(this))
+#ifdef Q_OS_LINUX
+    , nativeWindowXPixmap(XCB_PIXMAP_NONE)
+#endif
 {
     setSurfaceType(QSurface::RasterSurface);
 
@@ -304,9 +317,8 @@ void DFrameWindow::paintEvent(QPaintEvent *)
 {
     const QPoint &offset = m_contentGeometry.topLeft() - contentOffsetHint();
     qreal device_pixel_ratio = devicePixelRatio();
-
+    const QSize &size = handle()->geometry().size();
     QPainter pa(this);
-
 
     if (!disableFrame() && Q_LIKELY(DXcbWMSupport::instance()->hasComposite())) {
         pa.drawImage(offset * device_pixel_ratio, m_shadowImage);
@@ -317,11 +329,19 @@ void DFrameWindow::paintEvent(QPaintEvent *)
             pa.setRenderHint(QPainter::Antialiasing);
             pa.fillPath(m_borderPath, m_borderColor);
         } else {
-            pa.fillRect(QRect(QPoint(0, 0), handle()->geometry().size()), m_borderColor);
+            pa.fillRect(QRect(QPoint(0, 0), size), m_borderColor);
         }
     }
 
     pa.end();
+
+#ifdef Q_OS_LINUX
+    xcb_rectangle_t rect {
+        0, 0, static_cast<uint16_t>(size.width()), static_cast<uint16_t>(size.height())
+    };
+
+    drawNativeWindowXPixmap(&rect, 1);
+#endif
 }
 
 void DFrameWindow::showEvent(QShowEvent *event)
@@ -474,6 +494,68 @@ bool DFrameWindow::event(QEvent *event)
     return QPaintDeviceWindow::event(event);
 }
 
+#ifdef Q_OS_LINUX
+static cairo_format_t cairo_format_from_qimage_format (QImage::Format fmt)
+{
+    switch (fmt) {
+    case QImage::Format_ARGB32_Premultiplied:
+        return CAIRO_FORMAT_ARGB32;
+    case QImage::Format_RGB32:
+        return CAIRO_FORMAT_RGB24;
+    case QImage::Format_Indexed8: // XXX not quite
+        return CAIRO_FORMAT_A8;
+    case QImage::Format_Mono:
+    case QImage::Format_MonoLSB:
+        return CAIRO_FORMAT_A1;
+    case QImage::Format_Invalid:
+    case QImage::Format_ARGB32:
+    case QImage::Format_RGB16:
+    case QImage::Format_ARGB8565_Premultiplied:
+    case QImage::Format_RGB666:
+    case QImage::Format_ARGB6666_Premultiplied:
+    case QImage::Format_RGB555:
+    case QImage::Format_ARGB8555_Premultiplied:
+    case QImage::Format_RGB888:
+    case QImage::Format_RGB444:
+    case QImage::Format_ARGB4444_Premultiplied:
+    case QImage::NImageFormats:
+    default:
+        return (cairo_format_t) -1;
+    }
+}
+#endif
+
+void DFrameWindow::updateFromContents(void *ev)
+{
+#ifdef Q_OS_LINUX
+    if (Q_UNLIKELY(nativeWindowXPixmap == XCB_PIXMAP_NONE)) {
+        //###(zccrs): 此时还没有正常获取到窗口的pixmap，所以在绘制之前再尝试一次
+        if (Q_UNLIKELY(!updateNativeWindowXPixmap()))
+            return;
+    }
+
+    xcb_connection_t *connect = DPlatformIntegration::xcbConnection()->xcb_connection();
+    xcb_damage_notify_event_t *event = reinterpret_cast<xcb_damage_notify_event_t*>(ev);
+    xcb_xfixes_region_t parts = xcb_generate_id(connect);
+
+    xcb_xfixes_create_region(connect, parts, 0, 0);
+    xcb_damage_subtract(connect, event->damage, XCB_NONE, parts);
+
+    xcb_xfixes_fetch_region_cookie_t cookie = xcb_xfixes_fetch_region(connect, parts);
+    xcb_xfixes_fetch_region_reply_t *reply = xcb_xfixes_fetch_region_reply(connect, cookie, 0);
+
+    if (Q_UNLIKELY(!reply))
+        return;
+
+    xcb_rectangle_t *rectangles = xcb_xfixes_fetch_region_rectangles(reply);
+    int length = xcb_xfixes_fetch_region_rectangles_length(reply);
+
+    drawNativeWindowXPixmap(rectangles, length);
+
+    free(reply);
+#endif
+}
+
 QPaintDevice *DFrameWindow::redirected(QPoint *) const
 {
     return platformBackingStore->paintDevice();
@@ -487,7 +569,10 @@ void DFrameWindow::setContentPath(const QPainterPath &path, bool isRoundedRect, 
     if (!isRoundedRect)
         m_contentGeometry = path.boundingRect().toRect().translated(contentOffsetHint());
 
+    qreal device_pixel_ratio = devicePixelRatio();
+
     m_clipPathOfContent = path;
+    m_clipPath = path.translated(contentOffsetHint()) * device_pixel_ratio;
 
     if (isRoundedRect && m_pathIsRoundedRect == isRoundedRect && m_roundedRectRadius == radius && !m_shadowImage.isNull()) {
         const QMargins margins(qMax(m_shadowRadius + radius + qAbs(m_shadowOffset.x()), m_borderWidth),
@@ -495,7 +580,7 @@ void DFrameWindow::setContentPath(const QPainterPath &path, bool isRoundedRect, 
                                qMax(m_shadowRadius + radius + qAbs(m_shadowOffset.x()), m_borderWidth),
                                qMax(m_shadowRadius + radius + qAbs(m_shadowOffset.y()), m_borderWidth));
         const QSize &margins_size = margins2Size(margins);
-        const QSize &shadow_size = m_shadowImage.size() / devicePixelRatio();
+        const QSize &shadow_size = m_shadowImage.size() / device_pixel_ratio;
 
         if (margins_size.width() > m_contentGeometry.width()
                 || margins_size.height() > m_contentGeometry.height()
@@ -503,8 +588,8 @@ void DFrameWindow::setContentPath(const QPainterPath &path, bool isRoundedRect, 
                 || margins_size.height() >= shadow_size.height()) {
             updateShadowAsync();
         } else {
-            m_shadowImage = Utility::borderImage(QPixmap::fromImage(m_shadowImage), margins * devicePixelRatio(),
-                                                 (m_contentGeometry + contentMarginsHint()).size() * devicePixelRatio());
+            m_shadowImage = Utility::borderImage(QPixmap::fromImage(m_shadowImage), margins * device_pixel_ratio,
+                                                 (m_contentGeometry + contentMarginsHint()).size() * device_pixel_ratio);
         }
     } else {
         m_pathIsRoundedRect = isRoundedRect;
@@ -515,6 +600,115 @@ void DFrameWindow::setContentPath(const QPainterPath &path, bool isRoundedRect, 
 
     updateMask();
 }
+
+#ifdef Q_OS_LINUX
+void DFrameWindow::drawNativeWindowXPixmap(xcb_rectangle_t *rects, int length)
+{
+    const QPoint offset(m_contentMarginsHint.left() * devicePixelRatio(), m_contentMarginsHint.top() * devicePixelRatio());
+
+    const QImage &source_image = platformBackingStore->toImage();
+    QImage image(const_cast<uchar*>(source_image.bits()),
+                 source_image.width(), source_image.height(),
+                 source_image.bytesPerLine(), source_image.format());
+    const cairo_format_t format = cairo_format_from_qimage_format(image.format());
+    cairo_surface_t *surface = cairo_image_surface_create_for_data(image.bits(), format, image.width(), image.height(), image.bytesPerLine());
+    cairo_t *cr = cairo_create(surface);
+    QRegion dirtyRegion;
+
+    cairo_set_source_surface(cr, nativeWindowXSurface, offset.x(), offset.y());
+
+    bool clip = false;
+
+    for (int i = 0; i < m_clipPath.elementCount(); ++i) {
+        const QPainterPath::Element &e = m_clipPath.elementAt(i);
+
+        switch (e.type) {
+        case QPainterPath::MoveToElement:
+            clip = true;
+            cairo_move_to(cr, e.x, e.y);
+            break;
+        case QPainterPath::LineToElement:
+            clip = true;
+            cairo_line_to(cr, e.x, e.y);
+            break;
+        case QPainterPath::CurveToElement: {
+            clip = true;
+
+            const QPainterPath::Element &p2 = m_clipPath.elementAt(++i);
+            const QPainterPath::Element &p3 = m_clipPath.elementAt(++i);
+
+            cairo_curve_to(cr, e.x, e.y, p2.x, p2.y, p3.x, p3.y);
+            break;
+        }
+        default:
+            break;
+        }
+    }
+
+    if (clip)
+        cairo_clip(cr);
+
+    for (int i = 0; i < length; ++i) {
+        const xcb_rectangle_t &rect = rects[i];
+
+        dirtyRegion += QRect(rect.x + offset.x(), rect.y + offset.y(), rect.width, rect.height);
+        cairo_rectangle(cr, rect.x + offset.x(), rect.y + offset.y(), rect.width, rect.height);
+        cairo_set_operator(cr, CAIRO_OPERATOR_CLEAR);
+        cairo_paint(cr);
+        cairo_set_operator(cr, CAIRO_OPERATOR_OVER);
+        cairo_paint(cr);
+    }
+
+    platformBackingStore->flush(this, dirtyRegion, QPoint(0, 0));
+
+    cairo_destroy(cr);
+    cairo_surface_destroy(surface);
+}
+
+bool DFrameWindow::updateNativeWindowXPixmap(int width, int height)
+{
+    if (Q_UNLIKELY(!m_contentWindow->handle()->isExposed()))
+        return false;
+
+    WId winId = static_cast<QXcbWindow*>(m_contentWindow->handle())->QXcbWindow::winId();
+
+    if (Q_UNLIKELY(width < 0 || height < 0)) {
+        const QRect rect = Utility::windowGeometry(winId);
+
+        width = rect.width();
+        height = rect.height();
+    }
+
+    xcb_connection_t *connect = DPlatformIntegration::xcbConnection()->xcb_connection();
+
+    if (Q_LIKELY(nativeWindowXPixmap != XCB_PIXMAP_NONE)) {
+        xcb_free_pixmap(connect, nativeWindowXPixmap);
+    } else {
+        nativeWindowXPixmap = xcb_generate_id(connect);
+    }
+
+    xcb_void_cookie_t cookie = xcb_composite_name_window_pixmap_checked(connect, winId, nativeWindowXPixmap);
+    QScopedPointer<xcb_generic_error_t, QScopedPointerPodDeleter> error(xcb_request_check(connect, cookie));
+
+    if (error) {
+        nativeWindowXPixmap = XCB_PIXMAP_NONE;
+        return false;
+    }
+
+    if (Q_LIKELY(nativeWindowXSurface)) {
+        cairo_xlib_surface_set_drawable(nativeWindowXSurface, nativeWindowXPixmap, width, height);
+    } else {
+        Display *display = (Display*)DPlatformIntegration::xcbConnection()->xlib_display();
+
+        XWindowAttributes attr;
+        XGetWindowAttributes(display, winId, &attr);
+        //###(zccrs): 只能使用cairo的xlib接口，使用xcb接口会导致从创建的surface中读取内容时不正确
+        nativeWindowXSurface = cairo_xlib_surface_create(display, nativeWindowXPixmap, attr.visual, width, height);
+    }
+
+    return true;
+}
+#endif
 
 void DFrameWindow::updateShadow()
 {
@@ -531,7 +725,7 @@ void DFrameWindow::updateShadow()
 
     QPainter pa(&pixmap);
 
-    pa.fillPath(m_clipPathOfContent.translated(contentOffsetHint() - m_contentGeometry.topLeft()) * device_pixel_ratio, m_shadowColor);
+    pa.fillPath(m_clipPath.translated(-m_contentGeometry.topLeft() * device_pixel_ratio), m_shadowColor);
     pa.end();
 
     m_shadowImage = Utility::dropShadow(pixmap, m_shadowRadius * device_pixel_ratio, m_shadowColor);
@@ -566,6 +760,8 @@ void DFrameWindow::updateContentMarginsHint()
     m_contentGeometry.translate(m_contentMarginsHint.left() - old_margins.left(),
                                 m_contentMarginsHint.top() - old_margins.top());
 
+    m_clipPath = m_clipPathOfContent.translated(contentOffsetHint()) * devicePixelRatio();
+
     updateShadow();
     updateMask();
 
@@ -592,7 +788,7 @@ void DFrameWindow::updateMask()
     else
         mouse_margins = m_borderWidth;
 
-    const QPainterPath &path = m_clipPathOfContent.translated(contentOffsetHint()) * devicePixelRatio();
+    const QPainterPath &path = m_clipPath;
 
     if (m_enableAutoInputMaskByContentPath && (!m_pathIsRoundedRect || m_roundedRectRadius > 0)) {
         QPainterPath p;
