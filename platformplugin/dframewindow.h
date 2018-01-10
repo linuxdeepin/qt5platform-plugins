@@ -26,6 +26,11 @@
 #include <QTimer>
 #include <QPointer>
 
+#ifdef Q_OS_LINUX
+#include <cairo.h>
+struct xcb_rectangle_t;
+#endif
+
 QT_BEGIN_NAMESPACE
 class QPlatformBackingStore;
 QT_END_NAMESPACE
@@ -85,10 +90,16 @@ protected:
     void resizeEvent(QResizeEvent *event) Q_DECL_OVERRIDE;
     bool event(QEvent *event) Q_DECL_OVERRIDE;
 
+    void updateFromContents(void *);
+
 private:
     QPaintDevice *redirected(QPoint *) const Q_DECL_OVERRIDE;
 
     void setContentPath(const QPainterPath &path, bool isRoundedRect, int radius = 0);
+#ifdef Q_OS_LINUX
+    void drawNativeWindowXPixmap(xcb_rectangle_t *rects, int length);
+    bool updateNativeWindowXPixmap(int width = -1, int height = -1);
+#endif
 
     void updateShadow();
     void updateShadowAsync(int delaye = 30);
@@ -117,6 +128,7 @@ private:
     int m_borderWidth = 1;
     QColor m_borderColor = QColor(0, 0, 0, 255 * 0.15);
     QPainterPath m_clipPathOfContent;
+    QPainterPath m_clipPath;
     QPainterPath m_borderPath;
     QRect m_contentGeometry;
     QMargins m_contentMarginsHint;
@@ -138,6 +150,11 @@ private:
 
     QTimer m_updateShadowTimer;
 
+#ifdef Q_OS_LINUX
+    uint32_t nativeWindowXPixmap = 0;
+    cairo_surface_t *nativeWindowXSurface = 0;
+#endif
+
     friend class DPlatformWindowHelper;
     friend class DPlatformBackingStoreHelper;
     friend class DPlatformOpenGLContextHelper;
@@ -145,6 +162,7 @@ private:
     friend class WindowEventHook;
     friend class DXcbWMSupport;
     friend class DFrameWindowPrivate;
+    friend class XcbNativeEventFilter;
 };
 
 DPP_END_NAMESPACE

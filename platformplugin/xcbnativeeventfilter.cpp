@@ -17,6 +17,8 @@
 
 #include "xcbnativeeventfilter.h"
 #include "utility.h"
+#include "dplatformwindowhelper.h"
+#include "dframewindow.h"
 
 #define private public
 #include "qxcbconnection.h"
@@ -27,6 +29,7 @@
 #include "dxcbwmsupport.h"
 
 #include <xcb/xfixes.h>
+#include <xcb/damage.h>
 #include <X11/extensions/XI2proto.h>
 #include <X11/extensions/XInput2.h>
 
@@ -37,7 +40,16 @@ DPP_BEGIN_NAMESPACE
 XcbNativeEventFilter::XcbNativeEventFilter(QXcbConnection *connection)
     : m_connection(connection)
 {
+    // init damage first event value
+    xcb_prefetch_extension_data(connection->xcb_connection(), &xcb_damage_id);
+    const auto* reply = xcb_get_extension_data(connection->xcb_connection(), &xcb_damage_id);
 
+    if (reply->present) {
+      m_damageFirstEvent = reply->first_event;
+      xcb_damage_query_version_unchecked(connection->xcb_connection(), XCB_DAMAGE_MAJOR_VERSION, XCB_DAMAGE_MINOR_VERSION);
+    } else {
+        m_damageFirstEvent = 0;
+    }
 }
 
 QClipboard::Mode XcbNativeEventFilter::clipboardModeForAtom(xcb_atom_t a) const
@@ -87,6 +99,18 @@ bool XcbNativeEventFilter::nativeEventFilter(const QByteArray &eventType, void *
         if (xsn->owner == XCB_NONE && xsn->subtype == XCB_XFIXES_SELECTION_EVENT_SET_SELECTION_OWNER) {
             QXcbClipboard *xcbClipboard = m_connection->m_clipboard;
             xcbClipboard->emitChanged(mode);
+        }
+    } else if (response_type == m_damageFirstEvent + XCB_DAMAGE_NOTIFY) {
+        xcb_damage_notify_event_t *ev = (xcb_damage_notify_event_t*)event;
+
+        QXcbWindow *window = m_connection->platformWindowFromId(ev->drawable);
+
+        if (Q_LIKELY(window)) {
+            DPlatformWindowHelper *helper = DPlatformWindowHelper::mapped.value(window);
+
+            if (Q_LIKELY(helper)) {
+                helper->m_frameWindow->updateFromContents(ev);
+            }
         }
     } else {
         switch (response_type) {
@@ -165,10 +189,10 @@ bool XcbNativeEventFilter::nativeEventFilter(const QByteArray &eventType, void *
             }
             break;
         }
+#endif
         default: break;
         }
     }
-#endif
 
     return false;
 }

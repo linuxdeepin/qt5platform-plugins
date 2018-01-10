@@ -123,15 +123,15 @@ QPlatformWindow *DPlatformIntegration::createPlatformWindow(QWindow *window) con
     if (isUseDxcb) {
         QSurfaceFormat format = window->format();
 
-        const int oldAlpha = format.alphaBufferSize();
-        const int newAlpha = 8;
+//        const int oldAlpha = format.alphaBufferSize();
+//        const int newAlpha = 8;
 
         window->setProperty("_d_dxcb_TransparentBackground", format.hasAlpha());
 
-        if (oldAlpha != newAlpha) {
-            format.setAlphaBufferSize(newAlpha);
-            window->setFormat(format);
-        }
+//        if (oldAlpha != newAlpha) {
+//            format.setAlphaBufferSize(newAlpha);
+//            window->setFormat(format);
+//        }
     }
 
     QPlatformWindow *w = DPlatformIntegrationParent::createPlatformWindow(window);
@@ -149,7 +149,7 @@ QPlatformWindow *DPlatformIntegration::createPlatformWindow(QWindow *window) con
     if (window->type() == Qt::Widget
             || window->type() == Qt::Window
             || window->type() == Qt::Dialog) {
-        Q_UNUSED(new WindowEventHook(xw))
+        Q_UNUSED(new WindowEventHook(xw, isUseDxcb))
     }
 #endif
 
@@ -171,9 +171,9 @@ QPlatformBackingStore *DPlatformIntegration::createPlatformBackingStore(QWindow 
 
     QPlatformBackingStore *store = DPlatformIntegrationParent::createPlatformBackingStore(window);
 
-    if (window->type() != Qt::Desktop && window->property(useDxcb).toBool())
+//    if (window->type() != Qt::Desktop && window->property(useDxcb).toBool())
 #ifdef USE_NEW_IMPLEMENTING
-        m_storeHelper->addBackingStore(store);
+//        m_storeHelper->addBackingStore(store);
 #else
         return new DPlatformBackingStore(window, static_cast<QXcbBackingStore*>(store));
 #endif
@@ -185,7 +185,7 @@ QPlatformOpenGLContext *DPlatformIntegration::createPlatformOpenGLContext(QOpenG
 {
     QPlatformOpenGLContext *p_context = DPlatformIntegrationParent::createPlatformOpenGLContext(context);
 
-    m_contextHelper->addOpenGLContext(context, p_context);
+//    m_contextHelper->addOpenGLContext(context, p_context);
 
     return p_context;
 }

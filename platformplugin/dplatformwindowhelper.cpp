@@ -25,6 +25,8 @@
 #include "qxcbwindow.h"
 
 #include <xcb/xcb_icccm.h>
+#include <xcb/composite.h>
+#include <xcb/damage.h>
 #endif
 
 #include <private/qwindow_p.h>
@@ -72,6 +74,15 @@ DPlatformWindowHelper::DPlatformWindowHelper(QNativeWindow *window)
     window->window()->setScreen(m_frameWindow->screen());
     window->window()->setProperty("_d_real_winId", window->winId());
     window->window()->setProperty(::frameMargins, QVariant::fromValue(m_frameWindow->contentMarginsHint()));
+
+#ifdef Q_OS_LINUX
+    xcb_composite_redirect_window(window->xcb_connection(), window->xcb_window(), XCB_COMPOSITE_REDIRECT_MANUAL);
+    xcb_damage_damage_t dam_id = xcb_generate_id(window->xcb_connection());
+    xcb_damage_create(window->xcb_connection(), dam_id, window->xcb_window(), XCB_DAMAGE_REPORT_LEVEL_NON_EMPTY);
+
+    window->window()->setProperty("_d_damage_id", dam_id);
+#endif
+
     updateClipPathByWindowRadius(window->window()->size());
 
     updateClipPathFromProperty();
@@ -138,6 +149,17 @@ DPlatformWindowHelper::~DPlatformWindowHelper()
     VtableHook::clearGhostVtable(static_cast<QPlatformWindow*>(m_nativeWindow));
 
     m_frameWindow->deleteLater();
+
+#ifdef Q_OS_LINUX
+    // clear damage
+    bool ok = false;
+    xcb_damage_damage_t dam_id = m_nativeWindow->window()->property("_d_damage_id").toUInt(&ok);
+
+    if (Q_UNLIKELY(!ok))
+        return;
+
+    xcb_damage_destroy(m_nativeWindow->xcb_connection(), dam_id);
+#endif
 }
 
 DPlatformWindowHelper *DPlatformWindowHelper::me() const
@@ -676,7 +698,7 @@ void DPlatformWindowHelper::setClipPath(const QPainterPath &path)
 
     Utility::setShapePath(m_nativeWindow->QNativeWindow::winId(),
                           stroker.createStroke(real_path).united(real_path),
-                          false);
+                          true);
 
     updateWindowBlurAreasForWM();
     updateContentPathForFrameWindow();
@@ -1184,9 +1206,6 @@ void DPlatformWindowHelper::onWMHasCompositeChanged()
         clip_path = stroker.createStroke(clip_path).united(clip_path);
     }
 
-    Utility::setShapePath(m_nativeWindow->QNativeWindow::winId(),
-                          clip_path,
-                          false);
 
     m_frameWindow->updateMask();
     m_frameWindow->setBorderColor(getBorderColor());

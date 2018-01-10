@@ -41,6 +41,7 @@ public:
 
 private:
     QXcbConnection *m_connection;
+    uint8_t m_damageFirstEvent;
 };
 
 DPP_END_NAMESPACE

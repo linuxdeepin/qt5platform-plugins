@@ -176,6 +176,8 @@ private:
     friend class DPlatformOpenGLContextHelper;
     friend class DPlatformIntegration;
     friend class DPlatformNativeInterfaceHook;
+    friend class XcbNativeEventFilter;
+    friend class WindowEventHook;
     friend QWindow *topvelWindow(QWindow *);
 };
 
