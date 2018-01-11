@@ -336,6 +336,9 @@ void DFrameWindow::paintEvent(QPaintEvent *)
     pa.end();
 
 #ifdef Q_OS_LINUX
+    if (!nativeWindowXSurface)
+        return;
+
     xcb_rectangle_t rect {
         0, 0, static_cast<uint16_t>(size.width()), static_cast<uint16_t>(size.height())
     };
