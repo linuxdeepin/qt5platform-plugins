@@ -172,6 +172,10 @@ private:
     QVector<Utility::BlurArea> m_blurAreaList;
     QList<QPainterPath> m_blurPathList;
 
+#ifdef Q_OS_LINUX
+    uint32_t damage_id = 0;
+#endif
+
     friend class DPlatformBackingStoreHelper;
     friend class DPlatformOpenGLContextHelper;
     friend class DPlatformIntegration;

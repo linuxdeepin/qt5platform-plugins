@@ -77,10 +77,8 @@ DPlatformWindowHelper::DPlatformWindowHelper(QNativeWindow *window)
 
 #ifdef Q_OS_LINUX
     xcb_composite_redirect_window(window->xcb_connection(), window->xcb_window(), XCB_COMPOSITE_REDIRECT_MANUAL);
-    xcb_damage_damage_t dam_id = xcb_generate_id(window->xcb_connection());
-    xcb_damage_create(window->xcb_connection(), dam_id, window->xcb_window(), XCB_DAMAGE_REPORT_LEVEL_NON_EMPTY);
-
-    window->window()->setProperty("_d_damage_id", dam_id);
+    damage_id = xcb_generate_id(window->xcb_connection());
+    xcb_damage_create(window->xcb_connection(), damage_id, window->xcb_window(), XCB_DAMAGE_REPORT_LEVEL_NON_EMPTY);
 #endif
 
     updateClipPathByWindowRadius(window->window()->size());
@@ -152,13 +150,7 @@ DPlatformWindowHelper::~DPlatformWindowHelper()
 
 #ifdef Q_OS_LINUX
     // clear damage
-    bool ok = false;
-    xcb_damage_damage_t dam_id = m_nativeWindow->window()->property("_d_damage_id").toUInt(&ok);
-
-    if (Q_UNLIKELY(!ok))
-        return;
-
-    xcb_damage_destroy(m_nativeWindow->xcb_connection(), dam_id);
+    xcb_damage_destroy(DPlatformIntegration::xcbConnection()->xcb_connection(), damage_id);
 #endif
 }
 
