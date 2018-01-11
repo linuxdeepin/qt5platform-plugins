@@ -77,6 +77,9 @@ public:
     bool isEnableSystemMove() const;
     void setEnableSystemMove(bool enable);
 
+    void disableRepaintShadow();
+    void enableRepaintShadow();
+
     QSize size() const Q_DECL_OVERRIDE;
 
 signals:
@@ -139,6 +142,7 @@ private:
     bool m_enableSystemMove = true;
     bool m_enableAutoInputMaskByContentPath = true;
     bool m_enableAutoFrameMask = true;
+    bool m_canUpdateShadow = true;
 
     bool m_canAdsorbCursor = false;
     bool m_isSystemMoveResizeState = false;

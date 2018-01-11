@@ -307,6 +307,16 @@ void DFrameWindow::setEnableSystemMove(bool enable)
     }
 }
 
+void DFrameWindow::disableRepaintShadow()
+{
+    m_canUpdateShadow = false;
+}
+
+void DFrameWindow::enableRepaintShadow()
+{
+    m_canUpdateShadow = true;
+}
+
 QSize DFrameWindow::size() const
 {
     Q_D(const DFrameWindow);
@@ -724,7 +734,7 @@ bool DFrameWindow::updateNativeWindowXPixmap(int width, int height)
 
 void DFrameWindow::updateShadow()
 {
-    if (m_contentGeometry.isEmpty() || !isVisible() || disableFrame())
+    if (!m_canUpdateShadow || m_contentGeometry.isEmpty() || !isVisible() || disableFrame())
         return;
 
     qreal device_pixel_ratio = devicePixelRatio();

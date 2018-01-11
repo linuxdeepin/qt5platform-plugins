@@ -888,7 +888,7 @@ int DPlatformWindowHelper::getWindowRadius() const
 
 int DPlatformWindowHelper::getShadowRadius() const
 {
-    return /*DWMSupport::instance()->hasComposite() ?*/ m_shadowRadius /*: 0*/;
+    return DWMSupport::instance()->hasComposite() ? m_shadowRadius : 0;
 }
 
 static QColor colorBlend(const QColor &color1, const QColor &color2)
@@ -1186,7 +1186,11 @@ void DPlatformWindowHelper::onWMHasCompositeChanged()
 
     updateClipPathByWindowRadius(window_size);
 
-//    m_frameWindow->setShadowRaduis(getShadowRadius());
+    if (!DXcbWMSupport::instance()->hasComposite())
+        m_frameWindow->disableRepaintShadow();
+
+    m_frameWindow->setShadowRadius(getShadowRadius());
+    m_frameWindow->enableRepaintShadow();
 
     QPainterPath clip_path = m_clipPath * m_nativeWindow->window()->devicePixelRatio();
 
