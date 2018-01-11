@@ -118,6 +118,14 @@ DFrameWindow::DFrameWindow()
 DFrameWindow::~DFrameWindow()
 {
     frameWindowList.removeOne(this);
+
+#ifdef Q_OS_LINUX
+    if (nativeWindowXSurface)
+        cairo_surface_destroy(nativeWindowXSurface);
+
+    if (nativeWindowXPixmap != XCB_PIXMAP_NONE)
+        xcb_free_pixmap(DPlatformIntegration::xcbConnection()->xcb_connection(), nativeWindowXPixmap);
+#endif
 }
 
 QWindow *DFrameWindow::contentWindow() const
@@ -336,9 +344,6 @@ void DFrameWindow::paintEvent(QPaintEvent *)
     pa.end();
 
 #ifdef Q_OS_LINUX
-    if (!nativeWindowXSurface)
-        return;
-
     xcb_rectangle_t rect {
         0, 0, static_cast<uint16_t>(size.width()), static_cast<uint16_t>(size.height())
     };
@@ -607,6 +612,9 @@ void DFrameWindow::setContentPath(const QPainterPath &path, bool isRoundedRect, 
 #ifdef Q_OS_LINUX
 void DFrameWindow::drawNativeWindowXPixmap(xcb_rectangle_t *rects, int length)
 {
+    if (Q_UNLIKELY(!nativeWindowXSurface))
+        return;
+
     const QPoint offset(m_contentMarginsHint.left() * devicePixelRatio(), m_contentMarginsHint.top() * devicePixelRatio());
 
     const QImage &source_image = platformBackingStore->toImage();
@@ -618,6 +626,7 @@ void DFrameWindow::drawNativeWindowXPixmap(xcb_rectangle_t *rects, int length)
     cairo_t *cr = cairo_create(surface);
     QRegion dirtyRegion;
 
+    cairo_surface_mark_dirty(nativeWindowXSurface);
     cairo_set_source_surface(cr, nativeWindowXSurface, offset.x(), offset.y());
 
     bool clip = false;
@@ -706,7 +715,7 @@ bool DFrameWindow::updateNativeWindowXPixmap(int width, int height)
         XWindowAttributes attr;
         XGetWindowAttributes(display, winId, &attr);
         //###(zccrs): 只能使用cairo的xlib接口，使用xcb接口会导致从创建的surface中读取内容时不正确
-        nativeWindowXSurface = cairo_xlib_surface_create(display, nativeWindowXPixmap, attr.visual, width, height);
+        nativeWindowXSurface = cairo_xlib_surface_create(display, nativeWindowXPixmap, attr.visual, attr.width, attr.height);
     }
 
     return true;

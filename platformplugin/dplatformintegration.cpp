@@ -146,11 +146,7 @@ QPlatformWindow *DPlatformIntegration::createPlatformWindow(QWindow *window) con
     }
 
 #ifdef Q_OS_LINUX
-    if (window->type() == Qt::Widget
-            || window->type() == Qt::Window
-            || window->type() == Qt::Dialog) {
-        Q_UNUSED(new WindowEventHook(xw, isUseDxcb))
-    }
+    Q_UNUSED(new WindowEventHook(xw, isUseDxcb))
 #endif
 
 //    QWindow *tp_for_window = window->transientParent();

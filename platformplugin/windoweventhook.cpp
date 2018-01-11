@@ -42,6 +42,8 @@ PUBLIC_CLASS(QXcbWindow, WindowEventHook);
 
 WindowEventHook::WindowEventHook(QXcbWindow *window, bool useDxcb)
 {
+    const Qt::WindowType &type = window->window()->type();
+
     if (useDxcb) {
         VtableHook::overrideVfptrFun(window, &QXcbWindowEventListener::handleConfigureNotifyEvent,
                                      this, &WindowEventHook::handleConfigureNotifyEvent);
@@ -49,16 +51,18 @@ WindowEventHook::WindowEventHook(QXcbWindow *window, bool useDxcb)
                                      this, &WindowEventHook::handleMapNotifyEvent);
     }
 
-    VtableHook::overrideVfptrFun(window, &QXcbWindowEventListener::handleClientMessageEvent,
-                                 this, &WindowEventHook::handleClientMessageEvent);
-    VtableHook::overrideVfptrFun(window, &QXcbWindowEventListener::handleFocusInEvent,
-                                 this, &WindowEventHook::handleFocusInEvent);
-    VtableHook::overrideVfptrFun(window, &QXcbWindowEventListener::handleFocusOutEvent,
-                                 this, &WindowEventHook::handleFocusOutEvent);
+    if (type == Qt::Widget || type == Qt::Window || type == Qt::Dialog) {
+        VtableHook::overrideVfptrFun(window, &QXcbWindowEventListener::handleClientMessageEvent,
+                                     this, &WindowEventHook::handleClientMessageEvent);
+        VtableHook::overrideVfptrFun(window, &QXcbWindowEventListener::handleFocusInEvent,
+                                     this, &WindowEventHook::handleFocusInEvent);
+        VtableHook::overrideVfptrFun(window, &QXcbWindowEventListener::handleFocusOutEvent,
+                                     this, &WindowEventHook::handleFocusOutEvent);
 #ifdef XCB_USE_XINPUT22
-    VtableHook::overrideVfptrFun(window, &QXcbWindowEventListener::handleXIEnterLeave,
-                                 this, &WindowEventHook::handleXIEnterLeave);
+        VtableHook::overrideVfptrFun(window, &QXcbWindowEventListener::handleXIEnterLeave,
+                                     this, &WindowEventHook::handleXIEnterLeave);
 #endif
+    }
 
     QObject::connect(window->window(), &QWindow::destroyed, window->window(), [this, window] {
         delete this;
