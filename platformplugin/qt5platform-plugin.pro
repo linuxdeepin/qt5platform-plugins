@@ -23,7 +23,15 @@ greaterThan(QT_MAJOR_VERSION, 4) {
 }
 
 TEMPLATE = lib
-VERSION = $$QT_VERSION
+
+isEmpty(VERSION) {
+    isEmpty(VERSION): VERSION = $$system(git describe --tags --abbrev=0)
+    isEmpty(VERSION): VERSION = $$DXCB_VERSION
+    isEmpty(VERSION): error(VERSION is empty)
+    VERSION = $$replace(VERSION, [^0-9.],)
+}
+
+DEFINES += DXCB_VERSION=\\\"$$VERSION\\\"
 
 linux: include($$PWD/linux.pri)
 windows: include($$PWD/windows.pri)

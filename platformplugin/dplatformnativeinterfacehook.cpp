@@ -32,6 +32,11 @@ typedef QWindowsGdiNativeInterface DPlatformNativeInterface;
 
 DPP_BEGIN_NAMESPACE
 
+static QString version()
+{
+    return QStringLiteral(DXCB_VERSION);
+}
+
 QFunctionPointer DPlatformNativeInterfaceHook::platformFunction(QPlatformNativeInterface *interface, const QByteArray &function)
 {
     if (function == setWmBlurWindowBackgroundArea) {
@@ -70,6 +75,8 @@ QFunctionPointer DPlatformNativeInterfaceHook::platformFunction(QPlatformNativeI
         return reinterpret_cast<QFunctionPointer>(&DWMSupport::popupSystemWindowMenu);
     } else if (function == setWindowProperty) {
         return reinterpret_cast<QFunctionPointer>(&DPlatformWindowHelper::setWindowProperty);
+    } else if (function == pluginVersion) {
+        return reinterpret_cast<QFunctionPointer>(&version);
     }
 
 #if QT_VERSION >= QT_VERSION_CHECK(5, 4, 0)

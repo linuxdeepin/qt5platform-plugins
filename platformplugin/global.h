@@ -70,6 +70,7 @@ DEFINE_CONST_CHAR(setMWMDecorations);
 DEFINE_CONST_CHAR(getMWMDecorations);
 DEFINE_CONST_CHAR(connectWindowMotifWMHintsChanged);
 DEFINE_CONST_CHAR(setWindowProperty);
+DEFINE_CONST_CHAR(pluginVersion);
 
 // others
 DEFINE_CONST_CHAR(WmWindowTypes);

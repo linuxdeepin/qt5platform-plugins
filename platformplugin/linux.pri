@@ -64,10 +64,10 @@ contains(QT_CONFIG, xcb-qt) {
     DEFINES += XCB_USE_RENDER
 }
 
-exists($$PWD/libqt5xcbqpa-dev/$$VERSION) {
-    INCLUDEPATH += $$PWD/libqt5xcbqpa-dev/$$VERSION
+exists($$PWD/libqt5xcbqpa-dev/$$QT_VERSION) {
+    INCLUDEPATH += $$PWD/libqt5xcbqpa-dev/$$QT_VERSION
 } else:exists($$[QT_INSTALL_HEADERS]/QtXcb/$$[QT_VERSION]) {
     INCLUDEPATH += $$[QT_INSTALL_HEADERS]/QtXcb/$$[QT_VERSION]/QtXcb/private
 } else {
-    error(Not support Qt Version: $$VERSION)
+    error(Not support Qt Version: $$QT_VERSION)
 }
