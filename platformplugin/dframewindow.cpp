@@ -636,7 +636,6 @@ void DFrameWindow::drawNativeWindowXPixmap(xcb_rectangle_t *rects, int length)
     cairo_t *cr = cairo_create(surface);
     QRegion dirtyRegion;
 
-    cairo_surface_mark_dirty(nativeWindowXSurface);
     cairo_set_source_surface(cr, nativeWindowXSurface, offset.x(), offset.y());
 
     bool clip = false;
@@ -674,6 +673,7 @@ void DFrameWindow::drawNativeWindowXPixmap(xcb_rectangle_t *rects, int length)
         const xcb_rectangle_t &rect = rects[i];
 
         dirtyRegion += QRect(rect.x + offset.x(), rect.y + offset.y(), rect.width, rect.height);
+        cairo_surface_mark_dirty_rectangle(nativeWindowXSurface, rect.x, rect.y, rect.width, rect.height);
         cairo_rectangle(cr, rect.x + offset.x(), rect.y + offset.y(), rect.width, rect.height);
         cairo_set_operator(cr, CAIRO_OPERATOR_CLEAR);
         cairo_paint(cr);
