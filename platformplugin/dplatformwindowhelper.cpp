@@ -532,14 +532,6 @@ bool DPlatformWindowHelper::eventFilter(QObject *watched, QEvent *event)
             return true;
         case QEvent::Resize: {
             updateContentWindowGeometry();
-
-            const QMargins &frame_margin = m_frameWindow->contentMarginsHint();
-            QSize size_dif(frame_margin.left() + frame_margin.right(),
-                           frame_margin.top() + frame_margin.bottom());
-
-            QResizeEvent *ev = static_cast<QResizeEvent*>(event);
-            QResizeEvent re(ev->size() - size_dif, ev->oldSize() - size_dif);
-            qApp->sendEvent(m_nativeWindow->window(), &re);
             break;
         }
         case QEvent::MouseButtonPress:
