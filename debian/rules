@@ -18,6 +18,9 @@ export QT_SELECT=5
 %:
 	dh $@ 
 
+override_dh_auto_configure:
+	qmake PREFIX=/usr
+
 override_dh_shlibdeps:
 	dh_shlibdeps --dpkg-shlibdeps-params=--ignore-missing-info
 
