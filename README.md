@@ -6,20 +6,33 @@ qt5dxcb-plugin is the Qt platform integration plugin for Deepin Desktop Environm
 
 ### Build dependencies
 
-* qmake (>= 5.3)
+* pkg-config
 * mtdev
-* Qt5 (>= 5.3)
+* xcb-xkb
+* xcb-render-util
+* xcb-image
+* xcb-icccm4
+* xcb-keysyms1-dev
+* egl1-mesa
+* xkbcommon-x11
+* dbus-1
+* udev
+* xrender
+* xi
+* sm
+* xcb-xinerama
+* fontconfig
+* freetype6
+* glib2.0
+* xcb-damage
+* xcb-composite
+* cairo2
+* Qt5 (>= 5.6)
   * Qt5-Core
   * Qt5-Gui
-  * Qt5-Widgets
-  * Qt5-DBus
-  * Qt5-Multimedia
-  * Qt5-MultimediaWidgets
-  * Qt5-Svg
   * Qt5-OpenGL
   * Qt5-X11extras
   * Qt5-Core-Private
-  * Qt5-Widgets-Private
 
 ## Installation
 
@@ -63,4 +76,4 @@ We encourage you to report issues and contribute changes
 
 ## License
 
-qt5integration is licensed under [GPLv3](LICENSE).
+qt5dxcb-plugin is licensed under [GPLv3](LICENSE).
