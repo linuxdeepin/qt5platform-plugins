@@ -676,9 +676,10 @@ void DFrameWindow::drawNativeWindowXPixmap(xcb_rectangle_t *rects, int length)
         dirtyRegion += QRect(rect.x + offset.x(), rect.y + offset.y(), rect.width, rect.height);
         cairo_rectangle(cr, rect.x + offset.x(), rect.y + offset.y(), rect.width, rect.height);
         cairo_set_operator(cr, CAIRO_OPERATOR_CLEAR);
-        cairo_paint(cr);
+        cairo_fill(cr);
+        cairo_rectangle(cr, rect.x + offset.x(), rect.y + offset.y(), rect.width, rect.height);
         cairo_set_operator(cr, CAIRO_OPERATOR_OVER);
-        cairo_paint(cr);
+        cairo_fill(cr);
     }
 
     platformBackingStore->flush(this, dirtyRegion, QPoint(0, 0));

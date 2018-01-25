@@ -112,7 +112,7 @@ private:
     void updateContentPathForFrameWindow();
     void updateContentWindowGeometry();
 #ifdef Q_OS_LINUX
-    void updateContentWindowNormalHints();
+    void updateWindowNormalHints();
 #endif
 
     int getWindowRadius() const;
