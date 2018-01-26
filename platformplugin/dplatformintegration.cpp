@@ -666,7 +666,7 @@ void DPlatformIntegration::initialize()
     QObject::connect(qApp, &QGuiApplication::screenAdded, qApp, &hookScreenGetWindow);
     QObject::connect(qApp, &QGuiApplication::screenRemoved, qApp, [] (QScreen *screen) {
         if (screen->handle())
-            VtableHook::clearGhostVtable(screen->handle());
+            QTimer::singleShot(1, nullptr, [=] { VtableHook::clearGhostVtable(screen->handle()); });
     });
 }
 
