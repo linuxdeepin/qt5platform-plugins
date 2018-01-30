@@ -45,7 +45,7 @@ class DFrameWindow : public QPaintDeviceWindow
     Q_DECLARE_PRIVATE(DFrameWindow)
 
 public:
-    explicit DFrameWindow();
+    explicit DFrameWindow(QWindow *content);
     ~DFrameWindow();
 
     QWindow *contentWindow() const;
@@ -93,6 +93,7 @@ protected:
     void timerEvent(QTimerEvent *event) Q_DECL_OVERRIDE;
 
     void updateFromContents(void *);
+    void drawShadowTo(QPaintDevice *device);
 
 private:
     QPaintDevice *redirected(QPoint *) const Q_DECL_OVERRIDE;
@@ -123,6 +124,7 @@ private:
 
     QImage m_shadowImage;
     bool m_clearContent = false;
+    bool m_redirectContent = false;
 
     int m_shadowRadius = 60;
     QPoint m_shadowOffset = QPoint(0, 16);

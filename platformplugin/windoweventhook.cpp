@@ -40,18 +40,13 @@ DPP_BEGIN_NAMESPACE
 
 PUBLIC_CLASS(QXcbWindow, WindowEventHook);
 
-WindowEventHook::WindowEventHook(QXcbWindow *window, bool useDxcb)
+WindowEventHook::WindowEventHook(QXcbWindow *window, bool redirectContent)
 {
     const Qt::WindowType &type = window->window()->type();
 
-    if (useDxcb) {
+    if (redirectContent) {
         VtableHook::overrideVfptrFun(window, &QXcbWindowEventListener::handleConfigureNotifyEvent,
                                      this, &WindowEventHook::handleConfigureNotifyEvent);
-        VtableHook::overrideVfptrFun(window, &QXcbWindowEventListener::handleMapNotifyEvent,
-                                     this, &WindowEventHook::handleMapNotifyEvent);
-    }
-
-    if (qobject_cast<DFrameWindow*>(window->window())) {
         VtableHook::overrideVfptrFun(window, &QXcbWindowEventListener::handleMapNotifyEvent,
                                      this, &WindowEventHook::handleMapNotifyEvent);
     }

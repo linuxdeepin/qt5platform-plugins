@@ -66,20 +66,34 @@ public:
 
     void beginPaint(const QRegion &region) Q_DECL_OVERRIDE
     {
-        Q_UNUSED(region)
         Q_Q(DFrameWindow);
-//        q->platformBackingStore->beginPaint(region * q->devicePixelRatio());
+
+        if (!q->m_redirectContent) {
+            if (size != q->handle()->QPlatformWindow::geometry().size()) {
+                size = q->handle()->QPlatformWindow::geometry().size();
+                q->platformBackingStore->resize(size, QRegion());
+                markWindowAsDirty();
+            }
+
+            q->platformBackingStore->beginPaint(region * q->devicePixelRatio());
+        }
     }
 
     void endPaint() Q_DECL_OVERRIDE
     {
         Q_Q(DFrameWindow);
-//        q->platformBackingStore->endPaint();
+
+        if (!q->m_redirectContent)
+            q->platformBackingStore->endPaint();
     }
 
     void flush(const QRegion &region) Q_DECL_OVERRIDE
     {
         Q_Q(DFrameWindow);
+
+        if (!q->m_redirectContent) {
+            return q->platformBackingStore->flush(q, region * q->devicePixelRatio(), QPoint(0, 0));
+        }
 
         flushArea += region * q->devicePixelRatio();
 
@@ -97,10 +111,12 @@ public:
 
 QList<DFrameWindow*> DFrameWindow::frameWindowList;
 
-DFrameWindow::DFrameWindow()
+DFrameWindow::DFrameWindow(QWindow *content)
     : QPaintDeviceWindow(*new DFrameWindowPrivate(), 0)
     , platformBackingStore(QGuiApplicationPrivate::platformIntegration()->createPlatformBackingStore(this))
+    , m_redirectContent(DPlatformWindowHelper::windowRedirectContent(content))
 #ifdef Q_OS_LINUX
+    , m_contentWindow(content)
     , nativeWindowXPixmap(XCB_PIXMAP_NONE)
 #endif
 {
@@ -338,9 +354,13 @@ void DFrameWindow::enableRepaintShadow()
 
 void DFrameWindow::paintEvent(QPaintEvent *)
 {
+    if (m_redirectContent) {
 #ifdef Q_OS_LINUX
-    drawNativeWindowXPixmap();
+        drawNativeWindowXPixmap();
 #endif
+    } else {
+        drawShadowTo(this);
+    }
 }
 
 void DFrameWindow::showEvent(QShowEvent *event)
@@ -573,6 +593,38 @@ void DFrameWindow::updateFromContents(void *ev)
 #endif
 }
 
+void DFrameWindow::drawShadowTo(QPaintDevice *device)
+{
+    const QPoint &offset = m_contentGeometry.topLeft() - contentOffsetHint();
+    qreal device_pixel_ratio = devicePixelRatio();
+    const QSize &size = handle()->geometry().size();
+    QPainter pa(device);
+    QPainterPath clip_path;
+
+    clip_path.addRect(QRect(QPoint(0, 0), size));
+    clip_path -= m_clipPath;
+
+    pa.setRenderHint(QPainter::Antialiasing);
+    pa.setCompositionMode(QPainter::CompositionMode_Source);
+    pa.setClipPath(clip_path);
+
+    if (!disableFrame() && Q_LIKELY(DXcbWMSupport::instance()->hasComposite())
+            && !m_shadowImage.isNull()) {
+        pa.drawImage(offset * device_pixel_ratio, m_shadowImage);
+    }
+
+    if (m_borderWidth > 0 && m_borderColor != Qt::transparent) {
+        if (Q_LIKELY(DXcbWMSupport::instance()->hasComposite())) {
+            pa.setRenderHint(QPainter::Antialiasing);
+            pa.fillPath(m_borderPath, m_borderColor);
+        } else {
+            pa.fillRect(QRect(QPoint(0, 0), size), m_borderColor);
+        }
+    }
+
+    pa.end();
+}
+
 QPaintDevice *DFrameWindow::redirected(QPoint *) const
 {
     return platformBackingStore->paintDevice();
@@ -683,35 +735,7 @@ void DFrameWindow::drawNativeWindowXPixmap(xcb_rectangle_t *rects, int length)
         cairo_paint(cr);
 
         // draw shadow
-        const QPoint &offset = m_contentGeometry.topLeft() - contentOffsetHint();
-        qreal device_pixel_ratio = devicePixelRatio();
-        const QSize &size = handle()->geometry().size();
-        QPainter pa(&image);
-        QPainterPath clip_path;
-
-        clip_path.addRect(QRect(QPoint(0, 0), size));
-        clip_path -= m_clipPath;
-
-        pa.setRenderHint(QPainter::Antialiasing);
-        pa.setCompositionMode(QPainter::CompositionMode_Source);
-        pa.setClipPath(clip_path);
-
-        if (!disableFrame() && Q_LIKELY(DXcbWMSupport::instance()->hasComposite())
-                && !m_shadowImage.isNull()) {
-            pa.drawImage(offset * device_pixel_ratio, m_shadowImage);
-        }
-
-        if (m_borderWidth > 0 && m_borderColor != Qt::transparent) {
-            if (Q_LIKELY(DXcbWMSupport::instance()->hasComposite())) {
-                pa.setRenderHint(QPainter::Antialiasing);
-                pa.fillPath(m_borderPath, m_borderColor);
-            } else {
-                pa.fillRect(QRect(QPoint(0, 0), size), m_borderColor);
-            }
-        }
-
-        pa.end();
-
+        drawShadowTo(&image);
         d_func()->flushArea = QRect(QPoint(0, 0), d_func()->size);
     }
 

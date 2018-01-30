@@ -100,6 +100,8 @@ public:
     void setAlertState(bool enabled);
     bool isAlertState() const;
 
+    static bool windowRedirectContent(const QWindow *window);
+
 private:
     bool eventFilter(QObject *watched, QEvent *event) Q_DECL_OVERRIDE;
     void setNativeWindowGeometry(const QRect &rect, bool onlyResize = false);

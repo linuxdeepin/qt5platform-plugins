@@ -27,7 +27,7 @@ DPP_BEGIN_NAMESPACE
 class WindowEventHook
 {
 public:
-    WindowEventHook(QXcbWindow *window, bool useDxcb);
+    WindowEventHook(QXcbWindow *window, bool redirectContent);
 
     QXcbWindow *window() const
     { return static_cast<QXcbWindow*>(reinterpret_cast<QXcbWindowEventListener*>(const_cast<WindowEventHook*>(this)));}

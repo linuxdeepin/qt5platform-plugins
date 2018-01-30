@@ -123,15 +123,17 @@ QPlatformWindow *DPlatformIntegration::createPlatformWindow(QWindow *window) con
     if (isUseDxcb) {
         QSurfaceFormat format = window->format();
 
-//        const int oldAlpha = format.alphaBufferSize();
-//        const int newAlpha = 8;
+        const int oldAlpha = format.alphaBufferSize();
+        const int newAlpha = 8;
 
         window->setProperty("_d_dxcb_TransparentBackground", format.hasAlpha());
 
-//        if (oldAlpha != newAlpha) {
-//            format.setAlphaBufferSize(newAlpha);
-//            window->setFormat(format);
-//        }
+        if (!DPlatformWindowHelper::windowRedirectContent(window)) {
+            if (oldAlpha != newAlpha) {
+                format.setAlphaBufferSize(newAlpha);
+                window->setFormat(format);
+            }
+        }
     }
 
     QPlatformWindow *w = DPlatformIntegrationParent::createPlatformWindow(window);
@@ -146,7 +148,10 @@ QPlatformWindow *DPlatformIntegration::createPlatformWindow(QWindow *window) con
     }
 
 #ifdef Q_OS_LINUX
-    Q_UNUSED(new WindowEventHook(xw, isUseDxcb))
+    const DFrameWindow *frame_window = qobject_cast<DFrameWindow*>(window);
+    bool rc = frame_window ? DPlatformWindowHelper::windowRedirectContent(frame_window->m_contentWindow)
+                           : DPlatformWindowHelper::windowRedirectContent(window);
+    Q_UNUSED(new WindowEventHook(xw, rc))
 #endif
 
 //    QWindow *tp_for_window = window->transientParent();
@@ -167,9 +172,10 @@ QPlatformBackingStore *DPlatformIntegration::createPlatformBackingStore(QWindow 
 
     QPlatformBackingStore *store = DPlatformIntegrationParent::createPlatformBackingStore(window);
 
-//    if (window->type() != Qt::Desktop && window->property(useDxcb).toBool())
+    if (window->type() != Qt::Desktop && window->property(useDxcb).toBool())
 #ifdef USE_NEW_IMPLEMENTING
-//        m_storeHelper->addBackingStore(store);
+        if (!DPlatformWindowHelper::windowRedirectContent(window))
+            m_storeHelper->addBackingStore(store);
 #else
         return new DPlatformBackingStore(window, static_cast<QXcbBackingStore*>(store));
 #endif

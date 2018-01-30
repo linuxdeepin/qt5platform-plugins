@@ -54,7 +54,7 @@ DPlatformWindowHelper::DPlatformWindowHelper(QNativeWindow *window)
 {
     mapped[window] = this;
 
-    m_frameWindow = new DFrameWindow();
+    m_frameWindow = new DFrameWindow(window->window());
     m_frameWindow->setFlags((window->window()->flags() | Qt::FramelessWindowHint | Qt::CustomizeWindowHint | Qt::NoDropShadowWindowHint) & ~Qt::WindowMinMaxButtonsHint);
     m_frameWindow->create();
     m_frameWindow->installEventFilter(this);
@@ -66,9 +66,6 @@ DPlatformWindowHelper::DPlatformWindowHelper(QNativeWindow *window)
     m_frameWindow->setEnableSystemMove(m_enableSystemMove);
     m_frameWindow->setEnableSystemResize(m_enableSystemResize);
 
-    m_frameWindow->m_contentWindow = window->window();
-    m_frameWindow->setProperty("_d_real_content_window", (quintptr)m_frameWindow->m_contentWindow.data());
-
     window->setParent(m_frameWindow->handle());
     window->window()->installEventFilter(this);
     window->window()->setScreen(m_frameWindow->screen());
@@ -76,9 +73,11 @@ DPlatformWindowHelper::DPlatformWindowHelper(QNativeWindow *window)
     window->window()->setProperty(::frameMargins, QVariant::fromValue(m_frameWindow->contentMarginsHint()));
 
 #ifdef Q_OS_LINUX
-    xcb_composite_redirect_window(window->xcb_connection(), window->xcb_window(), XCB_COMPOSITE_REDIRECT_MANUAL);
-    damage_id = xcb_generate_id(window->xcb_connection());
-    xcb_damage_create(window->xcb_connection(), damage_id, window->xcb_window(), XCB_DAMAGE_REPORT_LEVEL_NON_EMPTY);
+    if (windowRedirectContent(window->window())) {
+        xcb_composite_redirect_window(window->xcb_connection(), window->xcb_window(), XCB_COMPOSITE_REDIRECT_MANUAL);
+        damage_id = xcb_generate_id(window->xcb_connection());
+        xcb_damage_create(window->xcb_connection(), damage_id, window->xcb_window(), XCB_DAMAGE_REPORT_LEVEL_NON_EMPTY);
+    }
 #endif
 
     updateClipPathByWindowRadius(window->window()->size());
@@ -497,6 +496,16 @@ void DPlatformWindowHelper::setAlertState(bool enabled)
 bool DPlatformWindowHelper::isAlertState() const
 {
     return me()->m_frameWindow->handle()->isAlertState();
+}
+
+bool DPlatformWindowHelper::windowRedirectContent(const QWindow *window)
+{
+    const QVariant &value = window->property(redirectContent);
+
+    if (value.type() == QVariant::Bool)
+        return value.toBool();
+
+    return window->surfaceType() == QSurface::OpenGLSurface;
 }
 
 bool DPlatformWindowHelper::eventFilter(QObject *watched, QEvent *event)
