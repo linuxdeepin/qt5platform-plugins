@@ -42,10 +42,6 @@ DPlatformBackingStoreHelper::DPlatformBackingStoreHelper()
 
 bool DPlatformBackingStoreHelper::addBackingStore(QPlatformBackingStore *store)
 {
-    QObject::connect(store->window(), &QWindow::destroyed, store->window(), [store] {
-        VtableHook::clearGhostVtable(store);
-    });
-
     VtableHook::overrideVfptrFun(store, &QPlatformBackingStore::beginPaint, this, &DPlatformBackingStoreHelper::beginPaint);
     VtableHook::overrideVfptrFun(store, &QPlatformBackingStore::paintDevice, this, &DPlatformBackingStoreHelper::paintDevice);
 

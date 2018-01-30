@@ -21,8 +21,9 @@ DPP_BEGIN_NAMESPACE
 
 QHash<quintptr**, quintptr*> VtableHook::objToOriginalVfptr;
 QHash<void*, quintptr*> VtableHook::objToGhostVfptr;
+QMap<void*, quintptr> VtableHook::objDestructFun;
 
-bool VtableHook::copyVtable(quintptr **obj)
+bool VtableHook::copyVtable(quintptr **obj, DestructFunIndex index)
 {
     quintptr *vtable = *obj;
 
@@ -45,6 +46,13 @@ bool VtableHook::copyVtable(quintptr **obj)
     //! save ghost vfptr
     objToGhostVfptr[obj] = new_vtable;
 
+    // 备份对象的析构函数
+    objDestructFun[obj] = new_vtable[index];
+    // 覆盖对象的析构函数, 用于自动清理虚表数据
+    //TODE(zccrs): 加入尝试析构此对象的测试代码, 如果析构时没有调用autoCleanVtable
+    //             则证明index为错误值, 此时应退出程序, 并更改代码添加此类型对应的DestructFunIndex枚举
+    new_vtable[index] = reinterpret_cast<quintptr>(&autoCleanVtable);
+
     return true;
 }
 
@@ -55,6 +63,7 @@ bool VtableHook::clearGhostVtable(void *obj)
     if (vtable) {
         quintptr **obj_ptr = (quintptr**)obj;
         objToOriginalVfptr.remove(obj_ptr);
+        objDestructFun.remove(obj);
 
         delete[] vtable;
 
@@ -62,6 +71,22 @@ bool VtableHook::clearGhostVtable(void *obj)
     }
 
     return false;
+}
+
+void VtableHook::autoCleanVtable(void *obj)
+{
+    quintptr fun = objDestructFun.value(obj);
+
+    if (!fun)
+        return;
+
+    typedef void(*Destruct)(void*);
+    Destruct destruct = *reinterpret_cast<Destruct*>(&fun);
+    // call origin destruct function
+    destruct(obj);
+
+    // clean
+    clearGhostVtable(obj);
 }
 
 DPP_END_NAMESPACE

@@ -40,9 +40,7 @@ DPlatformOpenGLContextHelper::DPlatformOpenGLContextHelper()
 
 bool DPlatformOpenGLContextHelper::addOpenGLContext(QOpenGLContext *object, QPlatformOpenGLContext *context)
 {
-    QObject::connect(object, &QObject::destroyed, object, [context] {
-        VtableHook::clearGhostVtable(context);
-    });
+    Q_UNUSED(object)
 
     return VtableHook::overrideVfptrFun(context, &QPlatformOpenGLContext::swapBuffers, this, &DPlatformOpenGLContextHelper::swapBuffers);
 }
