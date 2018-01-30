@@ -170,6 +170,7 @@ void DPlatformWindowHelper::setGeometry(const QRect &rect)
 
     qt_window_private(helper->m_frameWindow)->positionAutomatic = qt_window_private(helper->m_nativeWindow->window())->positionAutomatic;
     helper->m_frameWindow->handle()->setGeometry(rect + content_margins);
+    helper->setNativeWindowGeometry(rect, true);
     helper->m_nativeWindow->QPlatformWindow::setGeometry(rect);
 }
 

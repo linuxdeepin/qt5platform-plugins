@@ -80,8 +80,6 @@ public:
     void disableRepaintShadow();
     void enableRepaintShadow();
 
-    QSize size() const Q_DECL_OVERRIDE;
-
 signals:
     void contentMarginsHintChanged(const QMargins &oldMargins) const;
 
@@ -92,6 +90,7 @@ protected:
     void mouseReleaseEvent(QMouseEvent *event) Q_DECL_OVERRIDE;
     void resizeEvent(QResizeEvent *event) Q_DECL_OVERRIDE;
     bool event(QEvent *event) Q_DECL_OVERRIDE;
+    void timerEvent(QTimerEvent *event) Q_DECL_OVERRIDE;
 
     void updateFromContents(void *);
 
@@ -100,8 +99,9 @@ private:
 
     void setContentPath(const QPainterPath &path, bool isRoundedRect, int radius = 0);
 #ifdef Q_OS_LINUX
-    void drawNativeWindowXPixmap(xcb_rectangle_t *rects, int length);
-    bool updateNativeWindowXPixmap(int width = -1, int height = -1);
+    void drawNativeWindowXPixmap(xcb_rectangle_t *rects = 0, int length = 0);
+    bool updateNativeWindowXPixmap(int width, int height);
+    void markXPixmapToDirty(int width = -1, int height = -1);
 #endif
 
     void updateShadow();
@@ -157,6 +157,7 @@ private:
 #ifdef Q_OS_LINUX
     uint32_t nativeWindowXPixmap = 0;
     cairo_surface_t *nativeWindowXSurface = 0;
+    QSize xsurfaceDirtySize;
 #endif
 
     friend class DPlatformWindowHelper;

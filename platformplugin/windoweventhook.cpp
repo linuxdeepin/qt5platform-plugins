@@ -112,7 +112,7 @@ void WindowEventHook::handleConfigureNotifyEvent(const xcb_configure_notify_even
     me->QXcbWindow::handleConfigureNotifyEvent(event);
 
     if (DPlatformWindowHelper *helper = DPlatformWindowHelper::mapped.value(me)) {
-        helper->m_frameWindow->updateNativeWindowXPixmap(event->width, event->height);
+        helper->m_frameWindow->markXPixmapToDirty(event->width, event->height);
     }
 }
 
@@ -123,9 +123,9 @@ void WindowEventHook::handleMapNotifyEvent(const xcb_map_notify_event_t *event)
     me->QXcbWindow::handleMapNotifyEvent(event);
 
     if (DFrameWindow *frame = qobject_cast<DFrameWindow*>(me->window())) {
-        frame->updateNativeWindowXPixmap();
+        frame->markXPixmapToDirty();
     } else if (DPlatformWindowHelper *helper = DPlatformWindowHelper::mapped.value(me)) {
-        helper->m_frameWindow->updateNativeWindowXPixmap();
+        helper->m_frameWindow->markXPixmapToDirty();
     }
 }
 
