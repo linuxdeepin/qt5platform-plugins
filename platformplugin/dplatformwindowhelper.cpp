@@ -505,6 +505,15 @@ bool DPlatformWindowHelper::windowRedirectContent(const QWindow *window)
     if (value.type() == QVariant::Bool)
         return value.toBool();
 
+    if (qEnvironmentVariableIsSet("DXCB_REDIRECT_CONTENT")) {
+        const QByteArray &value = qgetenv("DXCB_REDIRECT_CONTENT");
+
+        if (value == "true")
+            return true;
+        else if (value == "false")
+            return false;
+    }
+
     return window->surfaceType() == QSurface::OpenGLSurface;
 }
 
