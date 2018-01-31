@@ -110,8 +110,56 @@ public:
 
     static constexpr DestructFunIndex getDestructFunIndex(...) { return Normal;}
     static constexpr DestructFunIndex getDestructFunIndex(const QObject*) { return Qt_Object;}
-    static bool copyVtable(quintptr **obj, DestructFunIndex index);
     static void autoCleanVtable(void *obj);
+
+    template<typename T>
+    static bool ensureVtable(T *obj) {
+        quintptr **_obj = (quintptr**)(obj);
+
+        if (objToOriginalVfptr.contains(_obj)) {
+            // 不知道什么原因, 此时obj对象的虚表已经被还原
+            if (objToGhostVfptr.value((void*)obj) != *_obj) {
+                clearGhostVtable((void*)obj);
+            } else {
+                return true;
+            }
+        }
+
+        if (!copyVtable(_obj))
+            return false;
+
+        // 备份对象的析构函数
+        DestructFunIndex index = getDestructFunIndex(obj);
+        quintptr *new_vtable = *((quintptr**)obj);
+        objDestructFun[(void*)obj] = new_vtable[index];
+
+        // 覆盖对象的析构函数, 用于自动清理虚表数据
+        static bool testResult = false;
+        class TestClass {
+        public:
+            static void testClean(T *that) {
+                Q_UNUSED(that)
+                testResult = true;
+            }
+        };
+
+        // 尝试覆盖析构函数并测试
+        testResult = false;
+        new_vtable[index] = reinterpret_cast<quintptr>(&TestClass::testClean);
+        delete obj;
+
+        // 析构函数覆盖失败
+        if (!testResult) {
+            qFatal("Failed do override destruct function");
+            qDebug() << "object:" << obj;
+            abort();
+        }
+
+        // 真正覆盖析构函数
+        new_vtable[index] = reinterpret_cast<quintptr>(&autoCleanVtable);
+
+        return true;
+    }
 
     template <typename T> class OverrideDestruct : public T { ~OverrideDestruct() override;};
     template <typename List1, typename List2> struct CheckCompatibleArguments { enum { value = false }; };
@@ -138,8 +186,7 @@ public:
         if (fun1_offset < 0 || fun1_offset > UINT_LEAST16_MAX)
             return false;
 
-        if (!objToOriginalVfptr.contains((quintptr**)t1)
-                && !copyVtable((quintptr**)t1, getDestructFunIndex(t1))) {
+        if (!ensureVtable(t1)) {
             return false;
         }
 
@@ -185,8 +232,7 @@ public:
         if (fun1_offset < 0 || fun1_offset > UINT_LEAST16_MAX)
             return false;
 
-        if (!objToOriginalVfptr.contains((quintptr**)t1)
-                && !copyVtable((quintptr**)t1, getDestructFunIndex(t1))) {
+        if (!ensureVtable(t1)) {
             return false;
         }
 
@@ -242,6 +288,7 @@ public:
     }
 
 private:
+    static bool copyVtable(quintptr **obj);
     static bool clearGhostVtable(void *obj);
 
     static QHash<quintptr**, quintptr*> objToOriginalVfptr;
