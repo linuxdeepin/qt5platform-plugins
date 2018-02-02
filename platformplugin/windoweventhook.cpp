@@ -63,6 +63,11 @@ WindowEventHook::WindowEventHook(QXcbWindow *window, bool redirectContent)
                                      this, &WindowEventHook::handleXIEnterLeave);
 #endif
     }
+
+    QObject::connect(window->window(), &QWindow::destroyed, window->window(), [this, window] {
+        delete this;
+        VtableHook::clearGhostVtable(static_cast<QXcbWindowEventListener*>(window));
+    });
 }
 
 //#define DND_DEBUG

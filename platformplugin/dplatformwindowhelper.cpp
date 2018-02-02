@@ -143,6 +143,8 @@ DPlatformWindowHelper::DPlatformWindowHelper(QNativeWindow *window)
 DPlatformWindowHelper::~DPlatformWindowHelper()
 {
     mapped.remove(m_nativeWindow);
+    VtableHook::clearGhostVtable(static_cast<QPlatformWindow*>(m_nativeWindow));
+
     m_frameWindow->deleteLater();
 
 #ifdef Q_OS_LINUX

@@ -101,36 +101,15 @@ public:
 class VtableHook
 {
 public:
-    //###(zccrs): 由于无法通过代码直接获取析构函数在虚表中的位置
-    //            暂定QObject类型对象为第5项, 其它为第2项
-    enum DestructFunIndex {
-        Normal = 1,
-        Qt_Object = 4
-    };
+    static bool copyVtable(quintptr **obj);
+    static bool clearGhostVtable(void *obj);
 
-    static constexpr DestructFunIndex getDestructFunIndex(...) { return Normal;}
-    static constexpr DestructFunIndex getDestructFunIndex(const QObject*) { return Qt_Object;}
-    static bool copyVtable(quintptr **obj, DestructFunIndex index);
-    static void autoCleanVtable(void *obj);
-
-    template <typename T> class OverrideDestruct : public T { ~OverrideDestruct() override;};
     template <typename List1, typename List2> struct CheckCompatibleArguments { enum { value = false }; };
     template <typename List> struct CheckCompatibleArguments<List, List> { enum { value = true }; };
     template<typename Fun1, typename Fun2>
     static bool overrideVfptrFun(const typename QtPrivate::FunctionPointer<Fun1>::Object *t1, Fun1 fun1,
                       const typename QtPrivate::FunctionPointer<Fun2>::Object *t2, Fun2 fun2)
     {
-        typedef QtPrivate::FunctionPointer<Fun1> FunInfo1;
-        typedef QtPrivate::FunctionPointer<Fun2> FunInfo2;
-        // 检查析构函数是否为虚
-        class OverrideDestruct : public FunInfo1::Object { ~OverrideDestruct() override;};
-
-        //compilation error if the arguments does not match.
-        Q_STATIC_ASSERT_X((CheckCompatibleArguments<typename FunInfo1::Arguments, typename FunInfo2::Arguments>::value),
-                          "Function1 and Function2 arguments are not compatible.");
-        Q_STATIC_ASSERT_X((CheckCompatibleArguments<QtPrivate::List<typename FunInfo1::ReturnType>, QtPrivate::List<typename FunInfo2::ReturnType>>::value),
-                          "Function1 and Function2 return type are not compatible..");
-
         //! ({code}) in the form of a code is to eliminate - Wstrict - aliasing build warnings
         quintptr fun1_offset = toQuintptr(&fun1);
         quintptr fun2_offset = toQuintptr(&fun2);
@@ -138,10 +117,17 @@ public:
         if (fun1_offset < 0 || fun1_offset > UINT_LEAST16_MAX)
             return false;
 
-        if (!objToOriginalVfptr.contains((quintptr**)t1)
-                && !copyVtable((quintptr**)t1, getDestructFunIndex(t1))) {
+        if (!objToOriginalVfptr.contains((quintptr**)t1) && !copyVtable((quintptr**)t1))
             return false;
-        }
+
+        typedef QtPrivate::FunctionPointer<Fun1> FunInfo1;
+        typedef QtPrivate::FunctionPointer<Fun2> FunInfo2;
+
+        //compilation error if the arguments does not match.
+        Q_STATIC_ASSERT_X((CheckCompatibleArguments<typename FunInfo1::Arguments, typename FunInfo2::Arguments>::value),
+                          "Function1 and Function2 arguments are not compatible.");
+        Q_STATIC_ASSERT_X((CheckCompatibleArguments<QtPrivate::List<typename FunInfo1::ReturnType>, QtPrivate::List<typename FunInfo2::ReturnType>>::value),
+                          "Function1 and Function2 return type are not compatible..");
 
         quintptr *vfptr_t1 = *(quintptr**)t1;
         quintptr *vfptr_t2 = *(quintptr**)t2;
@@ -166,18 +152,6 @@ public:
     template<typename Fun1, typename Fun2>
     static bool overrideVfptrFun(const typename QtPrivate::FunctionPointer<Fun1>::Object *t1, Fun1 fun1, Fun2 fun2)
     {
-        typedef QtPrivate::FunctionPointer<Fun1> FunInfo1;
-        typedef QtPrivate::FunctionPointer<Fun2> FunInfo2;
-        // 检查析构函数是否为虚
-        class OverrideDestruct : public FunInfo1::Object { ~OverrideDestruct() override;};
-
-        Q_STATIC_ASSERT(!FunInfo2::IsPointerToMemberFunction);
-        //compilation error if the arguments does not match.
-        Q_STATIC_ASSERT_X((CheckCompatibleArguments<typename FunctionPointer<Fun1>::Arguments, typename FunInfo2::Arguments>::value),
-                          "Function1 and Function2 arguments are not compatible.");
-        Q_STATIC_ASSERT_X((CheckCompatibleArguments<QtPrivate::List<typename FunInfo1::ReturnType>, QtPrivate::List<typename FunInfo2::ReturnType>>::value),
-                          "Function1 and Function2 return type are not compatible..");
-
         //! ({code}) in the form of a code is to eliminate - Wstrict - aliasing build warnings
         quintptr fun1_offset = toQuintptr(&fun1);
         quintptr fun2_offset = toQuintptr(&fun2);
@@ -185,10 +159,18 @@ public:
         if (fun1_offset < 0 || fun1_offset > UINT_LEAST16_MAX)
             return false;
 
-        if (!objToOriginalVfptr.contains((quintptr**)t1)
-                && !copyVtable((quintptr**)t1, getDestructFunIndex(t1))) {
+        if (!objToOriginalVfptr.contains((quintptr**)t1) && !copyVtable((quintptr**)t1))
             return false;
-        }
+
+        typedef QtPrivate::FunctionPointer<Fun1> FunInfo1;
+        typedef QtPrivate::FunctionPointer<Fun2> FunInfo2;
+
+        Q_STATIC_ASSERT(!FunInfo2::IsPointerToMemberFunction);
+        //compilation error if the arguments does not match.
+        Q_STATIC_ASSERT_X((CheckCompatibleArguments<typename FunctionPointer<Fun1>::Arguments, typename FunInfo2::Arguments>::value),
+                          "Function1 and Function2 arguments are not compatible.");
+        Q_STATIC_ASSERT_X((CheckCompatibleArguments<QtPrivate::List<typename FunInfo1::ReturnType>, QtPrivate::List<typename FunInfo2::ReturnType>>::value),
+                          "Function1 and Function2 return type are not compatible..");
 
         quintptr *vfptr_t1 = *(quintptr**)t1;
         *(vfptr_t1 + fun1_offset / sizeof(quintptr)) = fun2_offset;
@@ -242,11 +224,8 @@ public:
     }
 
 private:
-    static bool clearGhostVtable(void *obj);
-
     static QHash<quintptr**, quintptr*> objToOriginalVfptr;
     static QHash<void*, quintptr*> objToGhostVfptr;
-    static QMap<void*, quintptr> objDestructFun;
 };
 
 DPP_END_NAMESPACE

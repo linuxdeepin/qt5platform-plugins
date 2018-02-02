@@ -670,6 +670,10 @@ void DPlatformIntegration::initialize()
     }
 
     QObject::connect(qApp, &QGuiApplication::screenAdded, qApp, &hookScreenGetWindow);
+    QObject::connect(qApp, &QGuiApplication::screenRemoved, qApp, [] (QScreen *screen) {
+        if (screen->handle())
+            VtableHook::clearGhostVtable(screen->handle());
+    });
 }
 
 bool DPlatformIntegration::isWindowBlockedHandle(QWindow *window, QWindow **blockingWindow)
