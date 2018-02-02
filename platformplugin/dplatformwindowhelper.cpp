@@ -890,6 +890,19 @@ void DPlatformWindowHelper::updateWindowNormalHints()
     if (size_inc.isEmpty())
         size_inc = QSize(1, 1);
 
+    xcb_get_property_cookie_t cookie = xcb_icccm_get_wm_normal_hints(m_nativeWindow->xcb_connection(), m_frameWindow->winId());
+
+    if (xcb_get_property_reply_t *reply = xcb_get_property_reply(m_nativeWindow->xcb_connection(), cookie, 0)) {
+        xcb_icccm_get_wm_size_hints_from_reply(&hints, reply);
+        free(reply);
+
+        if (hints.width_inc == 1 && hints.height_inc == 1) {
+            return;
+        }
+    } else {
+        return;
+    }
+
     xcb_icccm_size_hints_set_resize_inc(&hints, size_inc.width(), size_inc.height());
     xcb_icccm_set_wm_normal_hints(m_nativeWindow->xcb_connection(),
                                   m_frameWindow->winId(), &hints);
