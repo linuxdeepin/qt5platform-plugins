@@ -1,4 +1,34 @@
 <a name=""></a>
+## 1.1.6.1 (2018-02-02)
+
+
+#### Features
+
+*   support for using the environment variable "DXCB_REDIRECT_CONTENT" to configure whether to redirect the contents of the window ([aeec2d9d](https://github.com/linuxdeepin/qt5dxcb-plugin/commit/aeec2d9d60042bbcaa58e1d96281f38032cbf2df))
+*   support config redirect content ([77859430](https://github.com/linuxdeepin/qt5dxcb-plugin/commit/778594309ed3f9633f828838a76d779002d1c261))
+*   auto clean virtual table list ([1a4c427f](https://github.com/linuxdeepin/qt5dxcb-plugin/commit/1a4c427f5adf4921055f27dfda37cb521ecd330e))
+*   add pluginVersion native function ([aac0d071](https://github.com/linuxdeepin/qt5dxcb-plugin/commit/aac0d0716311fc7757eca2a21ec39778c1970622))
+*   use x11 composite and damage extensions to clip content window ([5cc7b296](https://github.com/linuxdeepin/qt5dxcb-plugin/commit/5cc7b296fbaa6e42455fe886eb8eec0ab6f12173))
+
+#### Bug Fixes
+
+*   set miniumu/maximum size inoperative for window ([6404e5e4](https://github.com/linuxdeepin/qt5dxcb-plugin/commit/6404e5e4c3a42cb725c7958e2a599931d2130bd9))
+*   no debug package ([e5767453](https://github.com/linuxdeepin/qt5dxcb-plugin/commit/e57674533bc44ea7562d903f52777dbce9ac9cd0))
+*   window content no repaint ([faa4106c](https://github.com/linuxdeepin/qt5dxcb-plugin/commit/faa4106cbdb648f31e5e05c312058e30d725d8ca))
+*   update xpixmap of content window when frame window map ([191129dc](https://github.com/linuxdeepin/qt5dxcb-plugin/commit/191129dcdb38bcfbb09c064a1f23378f4bc1b490))
+*   update readme ([eb55797c](https://github.com/linuxdeepin/qt5dxcb-plugin/commit/eb55797c2a560d7ef79a69baf51c77721b66b1c8))
+*   "DXCB_VERSION" is empty of qmake ([4479f404](https://github.com/linuxdeepin/qt5dxcb-plugin/commit/4479f404add8724ad7fd95027e7adadcb6503f67))
+*   set the window size into an infinite loop ([a8cb6e92](https://github.com/linuxdeepin/qt5dxcb-plugin/commit/a8cb6e92ac59dcee69b28ec41ba251b009a3e3c7))
+*   can not maximized on openbox ([36894681](https://github.com/linuxdeepin/qt5dxcb-plugin/commit/36894681a4dc55e12df5c94125237e8bb1d1deb4))
+*   cairo surface not refresh on window repaint ([e02b8355](https://github.com/linuxdeepin/qt5dxcb-plugin/commit/e02b8355eb3eaf74957915c5fb050381ab523739))
+*   not draw content window if nativeWindowXSurface is null ([1a021a76](https://github.com/linuxdeepin/qt5dxcb-plugin/commit/1a021a76c7b68266176757c8d79ca41791835c0e))
+*   crash at ~DPlatformWindowHelper() ([01e77576](https://github.com/linuxdeepin/qt5dxcb-plugin/commit/01e7757670e32802a5235f7bd7bafc030a81a281))
+*   content window geometry update is not timely ([a1416a78](https://github.com/linuxdeepin/qt5dxcb-plugin/commit/a1416a784415c5f197d66057d313ab8e99e503e6))
+*   QApplication::topLevelAt return null ([6f84bbba](https://github.com/linuxdeepin/qt5dxcb-plugin/commit/6f84bbba08ae81bc2547902e8a05ca0582e56fb6))
+
+
+
+<a name=""></a>
 ##  1.1.6 (2017-12-28)
 
 
