@@ -169,7 +169,11 @@ void DPlatformWindowHelper::setGeometry(const QRect &rect)
 
     qt_window_private(helper->m_frameWindow)->positionAutomatic = qt_window_private(helper->m_nativeWindow->window())->positionAutomatic;
     helper->m_frameWindow->handle()->setGeometry(rect + content_margins);
-    helper->setNativeWindowGeometry(rect, true);
+
+    // 未开启重定向时, 可能会导致内容窗口位置不正确
+    if (helper->m_frameWindow->m_redirectContent)
+        helper->setNativeWindowGeometry(rect, true);
+
     helper->m_nativeWindow->QPlatformWindow::setGeometry(rect);
 }
 
