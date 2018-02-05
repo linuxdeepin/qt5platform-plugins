@@ -42,7 +42,8 @@ SOURCES += \
     $$PWD/main.cpp \
     $$PWD/dplatformintegration.cpp \
     $$PWD/vtablehook.cpp \
-    $$PWD/dplatformnativeinterfacehook.cpp
+    $$PWD/dplatformnativeinterfacehook.cpp \
+    dhighdpi.cpp
 
 HEADERS += \
     $$PWD/dplatformintegration.h \
@@ -51,7 +52,8 @@ HEADERS += \
     $$PWD/global.h \
     $$PWD/dplatformnativeinterfacehook.h \
     $$PWD/dforeignplatformwindow.h \
-    $$PWD/dwmsupport.h
+    $$PWD/dwmsupport.h \
+    dhighdpi.h
 
 DISTFILES += \
     $$PWD/dpp.json
