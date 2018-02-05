@@ -411,6 +411,11 @@ void Utility::setWindowProperty(quint32 WId, xcb_atom_t propAtom, xcb_atom_t typ
     xcb_flush(conn);
 }
 
+void Utility::clearWindowProperty(quint32 WId, xcb_atom_t propAtom)
+{
+    xcb_delete_property_checked(QX11Info::connection(), WId, propAtom);
+}
+
 bool Utility::hasBlurWindow()
 {
     return  DXcbWMSupport::instance()->hasBlurWindow();
@@ -439,6 +444,7 @@ bool Utility::blurWindowBackground(const quint32 WId, const QVector<BlurArea> &a
         }
 
         setWindowProperty(WId, atom, XCB_ATOM_CARDINAL, areas.constData(), areas.size() * sizeof(BlurArea) / sizeof(quint32), sizeof(quint32) * 8);
+        clearWindowProperty(WId, DXcbWMSupport::instance()->_net_wm_deepin_blur_region_mask);
     } else {
         xcb_atom_t atom = DXcbWMSupport::instance()->_kde_net_wm_blur_rehind_region_atom;
 
@@ -464,6 +470,7 @@ bool Utility::blurWindowBackground(const quint32 WId, const QVector<BlurArea> &a
         }
 
         setWindowProperty(WId, atom, XCB_ATOM_CARDINAL, rects.constData(), rects.size(), sizeof(quint32) * 8);
+        clearWindowProperty(WId, DXcbWMSupport::instance()->_net_wm_deepin_blur_region_mask);
     }
 
     return true;
@@ -532,6 +539,7 @@ bool Utility::blurWindowBackgroundByImage(const quint32 WId, const QRect &blurRe
     setWindowProperty(WId, DXcbWMSupport::instance()->_net_wm_deepin_blur_region_mask,
                       DXcbWMSupport::instance()->_net_wm_deepin_blur_region_mask,
                       array.constData(), array.length(), 8);
+    clearWindowProperty(WId, DXcbWMSupport::instance()->_net_wm_deepin_blur_region_rounded_atom);
 
     return true;
 }
