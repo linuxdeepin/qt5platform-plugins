@@ -64,6 +64,7 @@ public:
 
     static QByteArray windowProperty(quint32 WId, xcb_atom_t propAtom, xcb_atom_t typeAtom, quint32 len);
     static void setWindowProperty(quint32 WId, xcb_atom_t propAtom, xcb_atom_t typeAtom, const void *data, quint32 len, uint8_t format = 8);
+    static void clearWindowProperty(quint32 WId, xcb_atom_t propAtom);
 
     struct BlurArea {
         qint32 x;
