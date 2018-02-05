@@ -101,8 +101,6 @@ void DPlatformBackingStoreHelper::flush(QWindow *window, const QRegion &region, 
                                     window_radius, window_radius);
             }
 
-            qDebug() << new_region;
-
             path.addRegion(new_region);
             path -= window_helper->m_clipPath * device_pixel_ratio;
 
