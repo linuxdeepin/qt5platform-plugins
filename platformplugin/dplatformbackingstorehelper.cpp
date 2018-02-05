@@ -78,14 +78,32 @@ void DPlatformBackingStoreHelper::beginPaint(const QRegion &region)
 
 void DPlatformBackingStoreHelper::flush(QWindow *window, const QRegion &region, const QPoint &offset)
 {
+    QRegion new_region = region;
+
     if (Q_LIKELY(DWMSupport::instance()->hasComposite())) {
         DPlatformWindowHelper *window_helper = DPlatformWindowHelper::mapped.value(window->handle());
+        qreal device_pixel_ratio = window_helper->m_nativeWindow->window()->devicePixelRatio();
+        int window_radius = qRound(window_helper->getWindowRadius() * device_pixel_ratio);
 
-        if (window_helper && (window_helper->m_isUserSetClipPath || window_helper->m_windowRadius > 0)) {
-            qreal device_pixel_ratio = window_helper->m_nativeWindow->window()->devicePixelRatio();
+        if (window_helper && (window_helper->m_isUserSetClipPath || window_radius > 0)) {
             QPainterPath path;
 
-            path.addRegion(region);
+            if (!window_helper->m_isUserSetClipPath) {
+                QRect window_rect(QPoint(0, 0), window_helper->m_nativeWindow->geometry().size());
+
+                new_region += QRect(0, 0, window_radius, window_radius);
+                new_region += QRect(window_rect.width() - window_radius,
+                                    window_rect.height() - window_radius,
+                                    window_radius, window_radius);
+                new_region += QRect(0, window_rect.height() - window_radius,
+                                    window_radius, window_radius);
+                new_region += QRect(window_rect.width() - window_radius, 0,
+                                    window_radius, window_radius);
+            }
+
+            qDebug() << new_region;
+
+            path.addRegion(new_region);
             path -= window_helper->m_clipPath * device_pixel_ratio;
 
             if (path.isEmpty())
@@ -96,8 +114,8 @@ void DPlatformBackingStoreHelper::flush(QWindow *window, const QRegion &region, 
             if (!pa.isActive())
                 goto end;
 
-            QBrush border_brush(window_helper->m_frameWindow->platformBackingStore->toImage());
-            const QPoint &offset = window_helper->m_frameWindow->contentOffsetHint() * device_pixel_ratio;
+            QBrush border_brush(window_helper->m_frameWindow->m_shadowImage);
+            const QPoint &offset = window_helper->m_frameWindow->m_contentGeometry.topLeft() * device_pixel_ratio;
 
             border_brush.setMatrix(QMatrix(1, 0, 0, 1, -offset.x(), -offset.y()));
 
@@ -109,7 +127,7 @@ void DPlatformBackingStoreHelper::flush(QWindow *window, const QRegion &region, 
     }
 
 end:
-    return VtableHook::callOriginalFun(this->backingStore(), &QPlatformBackingStore::flush, window, region, offset);
+    return VtableHook::callOriginalFun(this->backingStore(), &QPlatformBackingStore::flush, window, new_region, offset);
 }
 
 DPP_END_NAMESPACE

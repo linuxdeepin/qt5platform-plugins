@@ -86,7 +86,7 @@ void DPlatformOpenGLContextHelper::swapBuffers(QPlatformSurface *surface)
         if (!window_helper)
             goto end;
 
-        if (!window_helper->m_isUserSetClipPath && window_helper->m_windowRadius <= 0)
+        if (!window_helper->m_isUserSetClipPath && window_helper->getWindowRadius() <= 0)
             goto end;
 
         qreal device_pixel_ratio = window_helper->m_nativeWindow->window()->devicePixelRatio();

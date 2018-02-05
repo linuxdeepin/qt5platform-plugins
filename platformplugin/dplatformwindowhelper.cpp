@@ -920,7 +920,8 @@ void DPlatformWindowHelper::updateWindowNormalHints()
 
 int DPlatformWindowHelper::getWindowRadius() const
 {
-    if (m_frameWindow->windowState() == Qt::WindowFullScreen)
+    if (m_frameWindow->windowState() == Qt::WindowFullScreen
+            || m_frameWindow->windowState() == Qt::WindowMaximized)
         return 0;
 
     return (m_isUserSetWindowRadius || DWMSupport::instance()->hasComposite()) ? m_windowRadius : 0;
