@@ -890,7 +890,7 @@ void DFrameWindow::updateMask()
     if (DWMSupport::instance()->hasComposite())
         mouse_margins = canResize() ? MOUSE_MARGINS : 0;
     else
-        mouse_margins = m_borderWidth;
+        mouse_margins = qRound(m_borderWidth * devicePixelRatio());
 
     const QPainterPath &path = m_clipPath;
 
