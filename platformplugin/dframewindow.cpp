@@ -384,7 +384,7 @@ void DFrameWindow::mouseMoveEvent(QMouseEvent *event)
         return;
     }
 
-    setCursor(Qt::ArrowCursor);
+    unsetCursor();
 
     if (!canResize())
         return;

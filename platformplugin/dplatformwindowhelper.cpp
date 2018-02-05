@@ -559,9 +559,14 @@ bool DPlatformWindowHelper::eventFilter(QObject *watched, QEvent *event)
         case QEvent::MouseButtonRelease:
         case QEvent::MouseMove: {
             DQMouseEvent *e = static_cast<DQMouseEvent*>(event);
+            const QRectF rectF(m_windowVaildGeometry);
+            const QPointF posF(e->localPos() - m_frameWindow->contentOffsetHint());
 
-            if (QRectF(m_windowVaildGeometry).contains(e->localPos() - m_frameWindow->contentOffsetHint())) {
-                m_frameWindow->setCursor(Qt::ArrowCursor);
+            // QRectF::contains中判断时加入了右下边界
+            if (!qFuzzyCompare(posF.x(), rectF.width())
+                    && !qFuzzyCompare(posF.y(), rectF.height())
+                    && rectF.contains(posF)) {
+                m_frameWindow->unsetCursor();
                 e->l = e->w = m_nativeWindow->window()->mapFromGlobal(e->globalPos());
                 qApp->sendEvent(m_nativeWindow->window(), e);
 
