@@ -843,16 +843,7 @@ void DFrameWindow::updateShadow()
 void DFrameWindow::updateShadowAsync(int delaye)
 {
     if (m_updateShadowTimer.isActive()) {
-        if (m_shadowImage.isNull()) {
-            m_updateShadowTimer.stop();
-            updateShadow();
-        }
-
         return;
-    }
-
-    if (m_shadowImage.isNull()) {
-        return updateShadow();
     }
 
     m_updateShadowTimer.setSingleShot(true);
