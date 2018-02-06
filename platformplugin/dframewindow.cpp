@@ -525,6 +525,14 @@ void DFrameWindow::timerEvent(QTimerEvent *event)
             platformBackingStore->flush(this, d->flushArea, QPoint(0, 0));
             d->flushArea = QRegion();
         }
+    } else if (event->timerId() == m_paintShadowOnContentTimerId) {
+        killTimer(m_paintShadowOnContentTimerId);
+        m_paintShadowOnContentTimerId = -1;
+
+        QRect rect = m_contentWindow->handle()->geometry();
+
+        rect.setTopLeft(QPoint(0, 0));
+        m_contentBackingStore->flush(m_contentWindow, rect, QPoint(0, 0));
     } else {
         return QPaintDeviceWindow::timerEvent(event);
     }
@@ -808,7 +816,7 @@ void DFrameWindow::markXPixmapToDirty(int width, int height)
 
 void DFrameWindow::updateShadow()
 {
-    if (!m_canUpdateShadow || m_contentGeometry.isEmpty() || !isVisible() || disableFrame())
+    if (!m_canUpdateShadow || m_contentGeometry.isEmpty() || disableFrame())
         return;
 
     qreal device_pixel_ratio = devicePixelRatio();
@@ -826,12 +834,26 @@ void DFrameWindow::updateShadow()
 
     m_shadowImage = Utility::dropShadow(pixmap, m_shadowRadius * device_pixel_ratio, m_shadowColor);
     update();
+
+    // 阴影更新后尝试刷新内部窗口
+    if (m_contentBackingStore)
+        m_paintShadowOnContentTimerId = startTimer(300, Qt::PreciseTimer);
 }
 
 void DFrameWindow::updateShadowAsync(int delaye)
 {
-    if (m_updateShadowTimer.isActive())
+    if (m_updateShadowTimer.isActive()) {
+        if (m_shadowImage.isNull()) {
+            m_updateShadowTimer.stop();
+            updateShadow();
+        }
+
         return;
+    }
+
+    if (m_shadowImage.isNull()) {
+        return updateShadow();
+    }
 
     m_updateShadowTimer.setSingleShot(true);
     m_updateShadowTimer.start(delaye);

@@ -85,6 +85,12 @@ void DPlatformBackingStoreHelper::flush(QWindow *window, const QRegion &region, 
         qreal device_pixel_ratio = window_helper->m_nativeWindow->window()->devicePixelRatio();
         int window_radius = qRound(window_helper->getWindowRadius() * device_pixel_ratio);
 
+        // 停止触发内部窗口更新的定时器
+        if (window_helper->m_frameWindow->m_paintShadowOnContentTimerId > 0) {
+            window_helper->m_frameWindow->killTimer(window_helper->m_frameWindow->m_paintShadowOnContentTimerId);
+            window_helper->m_frameWindow->m_paintShadowOnContentTimerId = -1;
+        }
+
         if (window_helper && (window_helper->m_isUserSetClipPath || window_radius > 0)) {
             QPainterPath path;
 

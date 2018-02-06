@@ -153,8 +153,10 @@ private:
     QVariantAnimation m_cursorAnimation;
 
     QPointer<QWindow> m_contentWindow;
+    QPlatformBackingStore *m_contentBackingStore = nullptr;
 
     QTimer m_updateShadowTimer;
+    int m_paintShadowOnContentTimerId = -1;
 
 #ifdef Q_OS_LINUX
     uint32_t nativeWindowXPixmap = 0;
