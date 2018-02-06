@@ -316,6 +316,14 @@ void DPlatformWindowHelper::setVisible(bool visible)
         Utility::setMotifWmHints(helper->m_nativeWindow->QNativeWindow::winId(), cw_hints);
 #endif
 
+#if QT_VERSION >= QT_VERSION_CHECK(5, 9, 0)
+        // 当Qt版本在5.9及以上时, 如果窗口设置了BypassWindowManagerHint标志, 窗口就无法通过鼠标点击获得焦点
+        if (helper->m_nativeWindow->window()->flags().testFlag(Qt::BypassWindowManagerHint)
+                && QGuiApplication::modalWindow() == helper->m_nativeWindow->window()) {
+            helper->m_nativeWindow->requestActivateWindow();
+        }
+#endif
+
         return;
     }
 
