@@ -78,6 +78,9 @@ void DPlatformBackingStoreHelper::beginPaint(const QRegion &region)
 
 void DPlatformBackingStoreHelper::flush(QWindow *window, const QRegion &region, const QPoint &offset)
 {
+    if (!backingStore()->paintDevice())
+        return;
+
     QRegion new_region = region;
 
     if (Q_LIKELY(DWMSupport::instance()->hasComposite())) {
