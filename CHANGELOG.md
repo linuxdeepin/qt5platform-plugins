@@ -1,4 +1,29 @@
 <a name=""></a>
+##  1.1.7 (2018-02-07)
+
+
+#### Features
+
+*   set window radius to 0 when window maximzed ([35ef919c](https://github.com/linuxdeepin/qt5dxcb-plugin/commit/35ef919cb5dd6a50deff1e2f466bb141a4fc3424))
+
+#### Bug Fixes
+
+*   crash in DPlatformBackingStoreHelper::flush ([dbab1dc3](https://github.com/linuxdeepin/qt5dxcb-plugin/commit/dbab1dc31e6a3129d2b688ede676679102c099f8))
+*   update copyright year ([422c0d2d](https://github.com/linuxdeepin/qt5dxcb-plugin/commit/422c0d2d53a1452ff9b80f31c166a38db95daa38))
+*   shadow image size is wrong ([e537bcea](https://github.com/linuxdeepin/qt5dxcb-plugin/commit/e537bceab205b45f4f7dd5080213ab33ec0bd5bd))
+*   window radius not visible ([671b8894](https://github.com/linuxdeepin/qt5dxcb-plugin/commit/671b8894667877e0b263234d2e91edecdcafab75))
+*   window can not get focus on Qt 5.9+ ([3c0a44bf](https://github.com/linuxdeepin/qt5dxcb-plugin/commit/3c0a44bf9f8522ad820287d28d7b49bbeea32350))
+*   QGuiApplicationPrivate::lastCursorPosition on hiDPI window ([08755140](https://github.com/linuxdeepin/qt5dxcb-plugin/commit/0875514090cf19e8129f1c6f08a42ac8c219bb3c))
+*   remove debug output in DPlatformBackingStoreHelper::flush ([c68032d9](https://github.com/linuxdeepin/qt5dxcb-plugin/commit/c68032d9cfe0e4e2fc6ef508908f53eec1f2a704))
+*   can not resize window by bottom/right ([e4c58d76](https://github.com/linuxdeepin/qt5dxcb-plugin/commit/e4c58d767d6e5b9fdd8805cec2449d3ddb2b5e0a))
+*   can not reisze window on openbox ([218df1e2](https://github.com/linuxdeepin/qt5dxcb-plugin/commit/218df1e28708dbea9926eb0f94896d959744f7c3))
+*   content window position ([2439d675](https://github.com/linuxdeepin/qt5dxcb-plugin/commit/2439d6753fdd3c6449b43c844f4191d0b60aa12b))
+*   set miniumu/maximum size inoperative for window ([0ad7e599](https://github.com/linuxdeepin/qt5dxcb-plugin/commit/0ad7e59901db5d167227a6026623ffae678dab02))
+*   crash at VtableHook::overrideVfptrFun ([1a8e03cf](https://github.com/linuxdeepin/qt5dxcb-plugin/commit/1a8e03cfb8574ac8df2e1f406b12568307943af1))
+
+
+
+<a name=""></a>
 ##  1.1.6 (2017-12-28)
 
 
