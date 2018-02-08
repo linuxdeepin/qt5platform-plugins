@@ -729,7 +729,9 @@ void DPlatformWindowHelper::setWindowVaildGeometry(const QRect &geometry)
 
     m_windowVaildGeometry = geometry;
 
-    updateWindowBlurAreasForWM();
+    // The native window geometry may not update now, need to waiting for reisze
+    // event is procceed.
+    QTimer::singleShot(1, this, &DPlatformWindowHelper::updateWindowBlurAreasForWM);
 }
 
 bool DPlatformWindowHelper::updateWindowBlurAreasForWM()
