@@ -816,7 +816,7 @@ void DFrameWindow::markXPixmapToDirty(int width, int height)
 
 void DFrameWindow::updateShadow()
 {
-    if (!m_canUpdateShadow || m_contentGeometry.isEmpty() || !isVisible() || disableFrame())
+    if (!m_canUpdateShadow || m_contentGeometry.isEmpty() || disableFrame())
         return;
 
     qreal device_pixel_ratio = devicePixelRatio();
