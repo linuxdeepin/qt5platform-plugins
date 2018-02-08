@@ -712,7 +712,7 @@ void DPlatformWindowHelper::setClipPath(const QPainterPath &path)
     QPainterPathStroker stroker;
 
     stroker.setJoinStyle(Qt::MiterJoin);
-    stroker.setWidth(1);
+    stroker.setWidth(2 * m_nativeWindow->window()->devicePixelRatio());
 
     Utility::setShapePath(m_nativeWindow->QNativeWindow::winId(),
                           stroker.createStroke(real_path).united(real_path),
