@@ -729,7 +729,7 @@ void DPlatformWindowHelper::setWindowVaildGeometry(const QRect &geometry)
 
     m_windowVaildGeometry = geometry;
 
-    updateWindowBlurAreasForWM();
+    QTimer::singleShot(1, this, &DPlatformWindowHelper::updateWindowBlurAreasForWM);
 }
 
 bool DPlatformWindowHelper::updateWindowBlurAreasForWM()
