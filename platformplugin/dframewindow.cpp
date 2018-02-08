@@ -615,9 +615,9 @@ void DFrameWindow::drawShadowTo(QPaintDevice *device)
         clip_path -= m_clipPath;
 
         pa.setClipPath(clip_path);
+        pa.setRenderHint(QPainter::Antialiasing);
     }
 
-    pa.setRenderHint(QPainter::Antialiasing);
     pa.setCompositionMode(QPainter::CompositionMode_Source);
 
     if (!disableFrame() && Q_LIKELY(DXcbWMSupport::instance()->hasComposite())
@@ -816,7 +816,7 @@ void DFrameWindow::markXPixmapToDirty(int width, int height)
 
 void DFrameWindow::updateShadow()
 {
-    if (!m_canUpdateShadow || m_contentGeometry.isEmpty() || disableFrame())
+    if (!m_canUpdateShadow || m_contentGeometry.isEmpty() || !isVisible() || disableFrame())
         return;
 
     qreal device_pixel_ratio = devicePixelRatio();
