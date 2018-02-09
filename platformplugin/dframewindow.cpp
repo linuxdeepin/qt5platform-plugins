@@ -137,6 +137,9 @@ DFrameWindow::DFrameWindow(QWindow *content)
     m_startAnimationTimer.setSingleShot(true);
     m_startAnimationTimer.setInterval(300);
 
+    m_updateShadowTimer.setInterval(100);
+    m_updateShadowTimer.setSingleShot(true);
+
     connect(&m_startAnimationTimer, &QTimer::timeout,
             this, &DFrameWindow::startCursorAnimation);
 
@@ -267,6 +270,10 @@ void DFrameWindow::setContentRoundedRect(const QRect &rect, int radius)
     m_contentGeometry = rect.translated(contentOffsetHint());
 
     setContentPath(path, true, radius);
+
+    // force update shadow
+    // m_contentGeometry may changed, but clipPath is not change.
+    updateShadowAsync(0);
 }
 
 QMargins DFrameWindow::contentMarginsHint() const
@@ -846,7 +853,6 @@ void DFrameWindow::updateShadowAsync(int delaye)
         return;
     }
 
-    m_updateShadowTimer.setSingleShot(true);
     m_updateShadowTimer.start(delaye);
 }
 
