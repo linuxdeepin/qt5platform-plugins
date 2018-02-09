@@ -1,3 +1,14 @@
+<a name="1.1.8"></a>
+## 1.1.8 (2018-02-09)
+
+
+#### Bug Fixes
+
+*   shadow image not repaint ([8cde9879](https://github.com/linuxdeepin/qt5dxcb-plugin/commit/8cde9879cc74944c111e23a7c99634b0ab545e15))
+*   content window no clip ([359647c3](https://github.com/linuxdeepin/qt5dxcb-plugin/commit/359647c39c6220ecb6c44471b953d9bd248ce392))
+
+
+
 <a name=""></a>
 ##  1.1.7 (2018-02-07)
 
