@@ -599,18 +599,14 @@ void DFrameWindow::drawShadowTo(QPaintDevice *device)
     qreal device_pixel_ratio = devicePixelRatio();
     const QSize &size = handle()->geometry().size();
     QPainter pa(device);
+    QPainterPath clip_path;
 
-    if (m_redirectContent) {
-        QPainterPath clip_path;
-
-        clip_path.addRect(QRect(QPoint(0, 0), size));
-        clip_path -= m_clipPath;
-
-        pa.setClipPath(clip_path);
-    }
+    clip_path.addRect(QRect(QPoint(0, 0), size));
+    clip_path -= m_clipPath;
 
     pa.setRenderHint(QPainter::Antialiasing);
     pa.setCompositionMode(QPainter::CompositionMode_Source);
+    pa.setClipPath(clip_path);
 
     if (!disableFrame() && Q_LIKELY(DXcbWMSupport::instance()->hasComposite())
             && !m_shadowImage.isNull()) {
