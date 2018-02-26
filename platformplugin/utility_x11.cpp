@@ -499,7 +499,7 @@ bool Utility::blurWindowBackgroundByPaths(const quint32 WId, const QList<QPainte
         }
 
         return blurWindowBackgroundByImage(WId, boundingRect, image);
-    } else {
+    } else if (DXcbWMSupport::instance()->isKwin()) {
         xcb_atom_t atom = DXcbWMSupport::instance()->_kde_net_wm_blur_rehind_region_atom;
 
         if (atom == XCB_NONE)
