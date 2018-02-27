@@ -129,6 +129,15 @@ void DPlatformBackingStoreHelper::flush(QWindow *window, const QRegion &region, 
             pa.setCompositionMode(QPainter::CompositionMode_Source);
             pa.setRenderHint(QPainter::Antialiasing);
             pa.fillPath(path, border_brush);
+
+            if (window_helper->m_borderWidth > 0
+                    && window_helper->m_borderColor != Qt::transparent) {
+                pa.setClipPath(path);
+                pa.setPen(QPen(window_helper->m_borderColor, window_helper->m_borderWidth,
+                               Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
+                pa.drawPath(window_helper->m_clipPath);
+            }
+
             pa.end();
         }
     }
