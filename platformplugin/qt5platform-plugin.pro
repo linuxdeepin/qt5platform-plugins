@@ -4,6 +4,13 @@
 #
 #-------------------------------------------------
 
+!isEqual(QMAKE_HOST.arch, x86_64):!isEqual(QMAKE_HOST.arch, i386):!isEqual(QMAKE_HOST.arch, i686) {
+    # 在非x86架构的cpu下降低编译器的优化等级
+    # 编译器优化可能会导致虚函数调用不通过虚表
+    QMAKE_CXXFLAGS_RELEASE -= $$QMAKE_CFLAGS_OPTIMIZE
+    QMAKE_CXXFLAGS_RELEASE += -O1
+}
+
 PLUGIN_TYPE = platforms
 PLUGIN_CLASS_NAME = DXcbIntegrationPlugin
 !equals(TARGET, $$QT_DEFAULT_QPA_PLUGIN): PLUGIN_EXTENDS = -
