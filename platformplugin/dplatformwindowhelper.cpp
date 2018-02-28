@@ -716,7 +716,7 @@ void DPlatformWindowHelper::setClipPath(const QPainterPath &path)
 
     Utility::setShapePath(m_nativeWindow->QNativeWindow::winId(),
                           stroker.createStroke(real_path).united(real_path),
-                          m_frameWindow->m_redirectContent);
+                          m_frameWindow->m_redirectContent || !m_isUserSetClipPath);
 
     updateWindowBlurAreasForWM();
     updateContentPathForFrameWindow();

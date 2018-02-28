@@ -621,8 +621,8 @@ void DFrameWindow::drawShadowTo(QPaintDevice *device)
         clip_path.addRect(QRect(QPoint(0, 0), size));
         clip_path -= m_clipPath;
 
-        pa.setClipPath(clip_path);
         pa.setRenderHint(QPainter::Antialiasing);
+        pa.setClipPath(clip_path);
     }
 
     pa.setCompositionMode(QPainter::CompositionMode_Source);
@@ -739,8 +739,9 @@ void DFrameWindow::drawNativeWindowXPixmap(xcb_rectangle_t *rects, int length)
         }
     }
 
-    if (clip)
+    if (clip) {
         cairo_clip(cr);
+    }
 
     if (rects) {
         for (int i = 0; i < length; ++i) {

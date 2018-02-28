@@ -81,8 +81,6 @@ void DPlatformBackingStoreHelper::flush(QWindow *window, const QRegion &region, 
     if (!backingStore()->paintDevice())
         return;
 
-    QRegion new_region = region;
-
     if (Q_LIKELY(DWMSupport::instance()->hasComposite())) {
         DPlatformWindowHelper *window_helper = DPlatformWindowHelper::mapped.value(window->handle());
         qreal device_pixel_ratio = window_helper->m_nativeWindow->window()->devicePixelRatio();
@@ -96,19 +94,20 @@ void DPlatformBackingStoreHelper::flush(QWindow *window, const QRegion &region, 
 
         if (window_helper && (window_helper->m_isUserSetClipPath || window_radius > 0)) {
             QPainterPath path;
+            QRegion new_region = region;
 
-            if (!window_helper->m_isUserSetClipPath) {
-                QRect window_rect(QPoint(0, 0), window_helper->m_nativeWindow->geometry().size());
+//            if (!window_helper->m_isUserSetClipPath) {
+//                QRect window_rect(QPoint(0, 0), window_helper->m_nativeWindow->geometry().size());
 
-                new_region += QRect(0, 0, window_radius, window_radius);
-                new_region += QRect(window_rect.width() - window_radius,
-                                    window_rect.height() - window_radius,
-                                    window_radius, window_radius);
-                new_region += QRect(0, window_rect.height() - window_radius,
-                                    window_radius, window_radius);
-                new_region += QRect(window_rect.width() - window_radius, 0,
-                                    window_radius, window_radius);
-            }
+//                new_region += QRect(0, 0, window_radius, window_radius);
+//                new_region += QRect(window_rect.width() - window_radius,
+//                                window_rect.height() - window_radius,
+//                                window_radius, window_radius);
+//                new_region += QRect(0, window_rect.height() - window_radius,
+//                                window_radius, window_radius);
+//                new_region += QRect(window_rect.width() - window_radius, 0,
+//                                window_radius, window_radius);
+//            }
 
             path.addRegion(new_region);
             path -= window_helper->m_clipPath * device_pixel_ratio;
@@ -126,8 +125,8 @@ void DPlatformBackingStoreHelper::flush(QWindow *window, const QRegion &region, 
 
             border_brush.setMatrix(QMatrix(1, 0, 0, 1, -offset.x(), -offset.y()));
 
-            pa.setCompositionMode(QPainter::CompositionMode_Source);
             pa.setRenderHint(QPainter::Antialiasing);
+            pa.setCompositionMode(QPainter::CompositionMode_Source);
             pa.fillPath(path, border_brush);
 
             if (window_helper->m_borderWidth > 0
@@ -143,7 +142,7 @@ void DPlatformBackingStoreHelper::flush(QWindow *window, const QRegion &region, 
     }
 
 end:
-    return VtableHook::callOriginalFun(this->backingStore(), &QPlatformBackingStore::flush, window, new_region, offset);
+    return VtableHook::callOriginalFun(this->backingStore(), &QPlatformBackingStore::flush, window, region, offset);
 }
 
 DPP_END_NAMESPACE
