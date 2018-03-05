@@ -72,6 +72,7 @@ DEFINE_CONST_CHAR(getMWMDecorations);
 DEFINE_CONST_CHAR(connectWindowMotifWMHintsChanged);
 DEFINE_CONST_CHAR(setWindowProperty);
 DEFINE_CONST_CHAR(pluginVersion);
+DEFINE_CONST_CHAR(disableOverrideCursor);
 
 // others
 DEFINE_CONST_CHAR(WmWindowTypes);

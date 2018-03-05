@@ -551,6 +551,9 @@ static void overrideChangeCursor(QPlatformCursor *cursorHandle, QCursor * cursor
         // No X11 cursor control when there is no widget under the cursor
         return;
 
+    if (widget->property(disableOverrideCursor).toBool())
+        return;
+
     // set cursor size scale
     static bool xcursrSizeIsSet = qEnvironmentVariableIsSet("XCURSOR_SIZE");
 
