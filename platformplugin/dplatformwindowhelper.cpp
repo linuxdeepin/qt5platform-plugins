@@ -659,6 +659,11 @@ bool DPlatformWindowHelper::eventFilter(QObject *watched, QEvent *event)
             }
             break;
         case QEvent::Leave: {
+            QWindow::Visibility visibility = m_nativeWindow->window()->visibility();
+
+            if (visibility == QWindow::Hidden || visibility == QWindow::Minimized)
+                break;
+
             const QPoint &pos = Utility::translateCoordinates(QPoint(0, 0), m_nativeWindow->winId(),
                                                               DPlatformIntegration::instance()->defaultConnection()->rootWindow());
             const QPoint &cursor_pos = qApp->primaryScreen()->handle()->cursor()->pos();
