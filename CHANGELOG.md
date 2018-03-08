@@ -1,3 +1,25 @@
+<a name=""></a>
+##  1.1.8.1 (2018-03-08)
+
+
+#### Features
+
+*   support disable change window cursor ([0fbb6f1c](https://github.com/linuxdeepin/qt5dxcb-plugin/commit/0fbb6f1cd56d8514f512f533893f115af93cca78))
+
+#### Bug Fixes
+
+*   crash on handlePropertyNotifyEvent ([ebb2b1a3](https://github.com/linuxdeepin/qt5dxcb-plugin/commit/ebb2b1a32f53b2a6d888835ada88a4c98d5de537))
+*   window can not maximize ([da161585](https://github.com/linuxdeepin/qt5dxcb-plugin/commit/da161585468526e8a821933d08e97b94c76d3e36))
+*   no leave event when window hide ([a2bd2498](https://github.com/linuxdeepin/qt5dxcb-plugin/commit/a2bd24989a077dc058928bf58d0aefea4dc98f13))
+*   the window "_d_netWmStates" property is invalid ([f48df4c1](https://github.com/linuxdeepin/qt5dxcb-plugin/commit/f48df4c139cc058cd6a8ac05d10245cdba715121))
+*   window fillet anti-aliasing ([ed29cca5](https://github.com/linuxdeepin/qt5dxcb-plugin/commit/ed29cca57544f2678bbc594fd7d7203d0d9ed933))
+*   blurred window sometimes does not take effect ([3aa09aa3](https://github.com/linuxdeepin/qt5dxcb-plugin/commit/3aa09aa3502e422395cc60acaa2797a15f0105c5))
+*   carsh on arm platform ([92d20f72](https://github.com/linuxdeepin/qt5dxcb-plugin/commit/92d20f720331542891b04a738e42bc586064a322))
+*   optimize the effect of the window fillet ([40d298a7](https://github.com/linuxdeepin/qt5dxcb-plugin/commit/40d298a7beeb7cad7e2f6bb5cadcfc79b8fdbbc2))
+*   window exists property on non-kwin windows _KDE_NET_WM_BLUR_BEHIND_REGION ([4cc89fcc](https://github.com/linuxdeepin/qt5dxcb-plugin/commit/4cc89fccb8b7791bb349bdbfd0c08f744ab143e6))
+
+
+
 <a name="1.1.8"></a>
 ## 1.1.8 (2018-02-09)
 
