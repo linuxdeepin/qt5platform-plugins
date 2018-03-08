@@ -352,13 +352,7 @@ void WindowEventHook::handlePropertyNotifyEvent(const xcb_property_notify_event_
     DQXcbWindow *window = reinterpret_cast<DQXcbWindow*>(this->window());
     QWindow *ww = window->window();
 
-    Qt::WindowState oldState = ww->windowState();
-
     window->QXcbWindow::handlePropertyNotifyEvent(event);
-
-    if (window->m_windowState != oldState) {
-        ww->setWindowState(window->m_windowState);
-    }
 
     if (event->window == window->xcb_window()
             && event->atom == window->atom(QXcbAtom::_NET_WM_STATE)) {
