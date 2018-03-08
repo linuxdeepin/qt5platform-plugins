@@ -361,7 +361,8 @@ void WindowEventHook::handlePropertyNotifyEvent(const xcb_property_notify_event_
         ww->setProperty(netWmStates, (int)states);
 
         if (const DFrameWindow *frame = qobject_cast<DFrameWindow*>(ww)) {
-            frame->m_contentWindow->setProperty(netWmStates, (int)states);
+            if (frame->m_contentWindow)
+                frame->m_contentWindow->setProperty(netWmStates, (int)states);
         }
     }
 }
