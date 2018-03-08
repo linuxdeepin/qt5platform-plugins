@@ -64,6 +64,11 @@ WindowEventHook::WindowEventHook(QXcbWindow *window, bool redirectContent)
                                      this, &WindowEventHook::handleXIEnterLeave);
 #endif
     }
+
+    if (type == Qt::Window) {
+        VtableHook::overrideVfptrFun(window, &QXcbWindowEventListener::handlePropertyNotifyEvent,
+                                     this, &WindowEventHook::handlePropertyNotifyEvent);
+    }
 }
 
 //#define DND_DEBUG
@@ -340,6 +345,31 @@ void WindowEventHook::handleFocusOutEvent(const xcb_focus_out_event_t *event)
     // There is however no equivalent for XPutBackEvent so register a
     // callback for QXcbConnection instead.
     xcbWindow->connection()->addPeekFunc(focusInPeeker);
+}
+
+void WindowEventHook::handlePropertyNotifyEvent(const xcb_property_notify_event_t *event)
+{
+    DQXcbWindow *window = reinterpret_cast<DQXcbWindow*>(this->window());
+    QWindow *ww = window->window();
+
+    Qt::WindowState oldState = ww->windowState();
+
+    window->QXcbWindow::handlePropertyNotifyEvent(event);
+
+    if (window->m_windowState != oldState) {
+        ww->setWindowState(window->m_windowState);
+    }
+
+    if (event->window == window->xcb_window()
+            && event->atom == window->atom(QXcbAtom::_NET_WM_STATE)) {
+        QXcbWindow::NetWmStates states = window->netWmStates();
+
+        ww->setProperty(netWmStates, (int)states);
+
+        if (const DFrameWindow *frame = qobject_cast<DFrameWindow*>(ww)) {
+            frame->m_contentWindow->setProperty(netWmStates, (int)states);
+        }
+    }
 }
 
 #ifdef XCB_USE_XINPUT22
