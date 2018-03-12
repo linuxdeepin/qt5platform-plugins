@@ -658,18 +658,21 @@ bool DPlatformWindowHelper::eventFilter(QObject *watched, QEvent *event)
                 updateClipPathByWindowRadius(static_cast<QResizeEvent*>(event)->size());
             }
             break;
-        case QEvent::Leave: {
-            QWindow::Visibility visibility = m_nativeWindow->window()->visibility();
+// ###(zccrs): 在9b1a28e6这个提交中因为调用了内部窗口的setVisible，所以需要过滤掉visible为false时产生的不必要的Leave事件
+//             这段代码会引起窗口被其它窗口覆盖时的Leave事件丢失
+//             因为已经移除了setVisible相关的代码，故先注释掉这部分代码，看是否有不良影响
+//        case QEvent::Leave: {
+//            QWindow::Visibility visibility = m_nativeWindow->window()->visibility();
 
-            if (visibility == QWindow::Hidden || visibility == QWindow::Minimized)
-                break;
+//            if (visibility == QWindow::Hidden || visibility == QWindow::Minimized || !m_nativeWindow->window()->isActive())
+//                break;
 
-            const QPoint &pos = Utility::translateCoordinates(QPoint(0, 0), m_nativeWindow->winId(),
-                                                              DPlatformIntegration::instance()->defaultConnection()->rootWindow());
-            const QPoint &cursor_pos = qApp->primaryScreen()->handle()->cursor()->pos();
+//            const QPoint &pos = Utility::translateCoordinates(QPoint(0, 0), m_nativeWindow->winId(),
+//                                                              DPlatformIntegration::instance()->defaultConnection()->rootWindow());
+//            const QPoint &cursor_pos = qApp->primaryScreen()->handle()->cursor()->pos();
 
-            return m_clipPath.contains(QPointF(cursor_pos - pos) / m_nativeWindow->window()->devicePixelRatio());
-        }
+//            return m_clipPath.contains(QPointF(cursor_pos - pos) / m_nativeWindow->window()->devicePixelRatio());
+//        }
         default: break;
         }
     }
