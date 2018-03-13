@@ -453,9 +453,6 @@ void DPlatformWindowHelper::requestActivateWindow()
 {
     DPlatformWindowHelper *helper = me();
 
-    if (helper->m_nativeWindow->window()->isActive())
-        return;
-
 #ifdef Q_OS_LINUX
     if (helper->m_frameWindow->handle()->isExposed() && !DXcbWMSupport::instance()->hasComposite()
             && helper->m_frameWindow->windowState() == Qt::WindowMinimized) {
