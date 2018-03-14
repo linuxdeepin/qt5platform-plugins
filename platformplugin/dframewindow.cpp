@@ -536,6 +536,9 @@ void DFrameWindow::timerEvent(QTimerEvent *event)
         killTimer(m_paintShadowOnContentTimerId);
         m_paintShadowOnContentTimerId = -1;
 
+        if (!m_contentWindow || !m_contentWindow->handle())
+            return QPaintDeviceWindow::timerEvent(event);
+
         QRect rect = m_contentWindow->handle()->geometry();
 
         rect.setTopLeft(QPoint(0, 0));
