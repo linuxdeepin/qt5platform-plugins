@@ -1,4 +1,16 @@
-<a name=""></a>
+<a name="1.1.8.2"></a>
+##  (2018-03-15)
+
+
+#### Bug Fixes
+
+*   dframewindow timerEvent ([5afacaec](1.1.8.2/commit/5afacaec9839c898eebf4f120c9e44a9bae098b3))
+*   request active window is invalid ([ea8e7a13](1.1.8.2/commit/ea8e7a132aa603b9cf88b64d7fbc78d1c91249a3))
+*   window not receive Leave event when the window is covered by other windows ([2348e1c3](1.1.8.2/commit/2348e1c3ea1138850181a84571437690f48c9a25))
+
+
+
+<a name="1.1.8.1"></a>
 ##  1.1.8.1 (2018-03-08)
 
 
@@ -31,7 +43,7 @@
 
 
 
-<a name=""></a>
+<a name="1.1.7"></a>
 ##  1.1.7 (2018-02-07)
 
 
@@ -56,7 +68,7 @@
 
 
 
-<a name=""></a>
+<a name="1.1.6"></a>
 ##  1.1.6 (2017-12-28)
 
 
