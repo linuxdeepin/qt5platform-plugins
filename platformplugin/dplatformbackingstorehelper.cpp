@@ -83,6 +83,10 @@ void DPlatformBackingStoreHelper::flush(QWindow *window, const QRegion &region, 
 
     if (Q_LIKELY(DWMSupport::instance()->hasComposite())) {
         DPlatformWindowHelper *window_helper = DPlatformWindowHelper::mapped.value(window->handle());
+
+        if (!window_helper)
+            goto end;
+
         qreal device_pixel_ratio = window_helper->m_nativeWindow->window()->devicePixelRatio();
         int window_radius = qRound(window_helper->getWindowRadius() * device_pixel_ratio);
 
