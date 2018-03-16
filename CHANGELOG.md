@@ -1,3 +1,13 @@
+<a name="1.1.8.3"></a>
+##  (2018-03-16)
+
+
+#### Bug Fixes
+
+*   crash in DPlatformBackingStoreHelper::flush ([38d9dad0](1.1.8.3/commit/38d9dad077e127a64fbcf847a9c7cc1e31541473))
+
+
+
 <a name="1.1.8.2"></a>
 ##  (2018-03-15)
 
