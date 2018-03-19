@@ -103,6 +103,7 @@ public:
     static bool blurWindowBackground(const quint32 WId, const QVector<BlurArea> &areas);
     static bool blurWindowBackgroundByPaths(const quint32 WId, const QList<QPainterPath> &paths);
     static bool blurWindowBackgroundByImage(const quint32 WId, const QRect &blurRect, const QImage &maskImage);
+    static void clearWindowBlur(const quint32 WId);
 
     static quint32 getWorkspaceForWindow(quint32 WId);
     static QVector<quint32> getWindows();

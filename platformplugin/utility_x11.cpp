@@ -544,6 +544,13 @@ bool Utility::blurWindowBackgroundByImage(const quint32 WId, const QRect &blurRe
     return true;
 }
 
+void Utility::clearWindowBlur(const quint32 WId)
+{
+    clearWindowProperty(WId, DXcbWMSupport::instance()->_net_wm_deepin_blur_region_rounded_atom);
+    clearWindowProperty(WId, DXcbWMSupport::instance()->_net_wm_deepin_blur_region_mask);
+    clearWindowProperty(WId, DXcbWMSupport::instance()->_kde_net_wm_blur_rehind_region_atom);
+}
+
 quint32 Utility::getWorkspaceForWindow(quint32 WId)
 {
     xcb_get_property_cookie_t cookie = xcb_get_property(DPlatformIntegration::xcbConnection()->xcb_connection(), false, WId,

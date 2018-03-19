@@ -329,6 +329,7 @@ void DPlatformWindowHelper::setVisible(bool visible)
 
     helper->m_frameWindow->setVisible(visible);
     helper->m_nativeWindow->QNativeWindow::setVisible(visible);
+    helper->updateWindowBlurAreasForWM();
 }
 
 void DPlatformWindowHelper::setWindowFlags(Qt::WindowFlags flags)
@@ -602,6 +603,13 @@ bool DPlatformWindowHelper::eventFilter(QObject *watched, QEvent *event)
 
             break;
         }
+        case QEvent::Expose: {
+            // ###(zccrs): 在频繁切换窗口管理器时，可能会出现frame窗口被外部（可能是窗管）调用map
+            //             但是content窗口还是隐藏状态，所以在此做状态检查和同步
+            if (m_frameWindow->handle()->isExposed() && !m_nativeWindow->isExposed()) {
+                m_nativeWindow->setVisible(true);
+            }
+        }
         default: break;
         }
     } else if (watched == m_nativeWindow->window()) {
@@ -741,6 +749,14 @@ void DPlatformWindowHelper::setWindowVaildGeometry(const QRect &geometry)
 
 bool DPlatformWindowHelper::updateWindowBlurAreasForWM()
 {
+    // NOTE(zccrs): 当窗口unmap时清理模糊区域的属性，否则可能会导致窗口已经隐藏，但模糊区域没有消失的问题。因为窗口管理器不是绝对根据窗口是否map来绘制
+    //              模糊背景，当窗口unmap但是窗口的WM State值为Normal时也会绘制模糊背景（这种情况可能出现在连续多次快速切换窗口管理器时）
+    if (!m_nativeWindow->window()->isVisible() || (!m_enableBlurWindow && m_blurAreaList.isEmpty() && m_blurPathList.isEmpty())) {
+        Utility::clearWindowBlur(m_frameWindow->winId());
+
+        return true;
+    }
+
     qreal device_pixel_ratio = m_nativeWindow->window()->devicePixelRatio();
     const QRect &windowValidRect = m_windowVaildGeometry * device_pixel_ratio;
 
