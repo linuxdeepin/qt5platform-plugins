@@ -506,7 +506,7 @@ bool DPlatformWindowHelper::isAlertState() const
     return me()->m_frameWindow->handle()->isAlertState();
 }
 
-bool DPlatformWindowHelper::windowRedirectContent(const QWindow *window)
+bool DPlatformWindowHelper::windowRedirectContent(QWindow *window)
 {
     const QVariant &value = window->property(redirectContent);
 
@@ -516,10 +516,13 @@ bool DPlatformWindowHelper::windowRedirectContent(const QWindow *window)
     if (qEnvironmentVariableIsSet("DXCB_REDIRECT_CONTENT")) {
         const QByteArray &value = qgetenv("DXCB_REDIRECT_CONTENT");
 
-        if (value == "true")
+        if (value == "true") {
+            window->setProperty(redirectContent, true);
+
             return true;
-        else if (value == "false")
+        } else if (value == "false") {
             return false;
+        }
     }
 
     return window->surfaceType() == QSurface::OpenGLSurface;
