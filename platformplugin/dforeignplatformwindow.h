@@ -42,7 +42,14 @@ public:
 
     QRect geometry() const Q_DECL_OVERRIDE;
 
+#ifdef Q_OS_LINUX
+    void handleConfigureNotifyEvent(const xcb_configure_notify_event_t *);
+    void handlePropertyNotifyEvent(const xcb_property_notify_event_t *);
+#endif
+
 private:
+    void create() override;
+
     void updateTitle();
     void updateWmClass();
     void updateWmDesktop();

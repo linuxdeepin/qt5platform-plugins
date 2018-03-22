@@ -21,6 +21,7 @@
 #include "utility.h"
 
 #include "qxcbconnection.h"
+#include "qxcbscreen.h"
 
 #include <QDebug>
 
@@ -30,14 +31,33 @@
 
 DPP_BEGIN_NAMESPACE
 
+enum {
+    baseEventMask
+        = XCB_EVENT_MASK_EXPOSURE | XCB_EVENT_MASK_STRUCTURE_NOTIFY
+            | XCB_EVENT_MASK_PROPERTY_CHANGE | XCB_EVENT_MASK_FOCUS_CHANGE,
+
+    defaultEventMask = baseEventMask
+            | XCB_EVENT_MASK_KEY_PRESS | XCB_EVENT_MASK_KEY_RELEASE
+            | XCB_EVENT_MASK_BUTTON_PRESS | XCB_EVENT_MASK_BUTTON_RELEASE
+            | XCB_EVENT_MASK_BUTTON_MOTION | XCB_EVENT_MASK_ENTER_WINDOW | XCB_EVENT_MASK_LEAVE_WINDOW
+            | XCB_EVENT_MASK_POINTER_MOTION,
+
+    transparentForInputEventMask = baseEventMask
+            | XCB_EVENT_MASK_VISIBILITY_CHANGE | XCB_EVENT_MASK_RESIZE_REDIRECT
+            | XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT
+            | XCB_EVENT_MASK_COLOR_MAP_CHANGE | XCB_EVENT_MASK_OWNER_GRAB_BUTTON
+};
+
 DForeignPlatformWindow::DForeignPlatformWindow(QWindow *window)
     : QXcbWindow(window)
 {
-    create();
+    // init window id
+    QNativeWindow::create();
 
     m_dirtyFrameMargins = true;
 
     init();
+    create();
 }
 
 DForeignPlatformWindow::~DForeignPlatformWindow()
@@ -77,6 +97,95 @@ QRect DForeignPlatformWindow::geometry() const
     return result;
 }
 
+void DForeignPlatformWindow::handleConfigureNotifyEvent(const xcb_configure_notify_event_t *event)
+{
+    bool fromSendEvent = (event->response_type & 0x80);
+    QPoint pos(event->x, event->y);
+    if (!parent() && !fromSendEvent) {
+        // Do not trust the position, query it instead.
+        xcb_translate_coordinates_cookie_t cookie = xcb_translate_coordinates(xcb_connection(), xcb_window(),
+                                                                              xcbScreen()->root(), 0, 0);
+        xcb_translate_coordinates_reply_t *reply = xcb_translate_coordinates_reply(xcb_connection(), cookie, NULL);
+        if (reply) {
+            pos.setX(reply->dst_x);
+            pos.setY(reply->dst_y);
+            free(reply);
+        }
+    }
+
+    QRect actualGeometry = QRect(pos, QSize(event->width, event->height));
+    QPlatformScreen *newScreen = parent() ? parent()->screen() : screenForGeometry(actualGeometry);
+    if (!newScreen)
+        return;
+
+    // auto remove _GTK_FRAME_EXTENTS
+    xcb_get_property_cookie_t cookie = xcb_get_property(xcb_connection(), false, m_window,
+                                                        Utility::internAtom("_GTK_FRAME_EXTENTS"), XCB_ATOM_CARDINAL, 0, 4);
+    QScopedPointer<xcb_get_property_reply_t, QScopedPointerPodDeleter> reply(
+        xcb_get_property_reply(xcb_connection(), cookie, NULL));
+    if (reply && reply->type == XCB_ATOM_CARDINAL && reply->format == 32 && reply->value_len == 4) {
+        quint32 *data = (quint32 *)xcb_get_property_value(reply.data());
+        // _NET_FRAME_EXTENTS format is left, right, top, bottom
+        actualGeometry = actualGeometry.marginsRemoved(QMargins(data[0], data[2], data[1], data[3]));
+    }
+
+    // Persist the actual geometry so that QWindow::geometry() can
+    // be queried in the resize event.
+    QPlatformWindow::setGeometry(actualGeometry);
+
+    // FIXME: In the case of the requestedGeometry not matching the actualGeometry due
+    // to e.g. the window manager applying restrictions to the geometry, the application
+    // will never see a move/resize event if the actualGeometry is the same as the current
+    // geometry, and may think the requested geometry was fulfilled.
+    QWindowSystemInterface::handleGeometryChange(window(), actualGeometry);
+
+    // QPlatformScreen::screen() is updated asynchronously, so we can't compare it
+    // with the newScreen. Just send the WindowScreenChanged event and QGuiApplication
+    // will make the comparison later.
+    QWindowSystemInterface::handleWindowScreenChanged(window(), newScreen->screen());
+
+    if (m_usingSyncProtocol && m_syncState == SyncReceived)
+        m_syncState = SyncAndConfigureReceived;
+
+    m_dirtyFrameMargins = true;
+}
+
+void DForeignPlatformWindow::handlePropertyNotifyEvent(const xcb_property_notify_event_t *event)
+{
+    connection()->setTime(event->time);
+
+    const bool propertyDeleted = event->state == XCB_PROPERTY_DELETE;
+
+    if (event->atom == atom(QXcbAtom::_NET_WM_STATE) || event->atom == atom(QXcbAtom::WM_STATE)) {
+        if (propertyDeleted)
+            return;
+
+        return updateWindowState();
+    } else if (event->atom == atom(QXcbAtom::_NET_FRAME_EXTENTS)) {
+        m_dirtyFrameMargins = true;
+    } else if (event->atom == atom(QXcbAtom::_NET_WM_WINDOW_TYPE)) {
+        return updateWindowTypes();
+    } else if (event->atom == Utility::internAtom("_NET_WM_DESKTOP")) {
+        return updateWmDesktop();
+    } else if (event->atom == QXcbAtom::_NET_WM_NAME) {
+        return updateTitle();
+    } else if (event->atom == QXcbAtom::WM_CLASS) {
+        return updateWmClass();
+    }
+}
+
+void DForeignPlatformWindow::create()
+{
+    const quint32 mask = XCB_CW_EVENT_MASK;
+    const quint32 values[] = {
+        // XCB_CW_EVENT_MASK
+        baseEventMask
+    };
+
+    connection()->addWindowEventListener(m_window, this);
+    xcb_change_window_attributes(xcb_connection(), m_window, mask, values);
+}
+
 void DForeignPlatformWindow::updateTitle()
 {
     xcb_get_property_reply_t *wm_name =
@@ -86,7 +195,13 @@ void DForeignPlatformWindow::updateTitle()
                              atom(QXcbAtom::UTF8_STRING), 0, 1024), NULL);
     if (wm_name && wm_name->format == 8
             && wm_name->type == atom(QXcbAtom::UTF8_STRING)) {
-        qt_window_private(window())->windowTitle = QString::fromUtf8((const char *)xcb_get_property_value(wm_name), xcb_get_property_value_length(wm_name));
+        const QString &title = QString::fromUtf8((const char *)xcb_get_property_value(wm_name), xcb_get_property_value_length(wm_name));
+
+        if (title != qt_window_private(window())->windowTitle) {
+            qt_window_private(window())->windowTitle = title;
+
+            emit window()->windowTitleChanged(title);
+        }
     }
 
     free(wm_name);
@@ -139,8 +254,12 @@ void DForeignPlatformWindow::updateWindowState()
             newState = Qt::WindowMaximized;
     }
 
+    if (m_windowState == newState)
+        return;
+
     m_windowState = newState;
     qt_window_private(window())->windowState = newState;
+    emit window()->windowStateChanged(newState);
     qt_window_private(window())->updateVisibility();
 }
 
