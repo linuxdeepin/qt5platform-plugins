@@ -1,3 +1,14 @@
+<a name="1.1.8.4"></a>
+##  (2018-03-22)
+
+
+#### Bug Fixes
+
+*   window setting Qt::WindowTransparentForInput flag is invalid ([475bc708](1.1.8.4/commit/475bc70832591da3ef9ca06ccbd328c033baefa3))
+*   clear the window blur areas when the window unmap ([482d26e1](1.1.8.4/commit/482d26e1854d27c055d97c5e223f29991f8efccd))
+
+
+
 <a name="1.1.8.3"></a>
 ##  (2018-03-16)
 
