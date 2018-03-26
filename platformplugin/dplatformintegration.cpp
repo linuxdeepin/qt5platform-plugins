@@ -683,7 +683,14 @@ void DPlatformIntegration::initialize()
 bool DPlatformIntegration::isWindowBlockedHandle(QWindow *window, QWindow **blockingWindow)
 {
     if (DFrameWindow *frame = qobject_cast<DFrameWindow*>(window)) {
-        return VtableHook::callOriginalFun(qApp->d_func(), &QGuiApplicationPrivate::isWindowBlocked, frame->m_contentWindow, blockingWindow);
+        bool blocked = VtableHook::callOriginalFun(qApp->d_func(), &QGuiApplicationPrivate::isWindowBlocked, frame->m_contentWindow, blockingWindow);
+
+        // NOTE(zccrs): 将内容窗口的blocked状态转移到frame窗口，否则会被QXcbWindow::relayFocusToModalWindow重复调用requestActivate而引起死循环
+        if (blockingWindow && frame->m_contentWindow.data() == *blockingWindow) {
+            *blockingWindow = window;
+        }
+
+        return blocked;
     }
 
     return VtableHook::callOriginalFun(qApp->d_func(), &QGuiApplicationPrivate::isWindowBlocked, window, blockingWindow);
