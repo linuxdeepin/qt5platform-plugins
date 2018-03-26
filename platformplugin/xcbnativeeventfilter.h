@@ -22,11 +22,13 @@
 
 #include <QAbstractNativeEventFilter>
 #include <QClipboard>
+#include <QHash>
 
 #include <xcb/xproto.h>
 
 QT_BEGIN_NAMESPACE
 class QXcbConnection;
+class QInputEvent;
 QT_END_NAMESPACE
 
 DPP_BEGIN_NAMESPACE
@@ -34,14 +36,26 @@ DPP_BEGIN_NAMESPACE
 class XcbNativeEventFilter : public QAbstractNativeEventFilter
 {
 public:
+    struct XIDeviceInfos {
+        XIDeviceInfos(DeviceType t = UnknowDevice): type(t) {}
+
+        DeviceType type;
+    };
+
     XcbNativeEventFilter(QXcbConnection *connection);
 
     QClipboard::Mode clipboardModeForAtom(xcb_atom_t a) const;
     bool nativeEventFilter(const QByteArray &eventType, void *message, long *result) Q_DECL_OVERRIDE;
 
+    DeviceType xiEventSource(const QInputEvent *event) const;
+
 private:
+    void updateXIDeviceInfoMap();
+
     QXcbConnection *m_connection;
     uint8_t m_damageFirstEvent;
+    QHash<quint16, XIDeviceInfos> xiDeviceInfoMap;
+    QPair<quint32, XIDeviceInfos> lastXIEventDeviceInfo;
 };
 
 DPP_END_NAMESPACE

@@ -39,6 +39,7 @@ DPP_BEGIN_NAMESPACE
 
 XcbNativeEventFilter::XcbNativeEventFilter(QXcbConnection *connection)
     : m_connection(connection)
+    , lastXIEventDeviceInfo(0, XIDeviceInfos())
 {
     // init damage first event value
     xcb_prefetch_extension_data(connection->xcb_connection(), &xcb_damage_id);
@@ -50,6 +51,8 @@ XcbNativeEventFilter::XcbNativeEventFilter(QXcbConnection *connection)
     } else {
         m_damageFirstEvent = 0;
     }
+
+    updateXIDeviceInfoMap();
 }
 
 QClipboard::Mode XcbNativeEventFilter::clipboardModeForAtom(xcb_atom_t a) const
@@ -147,7 +150,34 @@ bool XcbNativeEventFilter::nativeEventFilter(const QByteArray &eventType, void *
             if (xcb_connect->m_xi2Enabled && isXIEvent(event, xcb_connect->m_xiOpCode)) {
                 xXIGenericDeviceEvent *xiEvent = reinterpret_cast<xXIGenericDeviceEvent *>(event);
 
+                {
+                    xXIDeviceEvent *xiDEvent = reinterpret_cast<xXIDeviceEvent*>(event);
+                    // NOTE(zccrs): 获取设备编号，至于为何会偏移4个字节，参考：
+                    // void QXcbConnection::xi2PrepareXIGenericDeviceEvent(xcb_ge_event_t *event)
+                    // xcb event structs contain stuff that wasn't on the wire, the full_sequence field
+                    // adds an extra 4 bytes and generic events cookie data is on the wire right after the standard 32 bytes.
+                    // Move this data back to have the same layout in memory as it was on the wire
+                    // and allow casting, overwriting the full_sequence field.
+                    uint16_t source_id = *(&xiDEvent->sourceid + 2);
+
+                    auto device = xiDeviceInfoMap.find(source_id);
+
+                    // find device
+                    if (device != xiDeviceInfoMap.constEnd()) {
+                        lastXIEventDeviceInfo = qMakePair(xiDEvent->time, device.value());
+                    }
+                }
+
                 if (xiEvent->evtype != XI_DeviceChanged) {
+                    if (xiEvent->evtype == XI_HierarchyChanged) {
+                        xXIHierarchyEvent *xiEvent = reinterpret_cast<xXIHierarchyEvent *>(event);
+                        // We only care about hotplugged devices
+                        if (!(xiEvent->flags & (XISlaveRemoved | XISlaveAdded)))
+                            return false;
+
+                        updateXIDeviceInfoMap();
+                    }
+
                     return false;
                 }
 
@@ -195,6 +225,54 @@ bool XcbNativeEventFilter::nativeEventFilter(const QByteArray &eventType, void *
     }
 
     return false;
+}
+
+DeviceType XcbNativeEventFilter::xiEventSource(const QInputEvent *event) const
+{
+    if (lastXIEventDeviceInfo.first == event->timestamp())
+        return lastXIEventDeviceInfo.second.type;
+
+    return UnknowDevice;
+}
+
+void XcbNativeEventFilter::updateXIDeviceInfoMap()
+{
+    xiDeviceInfoMap.clear();
+
+    QXcbConnection *xcb_connect = DPlatformIntegration::xcbConnection();
+    Display *xDisplay = static_cast<Display *>(xcb_connect->m_xlib_display);
+    int deviceCount = 0;
+    XIDeviceInfo *devices = XIQueryDevice(xDisplay, XIAllDevices, &deviceCount);
+
+    for (int i = 0; i < deviceCount; ++i) {
+        // Only non-master pointing devices are relevant here.
+        if (devices[i].use != XISlavePointer)
+            continue;
+
+        int nprops;
+        Atom *props = XIListProperties(xDisplay, devices[i].deviceid, &nprops);
+
+        if (!nprops)
+            return;
+
+        char *name;
+
+        for (int j = 0; j < nprops; ++j) {
+            name = XGetAtomName(xDisplay, props[j]);
+
+            if (QByteArrayLiteral("Synaptics Off") == name
+                    || QByteArrayLiteral("libinput Tapping Enabled") == name) {
+                xiDeviceInfoMap[devices[i].deviceid] = XIDeviceInfos(TouchapdDevice);
+            } else if (QByteArrayLiteral("Button Labels") == name
+                       || QByteArrayLiteral("libinput Button Scrolling Button") == name) {
+                xiDeviceInfoMap[devices[i].deviceid] = XIDeviceInfos(MouseDevice);
+            }
+
+            XFree(name);
+        }
+    }
+
+    XIFreeDeviceInfo(devices);
 }
 
 DPP_END_NAMESPACE

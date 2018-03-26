@@ -60,8 +60,14 @@ private:
     static DPlatformIntegration *m_instance;
 #endif
 
+    inline static DPlatformIntegration *instance()
+    { return static_cast<DPlatformIntegration*>(DPlatformIntegrationParent::instance());}
+
     inline static QXcbConnection *xcbConnection()
     { return instance()->defaultConnection();}
+
+    inline XcbNativeEventFilter *eventFilter()
+    { return m_eventFilter;}
 
 private:
     XcbNativeEventFilter *m_eventFilter = Q_NULLPTR;

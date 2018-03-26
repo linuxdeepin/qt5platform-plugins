@@ -22,6 +22,8 @@
 #include "dwmsupport.h"
 
 #ifdef Q_OS_LINUX
+#include "xcbnativeeventfilter.h"
+
 #include "qxcbwindow.h"
 
 #include <xcb/xcb_icccm.h>
@@ -45,6 +47,7 @@ PUBLIC_CLASS(QWindow, DPlatformWindowHelper);
 PUBLIC_CLASS(QMouseEvent, DPlatformWindowHelper);
 PUBLIC_CLASS(QDropEvent, DPlatformWindowHelper);
 PUBLIC_CLASS(QNativeWindow, DPlatformWindowHelper);
+PUBLIC_CLASS(QWheelEvent, DPlatformWindowHelper);
 
 QHash<const QPlatformWindow*, DPlatformWindowHelper*> DPlatformWindowHelper::mapped;
 
@@ -679,6 +682,19 @@ bool DPlatformWindowHelper::eventFilter(QObject *watched, QEvent *event)
 
 //            return m_clipPath.contains(QPointF(cursor_pos - pos) / m_nativeWindow->window()->devicePixelRatio());
 //        }
+#ifdef Q_OS_LINUX
+        case QEvent::Wheel: {
+            // ###(zccrs): Qt的bug，QWidgetWindow往QWidget中转发QWheelEvent时没有调用setTimestamp
+            //             暂时使用这种低等的方案绕过此问题
+            DQWheelEvent *ev = static_cast<DQWheelEvent*>(event);
+            const DeviceType type = DPlatformIntegration::instance()->eventFilter()->xiEventSource(ev);
+
+            if (type != UnknowDevice)
+                ev->mouseState |= Qt::MouseButton(Qt::MaxMouseButton + type);
+
+            break;
+        }
+#endif
         default: break;
         }
     }

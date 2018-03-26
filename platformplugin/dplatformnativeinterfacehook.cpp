@@ -19,10 +19,12 @@
 #include "global.h"
 #include "utility.h"
 #include "dplatformwindowhelper.h"
+#include "dplatformintegration.h"
 
 #include "dwmsupport.h"
 
 #ifdef Q_OS_LINUX
+#include "xcbnativeeventfilter.h"
 #include "qxcbnativeinterface.h"
 typedef QXcbNativeInterface DPlatformNativeInterface;
 #elif defined(Q_OS_WIN)
@@ -36,6 +38,13 @@ static QString version()
 {
     return QStringLiteral(DXCB_VERSION);
 }
+
+#ifdef Q_OS_LINUX
+static DeviceType _inputEventSourceDevice(const QInputEvent *event)
+{
+    return DPlatformIntegration::instance()->eventFilter()->xiEventSource(event);
+}
+#endif
 
 QFunctionPointer DPlatformNativeInterfaceHook::platformFunction(QPlatformNativeInterface *interface, const QByteArray &function)
 {
@@ -77,6 +86,8 @@ QFunctionPointer DPlatformNativeInterfaceHook::platformFunction(QPlatformNativeI
         return reinterpret_cast<QFunctionPointer>(&DPlatformWindowHelper::setWindowProperty);
     } else if (function == pluginVersion) {
         return reinterpret_cast<QFunctionPointer>(&version);
+    } else if (function == inputEventSourceDevice) {
+        return reinterpret_cast<QFunctionPointer>(&_inputEventSourceDevice);
     }
 
 #if QT_VERSION >= QT_VERSION_CHECK(5, 4, 0)
