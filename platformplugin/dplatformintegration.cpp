@@ -163,6 +163,17 @@ QPlatformWindow *DPlatformIntegration::createPlatformWindow(QWindow *window) con
 //        }
 //    }
 
+    if (window->type() != Qt::Desktop && !frame_window) {
+        if (window->property(groupLeader).isValid()) {
+            Utility::setWindowGroup(w->winId(), qvariant_cast<quint32>(window->property(groupLeader)));
+        }
+#ifdef Q_OS_LINUX
+        else {
+            Utility::setWindowGroup(w->winId(), xcbConnection()->clientLeader());
+        }
+#endif
+    }
+
     return xw;
 }
 

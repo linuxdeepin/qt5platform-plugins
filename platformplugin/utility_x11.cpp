@@ -37,6 +37,7 @@
 #endif
 
 #include <xcb/shape.h>
+#include <xcb/xcb_icccm.h>
 
 #include <X11/cursorfont.h>
 #include <X11/Xlib.h>
@@ -709,6 +710,90 @@ QRect Utility::windowGeometry(quint32 WId)
     }
 
     return rect;
+}
+
+quint32 Utility::clientLeader()
+{
+    return DPlatformIntegration::xcbConnection()->clientLeader();
+}
+
+quint32 Utility::createGroupWindow()
+{
+    QXcbConnection *connection = DPlatformIntegration::xcbConnection();
+    uint32_t group_leader = xcb_generate_id(connection->xcb_connection());
+    QXcbScreen *screen = connection->primaryScreen();
+    xcb_create_window(connection->xcb_connection(),
+                      XCB_COPY_FROM_PARENT,
+                      group_leader,
+                      screen->root(),
+                      0, 0, 1, 1,
+                      0,
+                      XCB_WINDOW_CLASS_INPUT_OUTPUT,
+                      screen->screen()->root_visual,
+                      0, 0);
+//#ifndef QT_NO_DEBUG
+    QByteArray ba("Qt(dxcb) group leader window");
+    xcb_change_property(connection->xcb_connection(),
+                        XCB_PROP_MODE_REPLACE,
+                        group_leader,
+                        connection->atom(QXcbAtom::_NET_WM_NAME),
+                        connection->atom(QXcbAtom::UTF8_STRING),
+                        8,
+                        ba.length(),
+                        ba.constData());
+//#endif
+    xcb_change_property(connection->xcb_connection(),
+                        XCB_PROP_MODE_REPLACE,
+                        group_leader,
+                        connection->atom(QXcbAtom::WM_CLIENT_LEADER),
+                        XCB_ATOM_WINDOW,
+                        32,
+                        1,
+                        &group_leader);
+
+#if !defined(QT_NO_SESSIONMANAGER) && defined(XCB_USE_SM)
+    // If we are session managed, inform the window manager about it
+    QByteArray session = qGuiApp->sessionId().toLatin1();
+    if (!session.isEmpty()) {
+        xcb_change_property(connection->xcb_connection(),
+                            XCB_PROP_MODE_REPLACE,
+                            group_leader,
+                            connection->atom(QXcbAtom::SM_CLIENT_ID),
+                            XCB_ATOM_STRING,
+                            8,
+                            session.length(),
+                            session.constData());
+    }
+#endif
+
+    // 将group leader的group leader设置为client leader
+    setWindowGroup(group_leader, connection->clientLeader());
+
+    return group_leader;
+}
+
+void Utility::destoryGroupWindow(quint32 groupLeader)
+{
+    xcb_destroy_window(DPlatformIntegration::xcbConnection()->xcb_connection(), groupLeader);
+}
+
+void Utility::setWindowGroup(quint32 window, quint32 groupLeader)
+{
+    window = getNativeTopLevelWindow(window);
+
+    QXcbConnection *connection = DPlatformIntegration::xcbConnection();
+
+    xcb_get_property_cookie_t cookie = xcb_icccm_get_wm_hints_unchecked(connection->xcb_connection(), window);
+    xcb_icccm_wm_hints_t hints;
+    xcb_icccm_get_wm_hints_reply(connection->xcb_connection(), cookie, &hints, NULL);
+
+    if (groupLeader > 0) {
+        xcb_icccm_wm_hints_set_window_group(&hints, groupLeader);
+    } else {
+        hints.flags &= (~XCB_ICCCM_WM_HINT_WINDOW_GROUP);
+    }
+
+    xcb_icccm_set_wm_hints(connection->xcb_connection(), window, &hints);
 }
 
 int Utility::XIconifyWindow(void *display, quint32 w, int screen_number)

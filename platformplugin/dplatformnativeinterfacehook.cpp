@@ -88,6 +88,14 @@ QFunctionPointer DPlatformNativeInterfaceHook::platformFunction(QPlatformNativeI
         return reinterpret_cast<QFunctionPointer>(&version);
     } else if (function == inputEventSourceDevice) {
         return reinterpret_cast<QFunctionPointer>(&_inputEventSourceDevice);
+    } else if (function == createGroupWindow) {
+        return reinterpret_cast<QFunctionPointer>(&Utility::createGroupWindow);
+    } else if (function == destoryGroupWindow) {
+        return reinterpret_cast<QFunctionPointer>(&Utility::destoryGroupWindow);
+    } else if (function == setWindowGroup) {
+        return reinterpret_cast<QFunctionPointer>(&Utility::setWindowGroup);
+    } else if (function == clientLeader) {
+        return reinterpret_cast<QFunctionPointer>(&Utility::clientLeader);
     }
 
 #if QT_VERSION >= QT_VERSION_CHECK(5, 4, 0)

@@ -122,6 +122,11 @@ public:
     static QPoint translateCoordinates(const QPoint &pos, quint32 src, quint32 dst);
     static QRect windowGeometry(quint32 WId);
 
+    static quint32 clientLeader();
+    static quint32 createGroupWindow();
+    static void destoryGroupWindow(quint32 groupLeader);
+    static void setWindowGroup(quint32 window, quint32 groupLeader);
+
 #ifdef Q_OS_LINUX
     static int XIconifyWindow(void *display, quint32 w, int screen_number);
 #endif

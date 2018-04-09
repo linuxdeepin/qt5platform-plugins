@@ -308,13 +308,21 @@ void DPlatformWindowHelper::setVisible(bool visible)
         helper->updateWindowBlurAreasForWM();
 
         // restore
-        if (tp)
+        if (tp) {
             helper->m_nativeWindow->window()->setTransientParent(tp);
-
+        }
 #ifdef Q_OS_LINUX
+        else {
+            xcb_delete_property(window->xcb_connection(), window->m_window, XCB_ATOM_WM_TRANSIENT_FOR);
+        }
+
         // Fix the window can't show minimized if window is fixed size
         Utility::setMotifWmHints(window->m_window, mwmhints);
         Utility::setMotifWmHints(helper->m_nativeWindow->QNativeWindow::winId(), cw_hints);
+
+        if (helper->m_nativeWindow->window()->modality() != Qt::NonModal) {
+            window->setNetWmStates(window->netWmStates() | QNativeWindow::NetWmStateModal);
+        }
 #endif
 
 #if QT_VERSION >= QT_VERSION_CHECK(5, 9, 0)
