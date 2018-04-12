@@ -545,7 +545,7 @@ bool DPlatformWindowHelper::eventFilter(QObject *watched, QEvent *event)
         switch ((int)event->type()) {
         case QEvent::Close:
             m_nativeWindow->window()->close();
-            break;
+            return true;
         case QEvent::KeyPress:
         case QEvent::KeyRelease:
         case QEvent::WindowDeactivate:
