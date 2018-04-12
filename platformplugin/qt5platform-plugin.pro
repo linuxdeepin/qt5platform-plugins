@@ -4,11 +4,21 @@
 #
 #-------------------------------------------------
 
+QMAKE_CXXFLAGS_DEBUG += -g -O2
+QMAKE_CFLAGS_DEBUG += -g -O2
+
 !isEqual(QMAKE_HOST.arch, x86_64):!isEqual(QMAKE_HOST.arch, i386):!isEqual(QMAKE_HOST.arch, i686) {
     # 在非x86架构的cpu下降低编译器的优化等级
     # 编译器优化可能会导致虚函数调用不通过虚表
     QMAKE_CXXFLAGS_RELEASE -= $$QMAKE_CFLAGS_OPTIMIZE
     QMAKE_CXXFLAGS_RELEASE += -O1
+
+    isEqual(QMAKE_HOST.arch, sw_64) {
+        QMAKE_CXXFLAGS_RELEASE += -mieee
+        QMAKE_CXXFLAGS_DEBUG += -mieee
+    }
+} else {
+    QMAKE_CXXFLAGS_RELEASE += -O2
 }
 
 PLUGIN_TYPE = platforms
