@@ -601,8 +601,10 @@ bool DPlatformWindowHelper::eventFilter(QObject *watched, QEvent *event)
         case QEvent::DragEnter:
         case QEvent::DragMove:
         case QEvent::Drop: {
-            DQDropEvent *e = static_cast<DQDropEvent*>(event);
-            e->p -= m_frameWindow->contentOffsetHint();
+            DQDropEvent *e = dynamic_cast<DQDropEvent*>(event);
+            if (e) {
+                e->p -= m_frameWindow->contentOffsetHint();
+            }
         } // deliberate
         case QEvent::DragLeave:
             QCoreApplication::sendEvent(m_nativeWindow->window(), event);
