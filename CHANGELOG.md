@@ -1,3 +1,25 @@
+<a name="1.1.8.5"></a>
+## 1.1.8.5 (2018-05-04)
+
+
+#### Features
+
+*   support window group leader ([398cf704](https://github.com/linuxdeepin/qt5dxcb-plugin/commit/398cf704776d69b6e0c4b1d03827b91628cd9431))
+*   support Qt 5.9.4 ([8ada8d39](https://github.com/linuxdeepin/qt5dxcb-plugin/commit/8ada8d39b33a4f66183549286132b19d9e352f84))
+*   support Qt 5.10.1 ([e476353b](https://github.com/linuxdeepin/qt5dxcb-plugin/commit/e476353bbcf68eb6474d837471a4d202fa76737a))
+*   add "inputEventSourceDevice" native platform function ([541fbc79](https://github.com/linuxdeepin/qt5dxcb-plugin/commit/541fbc79d93b68cb3067ffba766f16d1e6583279))
+*   listen the DForeignPlatformWindow events ([09650c80](https://github.com/linuxdeepin/qt5dxcb-plugin/commit/09650c8024fa0cb626ee86d7f9f5df4cdc4fe390))
+
+#### Bug Fixes
+
+*   frame window radius is wrong when the window state form Qt::WindowMaximized to Qt::WindowNoState ([ea9b1215](https://github.com/linuxdeepin/qt5dxcb-plugin/commit/ea9b12150fa2c4f4f494345d9210595c9b578432))
+*   crash in DPlatformWindowHelper::eventFilter if the event is DragLeave type ([5448b26f](https://github.com/linuxdeepin/qt5dxcb-plugin/commit/5448b26f118470dec442f86b892649719030b273))
+*   rm .qmake.conf ([3ae6fd16](https://github.com/linuxdeepin/qt5dxcb-plugin/commit/3ae6fd160f44a59f808cf5dac4f1817a4cb59bf8))
+*   can not ignore window close event ([a1d505e2](https://github.com/linuxdeepin/qt5dxcb-plugin/commit/a1d505e2954be573a322238a312f24508a5a555a))
+*   the isWindowBlockedHandle function is stuck in an infinite loop ([7ce08107](https://github.com/linuxdeepin/qt5dxcb-plugin/commit/7ce081076605db4e9cf9d2be5b2ae37adce1afff))
+
+
+
 <a name="1.1.8.4"></a>
 ##  (2018-03-22)
 
