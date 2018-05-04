@@ -593,11 +593,23 @@ bool DPlatformWindowHelper::eventFilter(QObject *watched, QEvent *event)
 
             break;
         }
-        case QEvent::WindowStateChange:
-            qt_window_private(m_nativeWindow->window())->windowState = m_frameWindow->windowState();
+        case QEvent::WindowStateChange: {
+            Qt::WindowState old_state = qt_window_private(m_nativeWindow->window())->windowState;
+            Qt::WindowState new_state = m_frameWindow->windowState();
+
+            qt_window_private(m_nativeWindow->window())->windowState = new_state;
             QCoreApplication::sendEvent(m_nativeWindow->window(), event);
             updateClipPathByWindowRadius(m_nativeWindow->window()->size());
+
+            // need repaint content window
+            if ((old_state == Qt::WindowFullScreen || old_state == Qt::WindowMaximized)
+                    && new_state == Qt::WindowNoState) {
+                if (m_frameWindow->m_paintShadowOnContentTimerId < 0 && m_frameWindow->m_contentBackingStore) {
+                    m_frameWindow->m_paintShadowOnContentTimerId = m_frameWindow->startTimer(0, Qt::PreciseTimer);
+                }
+            }
             break;
+        }
         case QEvent::DragEnter:
         case QEvent::DragMove:
         case QEvent::Drop: {
@@ -977,9 +989,19 @@ void DPlatformWindowHelper::updateWindowNormalHints()
 
 int DPlatformWindowHelper::getWindowRadius() const
 {
+//#ifdef Q_OS_LINUX
+//    QNativeWindow::NetWmStates states = static_cast<DQNativeWindow*>(m_frameWindow->handle())->netWmStates();
+
+//    if (states.testFlag(QNativeWindow::NetWmStateFullScreen)
+//            || states.testFlag(QNativeWindow::NetWmState(QNativeWindow::NetWmStateMaximizedHorz
+//                                                         | QNativeWindow::NetWmStateMaximizedVert))) {
+//        return 0;
+//    }
+//#else
     if (m_frameWindow->windowState() == Qt::WindowFullScreen
             || m_frameWindow->windowState() == Qt::WindowMaximized)
         return 0;
+//#endif
 
     return (m_isUserSetWindowRadius || DWMSupport::instance()->hasComposite()) ? m_windowRadius : 0;
 }
