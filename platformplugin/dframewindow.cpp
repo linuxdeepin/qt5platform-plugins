@@ -273,7 +273,7 @@ void DFrameWindow::setContentRoundedRect(const QRect &rect, int radius)
 
     // force update shadow
     // m_contentGeometry may changed, but clipPath is not change.
-    updateShadowAsync(0);
+//    updateShadowAsync(0);
 }
 
 QMargins DFrameWindow::contentMarginsHint() const
