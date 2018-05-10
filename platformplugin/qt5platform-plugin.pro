@@ -1,15 +1,6 @@
-#-------------------------------------------------
-#
-# Project created by QtCreator 2016-08-10T19:46:44
-#
-#-------------------------------------------------
 
-!isEqual(QMAKE_HOST.arch, x86_64):!isEqual(QMAKE_HOST.arch, i386):!isEqual(QMAKE_HOST.arch, i686) {
-    # 在非x86架构的cpu下降低编译器的优化等级
-    # 编译器优化可能会导致虚函数调用不通过虚表
-    QMAKE_CXXFLAGS_RELEASE -= $$QMAKE_CFLAGS_OPTIMIZE
-    QMAKE_CXXFLAGS_RELEASE += -O1
-}
+# NOTE(sbw): 禁止语法树上的 vrp 优化，-O2/-O3 默认开启，会导致测试虚析构函数 HOOK 失败
+QMAKE_CXXFLAGS_RELEASE += -fno-tree-vrp
 
 PLUGIN_TYPE = platforms
 PLUGIN_CLASS_NAME = DXcbIntegrationPlugin
