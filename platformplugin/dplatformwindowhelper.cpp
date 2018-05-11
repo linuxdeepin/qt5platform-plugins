@@ -594,8 +594,13 @@ bool DPlatformWindowHelper::eventFilter(QObject *watched, QEvent *event)
             break;
         }
         case QEvent::WindowStateChange: {
+#if QT_VERSION < QT_VERSION_CHECK(5, 10, 0)
             Qt::WindowState old_state = qt_window_private(m_nativeWindow->window())->windowState;
             Qt::WindowState new_state = m_frameWindow->windowState();
+#else
+            Qt::WindowStates old_state = qt_window_private(m_nativeWindow->window())->windowState;
+            Qt::WindowStates new_state = m_frameWindow->windowState();
+#endif
 
             qt_window_private(m_nativeWindow->window())->windowState = new_state;
             QCoreApplication::sendEvent(m_nativeWindow->window(), event);
