@@ -1,3 +1,13 @@
+<a name="1.1.8.6"></a>
+## 1.1.8.6 (2018-05-11)
+
+
+#### Bug Fixes
+
+*   build failed on Qt 5.10.0 ([f6c86693](https://github.com/linuxdeepin/qt5dxcb-plugin/commit/f6c866935f7833b60b0701360473762158d6a11f))
+
+
+
 <a name="1.1.8.5"></a>
 ## 1.1.8.5 (2018-05-04)
 
