@@ -583,8 +583,11 @@ static void overrideChangeCursor(QPlatformCursor *cursorHandle, QCursor * cursor
         c = it.value();
 #if QT_VERSION < QT_VERSION_CHECK(5, 7, 1)
         w->setCursor(c);
-#else
+#elif QT_VERSION < QT_VERSION_CHECK(5, 11, 0)
         w->setCursor(c, false);
+#else
+        xcb_change_window_attributes(DPlatformIntegration::xcbConnection()->xcb_connection(), w->xcb_window(), XCB_CW_CURSOR, &c);
+        xcb_flush(DPlatformIntegration::xcbConnection()->xcb_connection());
 #endif
     }
 

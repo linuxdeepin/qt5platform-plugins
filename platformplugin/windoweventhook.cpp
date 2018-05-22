@@ -435,12 +435,20 @@ void WindowEventHook::handleXIEnterLeave(xcb_ge_event_t *event)
                     if (!isSet) {
                         QGuiApplicationPrivate::lastCursorPosition = DHighDpi::fromNativePixels(QPointF(root_x, root_y), me->window());
                         me->handleButtonReleaseEvent(event_x, event_y, root_x, root_y,
-                                                     0, modifiers, ev->time);
+                                                     0, modifiers, ev->time
+#if QT_VERSION >= QT_VERSION_CHECK(5, 11, 0)
+                                                     , QEvent::MouseButtonRelease
+#endif
+                                                     );
                     }
                 } else if (isSet) {
                     QGuiApplicationPrivate::lastCursorPosition = DHighDpi::fromNativePixels(QPointF(root_x, root_y), me->window());
                     me->handleButtonPressEvent(event_x, event_y, root_x, root_y,
-                                               0, modifiers, ev->time);
+                                               0, modifiers, ev->time
+#if QT_VERSION >= QT_VERSION_CHECK(5, 11, 0)
+                                               , QEvent::MouseButtonPress
+#endif
+                                               );
                 }
             }
         }
