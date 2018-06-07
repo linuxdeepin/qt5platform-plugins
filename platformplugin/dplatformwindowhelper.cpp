@@ -672,16 +672,20 @@ bool DPlatformWindowHelper::eventFilter(QObject *watched, QEvent *event)
 #if QT_VERSION > QT_VERSION_CHECK(5, 6, 1)
         // NOTE(zccrs): https://codereview.qt-project.org/#/c/162027/ (QTBUG-53993)
         case QEvent::MouseButtonPress: {
-            const QMouseEvent *me = static_cast<QMouseEvent*>(event);
             QWindow *w = m_nativeWindow->window();
 
-            if (me->button() == Qt::LeftButton && w != QGuiApplication::focusWindow()) {
-                if (!(w->flags() & (Qt::WindowDoesNotAcceptFocus))
-                        && w->type() != Qt::ToolTip
-                        && w->type() != Qt::Popup) {
-                    w->requestActivate();
+            if (w->flags().testFlag(Qt::BypassWindowManagerHint)) {
+                const QMouseEvent *me = static_cast<QMouseEvent*>(event);
+
+                if (me->button() == Qt::LeftButton && w != QGuiApplication::focusWindow()) {
+                    if (!(w->flags() & (Qt::WindowDoesNotAcceptFocus))
+                            && w->type() != Qt::ToolTip
+                            && w->type() != Qt::Popup) {
+                        w->requestActivate();
+                    }
                 }
             }
+
             break;
         }
 #endif
