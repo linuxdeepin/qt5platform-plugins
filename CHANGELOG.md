@@ -1,3 +1,13 @@
+<a name="1.1.8.8"></a>
+## 1.1.8.8 (2018-06-07)
+
+
+#### Bug Fixes
+
+*   revert the fix commit of QTBUG-53993 only in BypassWindowManagerHint window ([22ea6fc9](https://github.com/linuxdeepin/qt5dxcb-plugin/commit/22ea6fc9b25e4f37df48d5b70b363cd29efe4f0f))
+
+
+
 <a name="1.1.8.7"></a>
 ## 1.1.8.7 (2018-06-07)
 
