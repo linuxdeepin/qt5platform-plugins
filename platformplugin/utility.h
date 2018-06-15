@@ -53,6 +53,11 @@ public:
     static xcb_atom_t internAtom(const char *name);
     static void startWindowSystemMove(quint32 WId);
     static void cancelWindowMoveResize(quint32 WId);
+
+    // 在触摸屏下移动窗口时，调用 startWindowSystemMove后，窗管无法grab触摸屏的touch update事件
+    // 导致窗口无法移动。此处跟deepin-wm配合，使用其它方式通知窗管鼠标位置更新了
+    static void updateMousePointForWindowMove(quint32 WId);
+
     static void showWindowSystemMenu(quint32 WId, QPoint globalPos = QPoint());
     static void setFrameExtents(WId wid, const QMargins &margins);
     static void setShapeRectangles(quint32 WId, const QRegion &region, bool onlyInput = true, bool transparentInput = false);

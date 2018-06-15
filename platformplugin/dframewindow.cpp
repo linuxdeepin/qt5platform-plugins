@@ -384,6 +384,12 @@ void DFrameWindow::mouseMoveEvent(QMouseEvent *event)
         if (!isEnableSystemMove())
             return;
 
+        if (m_isSystemMoveResizeState) {
+            Utility::updateMousePointForWindowMove(Utility::getNativeTopLevelWindow(winId()));
+
+            return;
+        }
+
         ///TODO: Warning: System move finished no mouse release event
         Utility::startWindowSystemMove(Utility::getNativeTopLevelWindow(winId()));
         m_isSystemMoveResizeState = true;

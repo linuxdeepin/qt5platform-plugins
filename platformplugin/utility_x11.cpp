@@ -170,6 +170,29 @@ void Utility::cancelWindowMoveResize(quint32 WId)
     sendMoveResizeMessage(WId, _NET_WM_MOVERESIZE_CANCEL);
 }
 
+void Utility::updateMousePointForWindowMove(quint32 WId)
+{
+    xcb_client_message_event_t xev;
+    const QPoint &globalPos = qApp->primaryScreen()->handle()->cursor()->pos();
+
+    xev.response_type = XCB_CLIENT_MESSAGE;
+    xev.type = internAtom("_DEEPIN_MOVE_UPDATE");
+    xev.window = WId;
+    xev.format = 32;
+    xev.data.data32[0] = globalPos.x();
+    xev.data.data32[1] = globalPos.y();
+    xev.data.data32[2] = 0;
+    xev.data.data32[3] = 0;
+    xev.data.data32[4] = 0;
+
+    xcb_send_event(DPlatformIntegration::xcbConnection()->xcb_connection(),
+                   false, DPlatformIntegration::xcbConnection()->rootWindow(),
+                   XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT | XCB_EVENT_MASK_SUBSTRUCTURE_NOTIFY,
+                   (const char *)&xev);
+
+    xcb_flush(DPlatformIntegration::xcbConnection()->xcb_connection());
+}
+
 void Utility::showWindowSystemMenu(quint32 WId, QPoint globalPos)
 {
     if (globalPos.isNull()) {
