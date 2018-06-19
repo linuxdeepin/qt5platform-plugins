@@ -181,6 +181,7 @@ bool XcbNativeEventFilter::nativeEventFilter(const QByteArray &eventType, void *
                     return false;
                 }
 
+#if QT_VERSION < QT_VERSION_CHECK(5, 10, 0)
                 xXIDeviceChangedEvent *xiDCEvent = reinterpret_cast<xXIDeviceChangedEvent *>(xiEvent);
                 QHash<int, QXcbConnection::ScrollingDevice>::iterator device = xcb_connect->m_scrollingDevices.find(xiDCEvent->sourceid);
 
@@ -191,23 +192,22 @@ bool XcbNativeEventFilter::nativeEventFilter(const QByteArray &eventType, void *
                     return false;
                 }
 
-
                 for (int c = 0; c < xiDeviceInfo->num_classes; ++c) {
                     if (xiDeviceInfo->classes[c]->type == XIScrollClass) {
                         XIScrollClassInfo *sci = reinterpret_cast<XIScrollClassInfo *>(xiDeviceInfo->classes[c]);
 
                         if (sci->scroll_type == XIScrollTypeVertical) {
-                            device->legacyOrientations = device->orientations;
-                            device->orientations |= Qt::Vertical;
-                            device->verticalIndex = sci->number;
+//                            device->legacyOrientations = device->orientations;
+//                            device->orientations |= Qt::Vertical;
+//                            device->verticalIndex = sci->number;
                             device->verticalIncrement = std::signbit(sci->increment)
                                     ? -std::abs(device->verticalIncrement)
                                     : std::abs(device->verticalIncrement);
                         }
                         else if (sci->scroll_type == XIScrollTypeHorizontal) {
-                            device->legacyOrientations = device->orientations;
-                            device->orientations |= Qt::Horizontal;
-                            device->horizontalIndex = sci->number;
+//                            device->legacyOrientations = device->orientations;
+//                            device->orientations |= Qt::Horizontal;
+//                            device->horizontalIndex = sci->number;
                             device->horizontalIncrement = std::signbit(sci->increment)
                                     ? -std::abs(device->horizontalIncrement)
                                     : std::abs(device->horizontalIncrement);
@@ -216,6 +216,7 @@ bool XcbNativeEventFilter::nativeEventFilter(const QByteArray &eventType, void *
                 }
 
                 XIFreeDeviceInfo(xiDeviceInfo);
+#endif
             }
             break;
         }
