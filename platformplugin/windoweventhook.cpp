@@ -40,6 +40,7 @@
 DPP_BEGIN_NAMESPACE
 
 PUBLIC_CLASS(QXcbWindow, WindowEventHook);
+PUBLIC_CLASS(QDropEvent, WindowEventHook);
 
 WindowEventHook::WindowEventHook(QXcbWindow *window, bool redirectContent)
 {
@@ -63,6 +64,8 @@ WindowEventHook::WindowEventHook(QXcbWindow *window, bool redirectContent)
         VtableHook::overrideVfptrFun(window, &QXcbWindowEventListener::handleXIEnterLeave,
                                      this, &WindowEventHook::handleXIEnterLeave);
 #endif
+        VtableHook::overrideVfptrFun(window, &QPlatformWindow::windowEvent,
+                                     this, &WindowEventHook::windowEvent);
     }
 
     if (type == Qt::Window) {
@@ -130,11 +133,88 @@ void WindowEventHook::handleMapNotifyEvent(const xcb_map_notify_event_t *event)
     }
 }
 
+static Qt::DropAction toDropAction(QXcbConnection *c, xcb_atom_t a)
+{
+    if (a == c->atom(QXcbAtom::XdndActionCopy) || a == 0)
+        return Qt::CopyAction;
+    if (a == c->atom(QXcbAtom::XdndActionLink))
+        return Qt::LinkAction;
+    if (a == c->atom(QXcbAtom::XdndActionMove))
+        return Qt::MoveAction;
+
+    return Qt::CopyAction;
+}
+
 void WindowEventHook::handleClientMessageEvent(const xcb_client_message_event_t *event)
 {
     QXcbWindow *me = window();
 
-    if (event->format == 32 && event->type == me->atom(QXcbAtom::XdndDrop)) {
+    if (event->format != 32) {
+        return me->QXcbWindow::handleClientMessageEvent(event);
+    }
+
+    do {
+        if (event->type != me->atom(QXcbAtom::XdndPosition)
+                && event->type != me->atom(QXcbAtom::XdndDrop)) {
+            break;
+        }
+
+        QXcbDrag *drag = me->connection()->drag();
+
+        // 不处理自己的drag事件
+        if (drag->currentDrag()) {
+            break;
+        }
+
+        int offset = 0;
+        int remaining = 0;
+        xcb_connection_t *xcb_connection = me->connection()->xcb_connection();
+        Qt::DropActions support_actions = Qt::IgnoreAction;
+
+        do {
+            xcb_get_property_cookie_t cookie = xcb_get_property(xcb_connection, false, drag->xdnd_dragsource,
+                                                                me->connection()->atom(QXcbAtom::XdndActionList),
+                                                                XCB_ATOM_ATOM, offset, 1024);
+            xcb_get_property_reply_t *reply = xcb_get_property_reply(xcb_connection, cookie, NULL);
+            if (!reply)
+                break;
+
+            remaining = 0;
+
+            if (reply->type == XCB_ATOM_ATOM && reply->format == 32) {
+                int len = xcb_get_property_value_length(reply)/sizeof(xcb_atom_t);
+                xcb_atom_t *atoms = (xcb_atom_t *)xcb_get_property_value(reply);
+
+                for (int i = 0; i < len; ++i) {
+                    support_actions |= toDropAction(me->connection(), atoms[i]);
+                }
+
+                remaining = reply->bytes_after;
+                offset += len;
+            }
+
+            free(reply);
+        } while (remaining > 0);
+
+        if (support_actions == Qt::IgnoreAction) {
+            break;
+        }
+
+#if QT_VERSION < QT_VERSION_CHECK(5, 10, 0)
+        QMimeData *dropData = drag->platformDropData();
+#else
+        //FIXME(zccrs): must use the drop data object
+        QMimeData *dropData = reinterpret_cast<QMimeData*>(drag->m_dropData);
+#endif
+
+        if (!dropData) {
+            return;
+        }
+
+        dropData->setProperty("_d_dxcb_support_actions", QVariant::fromValue(support_actions));
+    } while(0);
+
+    if (event->type == me->atom(QXcbAtom::XdndDrop)) {
         QXcbDrag *drag = me->connection()->drag();
 
         DEBUG("xdndHandleDrop");
@@ -455,6 +535,28 @@ void WindowEventHook::handleXIEnterLeave(xcb_ge_event_t *event)
     }
 
     me->QXcbWindow::handleXIEnterLeave(event);
+}
+
+void WindowEventHook::windowEvent(QEvent *event)
+{
+    switch (event->type()) {
+    case QEvent::DragEnter:
+    case QEvent::DragMove:
+    case QEvent::Drop: {
+        DQDropEvent *ev = static_cast<DQDropEvent*>(event);
+        Qt::DropActions support_actions = qvariant_cast<Qt::DropActions>(ev->mimeData()->property("_d_dxcb_support_actions"));
+
+        if (support_actions != Qt::IgnoreAction) {
+            ev->act = support_actions;
+        }
+    }
+    default:
+        break;
+    }
+
+    QXcbWindow *window = static_cast<QXcbWindow*>(reinterpret_cast<QPlatformWindow*>(this));
+
+    window->QXcbWindow::windowEvent(event);
 }
 #endif
 

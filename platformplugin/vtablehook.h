@@ -110,6 +110,8 @@ public:
 
     static constexpr DestructFunIndex getDestructFunIndex(...) { return Normal;}
     static constexpr DestructFunIndex getDestructFunIndex(const QObject*) { return Qt_Object;}
+    static constexpr const QObject *getQObject(...) { return nullptr;}
+    static constexpr const QObject *getQObject(const QObject *obj) { return obj;}
     static void autoCleanVtable(void *obj);
 
     template<typename T>
@@ -129,8 +131,16 @@ public:
             return false;
 
         // 备份对象的析构函数
-        DestructFunIndex index = getDestructFunIndex(obj);
-        quintptr *new_vtable = *((quintptr**)obj);
+        int index = getDestructFunIndex(obj);
+
+        if (index == Qt_Object) {
+            // 如果是多继承，QObject对象的虚表会有所偏移，此处还是使用Normal
+            if ((quintptr)getQObject(obj) != (quintptr)obj) {
+                index = Normal;
+            }
+        }
+
+        quintptr *new_vtable = *_obj;
         objDestructFun[(void*)obj] = new_vtable[index];
 
         // 覆盖对象的析构函数, 用于自动清理虚表数据
@@ -150,7 +160,7 @@ public:
 
         // 析构函数覆盖失败
         if (!testResult) {
-            qFatal("Failed do override destruct function");
+            qWarning("Failed do override destruct function");
             qDebug() << "object:" << obj;
             abort();
         }

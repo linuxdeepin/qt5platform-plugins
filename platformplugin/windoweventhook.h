@@ -42,6 +42,7 @@ public:
 #ifdef XCB_USE_XINPUT22
     void handleXIEnterLeave(xcb_ge_event_t *event);
 #endif
+    void windowEvent(QEvent *event);
 
 private:
     static bool relayFocusToModalWindow(QWindow *w, QXcbConnection *connection);

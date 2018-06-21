@@ -33,6 +33,7 @@
 #ifdef Q_OS_LINUX
 #define private public
 #include "qxcbcursor.h"
+#include "qxcbdrag.h"
 #undef private
 
 #include "windoweventhook.h"
@@ -56,6 +57,7 @@
 #include <QWidget>
 #include <QGuiApplication>
 #include <QLibrary>
+#include <QDrag>
 
 #include <private/qguiapplication_p.h>
 #define protected public
@@ -633,6 +635,31 @@ static void hookScreenGetWindow(QScreen *screen)
         VtableHook::overrideVfptrFun(screen->handle(), &QPlatformScreen::topLevelAt, &overrideTopLevelAt);
 }
 
+static void startDrag(QXcbDrag *drag)
+{
+    VtableHook::callOriginalFun(drag, &QXcbDrag::startDrag);
+
+    QVector<xcb_atom_t> support_actions;
+    const Qt::DropActions actions = drag->currentDrag()->supportedActions();
+
+    if (actions.testFlag(Qt::CopyAction))
+        support_actions << drag->atom(QXcbAtom::XdndActionCopy);
+
+    if (actions.testFlag(Qt::MoveAction))
+        support_actions << drag->atom(QXcbAtom::XdndActionMove);
+
+    if (actions.testFlag(Qt::LinkAction))
+        support_actions << drag->atom(QXcbAtom::XdndActionLink);
+
+    if (support_actions.size() < 2)
+        return;
+
+    xcb_change_property(drag->xcb_connection(), XCB_PROP_MODE_REPLACE, drag->connection()->clipboard()->m_owner,
+                        drag->atom(QXcbAtom::XdndActionList), XCB_ATOM_ATOM, sizeof(xcb_atom_t) * 8,
+                        support_actions.size(), support_actions.constData());
+    xcb_flush(drag->xcb_connection());
+}
+
 void DPlatformIntegration::initialize()
 {
     // 由于Qt很多代码中写死了是xcb，所以只能伪装成是xcb
@@ -679,6 +706,8 @@ void DPlatformIntegration::initialize()
 
         QObject::connect(qApp, &QGuiApplication::screenAdded, qApp, &hookXcbCursor);
     }
+
+    VtableHook::overrideVfptrFun(xcbConnection()->drag(), &QXcbDrag::startDrag, &startDrag);
 #endif
 
     VtableHook::overrideVfptrFun(qApp->d_func(), &QGuiApplicationPrivate::isWindowBlocked,
