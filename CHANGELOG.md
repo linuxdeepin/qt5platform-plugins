@@ -1,3 +1,18 @@
+<a name="1.1.9"></a>
+## 1.1.9 (2018-06-25)
+
+
+#### Features
+
+*   support XdndActionList ([b3bc3420](https://github.com/linuxdeepin/qt5dxcb-plugin/commit/b3bc3420dc81eb2066e03522d81c76660205cd50))
+*   support move window by touch event ([bd104d6c](https://github.com/linuxdeepin/qt5dxcb-plugin/commit/bd104d6c51da94b33ea64c71715d5ae1e949d9cd))
+
+#### Bug Fixes
+
+*   crash when add scroll device ([ee6ebb4a](https://github.com/linuxdeepin/qt5dxcb-plugin/commit/ee6ebb4a416c386ec1d32460a2caa0d486d7547b))
+
+
+
 <a name="1.1.8.8"></a>
 ## 1.1.8.8 (2018-06-07)
 
