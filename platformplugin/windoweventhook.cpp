@@ -483,7 +483,8 @@ void WindowEventHook::handleXIEnterLeave(xcb_ge_event_t *event)
         return;
     }
 
-    if (ev->evtype == XI_Enter) {
+    // Will send the press event repeatedly
+    if (ev->evtype == XI_Enter && ev->mode == XCB_NOTIFY_MODE_UNGRAB) {
         if (ev->buttons_len > 0) {
 #if QT_VERSION < QT_VERSION_CHECK(5, 10, 0)
             Qt::MouseButtons buttons = me->connection()->buttons();
