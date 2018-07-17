@@ -28,6 +28,7 @@ class QWindow;
 class QRegion;
 class QPoint;
 class QPaintDevice;
+class QSize;
 QT_END_NAMESPACE
 
 DPP_BEGIN_NAMESPACE
@@ -45,6 +46,9 @@ public:
     QPaintDevice *paintDevice();
     void beginPaint(const QRegion &);
     void flush(QWindow *window, const QRegion &region, const QPoint &offset);
+#ifdef Q_OS_LINUX
+    void resize(const QSize &size, const QRegion &staticContents);
+#endif
 };
 
 DPP_END_NAMESPACE

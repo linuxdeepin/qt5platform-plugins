@@ -50,7 +50,7 @@ public:
 
     static QList<QRect> sudokuByRect(const QRect &rect, QMargins borders);
 
-    static xcb_atom_t internAtom(const char *name);
+    static xcb_atom_t internAtom(const char *name, bool only_if_exists = true);
     static void startWindowSystemMove(quint32 WId);
     static void cancelWindowMoveResize(quint32 WId);
 
