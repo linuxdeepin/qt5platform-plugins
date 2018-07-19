@@ -1,3 +1,18 @@
+<a name="1.1.9.2"></a>
+## 1.1.9.2 (2018-07-19)
+
+
+#### Features
+
+*   support Qt 5.11.1 ([c73177d7](https://github.com/linuxdeepin/qt5dxcb-plugin/commit/c73177d75a3ebc91ad6a24a0ea82ad2635ba160b))
+*   support Qt 5.11.0 ([f458b599](https://github.com/linuxdeepin/qt5dxcb-plugin/commit/f458b59956fc34bc5d181842d065f37d4deac903))
+
+#### Bug Fixes
+
+*   click on the window without focus, resulting in maximization ([cfcc6a24](https://github.com/linuxdeepin/qt5dxcb-plugin/commit/cfcc6a243832527c3c9e95408b150589fb8e5a4e))
+
+
+
 <a name="1.1.9.1"></a>
 ## 1.1.9.1 (2018-06-26)
 
