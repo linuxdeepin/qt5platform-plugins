@@ -367,6 +367,7 @@ void DFrameWindow::showEvent(QShowEvent *event)
 {
     // Set frame extents
     Utility::setFrameExtents(winId(), contentMarginsHint() * devicePixelRatio());
+    updateShadow();
     QPaintDeviceWindow::showEvent(event);
 }
 
@@ -826,6 +827,9 @@ void DFrameWindow::markXPixmapToDirty(int width, int height)
 
 void DFrameWindow::updateShadow()
 {
+    if (!isVisible())
+        return;
+
     if (!m_canUpdateShadow || m_contentGeometry.isEmpty() || disableFrame())
         return;
 
