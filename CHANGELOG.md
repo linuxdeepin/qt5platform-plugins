@@ -1,3 +1,17 @@
+<a name="1.1.10"></a>
+## 1.1.10 (2018-07-31)
+
+
+#### Bug Fixes
+
+*   the shadow area will shake when the window is displayed ([9b10ea7d](https://github.com/linuxdeepin/qt5dxcb-plugin/commit/9b10ea7dbeaf2699728d3ef94ae98c9baf5c13fa))
+
+#### Features
+
+*   add window property "_DEEPIN_DXCB_SHM_INFOS" ([e7ebe5d3](https://github.com/linuxdeepin/qt5dxcb-plugin/commit/e7ebe5d3c93e436bc81e1a739820abefa28d1a79))
+
+
+
 <a name="1.1.9.2"></a>
 ## 1.1.9.2 (2018-07-19)
 
