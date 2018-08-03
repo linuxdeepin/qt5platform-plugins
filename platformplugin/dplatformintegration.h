@@ -43,6 +43,9 @@ public:
     DPlatformIntegration(const QStringList &parameters, int &argc, char **argv);
     ~DPlatformIntegration();
 
+    static bool enableDxcb(QWindow *window);
+    static bool isEnableDxcb(const QWindow *window);
+
     QPlatformWindow *createPlatformWindow(QWindow *window) const Q_DECL_OVERRIDE;
     QPlatformBackingStore *createPlatformBackingStore(QWindow *window) const Q_DECL_OVERRIDE;
     QPlatformOpenGLContext *createPlatformOpenGLContext(QOpenGLContext *context) const Q_DECL_OVERRIDE;

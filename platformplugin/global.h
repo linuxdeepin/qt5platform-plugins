@@ -79,6 +79,8 @@ DEFINE_CONST_CHAR(createGroupWindow);
 DEFINE_CONST_CHAR(destoryGroupWindow);
 DEFINE_CONST_CHAR(setWindowGroup);
 DEFINE_CONST_CHAR(clientLeader);
+DEFINE_CONST_CHAR(enableDxcb);
+DEFINE_CONST_CHAR(isEnableDxcb);
 
 // others
 DEFINE_CONST_CHAR(WmWindowTypes);

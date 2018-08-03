@@ -96,6 +96,10 @@ QFunctionPointer DPlatformNativeInterfaceHook::platformFunction(QPlatformNativeI
         return reinterpret_cast<QFunctionPointer>(&Utility::setWindowGroup);
     } else if (function == clientLeader) {
         return reinterpret_cast<QFunctionPointer>(&Utility::clientLeader);
+    } else if (function == enableDxcb) {
+        return reinterpret_cast<QFunctionPointer>(&DPlatformIntegration::enableDxcb);
+    } else if (function == isEnableDxcb) {
+        return reinterpret_cast<QFunctionPointer>(&DPlatformIntegration::isEnableDxcb);
     }
 
 #if QT_VERSION >= QT_VERSION_CHECK(5, 4, 0)

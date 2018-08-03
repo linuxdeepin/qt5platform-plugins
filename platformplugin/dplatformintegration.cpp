@@ -107,6 +107,68 @@ DPlatformIntegration::~DPlatformIntegration()
 #endif
 }
 
+bool DPlatformIntegration::enableDxcb(QWindow *window)
+{
+    qDebug() << __FUNCTION__ << window << window->type() << window->parent();
+
+    if (window->type() == Qt::Desktop)
+        return false;
+
+    QNativeWindow *xw = static_cast<QNativeWindow*>(window->handle());
+
+    if (!xw) {
+        window->setProperty(useDxcb, true);
+
+        return true;
+    }
+
+#ifndef USE_NEW_IMPLEMENTING
+    return false;
+#endif
+
+    if (DPlatformWindowHelper::mapped.value(xw))
+        return true;
+
+    if (xw->isExposed())
+        return false;
+
+    if (!DPlatformWindowHelper::windowRedirectContent(window)) {
+        QPlatformBackingStore *store = reinterpret_cast<QPlatformBackingStore*>(qvariant_cast<quintptr>(window->property("_d_dxcb_BackingStore")));
+
+        if (!store)
+            return false;
+
+        QSurfaceFormat format = window->format();
+
+        const int oldAlpha = format.alphaBufferSize();
+        const int newAlpha = 8;
+
+        if (oldAlpha != newAlpha) {
+            format.setAlphaBufferSize(newAlpha);
+            window->setFormat(format);
+
+            // 由于窗口alpha值的改变，需要重新创建x widnow
+            xw->create();
+        }
+
+        DPlatformWindowHelper *helper = new DPlatformWindowHelper(xw);
+        instance()->m_storeHelper->addBackingStore(store);
+        helper->m_frameWindow->m_contentBackingStore = store;
+    } else {
+        Q_UNUSED(new DPlatformWindowHelper(xw))
+    }
+
+    window->setProperty(useDxcb, true);
+    window->setProperty("_d_dxcb_TransparentBackground", window->format().hasAlpha());
+
+    return true;
+}
+
+bool DPlatformIntegration::isEnableDxcb(const QWindow *window)
+{
+    return window->property(useDxcb).toBool();
+}
+
 QPlatformWindow *DPlatformIntegration::createPlatformWindow(QWindow *window) const
 {
     qDebug() << __FUNCTION__ << window << window->type() << window->parent();
@@ -185,7 +247,12 @@ QPlatformBackingStore *DPlatformIntegration::createPlatformBackingStore(QWindow 
 
     QPlatformBackingStore *store = DPlatformIntegrationParent::createPlatformBackingStore(window);
 
-    if (window->type() != Qt::Desktop && window->property(useDxcb).toBool())
+    if (window->type() == Qt::Desktop)
+        return store;
+
+    window->setProperty("_d_dxcb_BackingStore", reinterpret_cast<quintptr>(store));
+
+    if (window->property(useDxcb).toBool())
 #ifdef USE_NEW_IMPLEMENTING
         if (!DPlatformWindowHelper::windowRedirectContent(window)) {
             m_storeHelper->addBackingStore(store);
