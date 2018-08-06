@@ -64,6 +64,16 @@
 #include <private/qsimpledrag_p.h>
 #undef protected
 #include <qpa/qplatformnativeinterface.h>
+#include <private/qpaintengine_raster_p.h>
+
+class DQPaintEngine : public QPaintEngine
+{
+public:
+    inline void clearFeatures(const QPaintEngine::PaintEngineFeatures &f)
+    {
+        gccaps &= ~f;
+    }
+};
 
 DPP_BEGIN_NAMESPACE
 
@@ -275,6 +285,55 @@ QPlatformOpenGLContext *DPlatformIntegration::createPlatformOpenGLContext(QOpenG
 //    m_contextHelper->addOpenGLContext(context, p_context);
 
     return p_context;
+}
+
+QPaintEngine *DPlatformIntegration::createImagePaintEngine(QPaintDevice *paintDevice) const
+{
+    static QPaintEngine::PaintEngineFeatures disable_features = QPaintEngine::PaintEngineFeatures(-1);
+
+    if (int(disable_features) < 0) {
+        disable_features = 0;
+
+        QByteArray data = qgetenv("DXCB_PAINTENGINE_DISABLE_FEATURES");
+
+        do {
+            if (!data.isEmpty()) {
+                bool ok = false;
+                disable_features = QPaintEngine::PaintEngineFeatures(data.toInt(&ok, 16));
+
+                if (ok)
+                    break;
+
+                disable_features = 0;
+            }
+
+            QSettings settings(QSettings::IniFormat, QSettings::UserScope, "deepin", "qt-theme");
+
+            settings.setIniCodec("utf-8");
+            settings.beginGroup("Platform");
+
+            bool ok = false;
+
+            disable_features = QPaintEngine::PaintEngineFeatures(settings.value("PaintEngineDisableFeatures").toByteArray().toInt(&ok, 16));
+
+            if (!ok)
+                disable_features = 0;
+        } while (false);
+    }
+
+    QPaintEngine *base_engine = DPlatformIntegrationParent::createImagePaintEngine(paintDevice);
+
+    if (disable_features == 0)
+        return base_engine;
+
+    if (!base_engine)
+        base_engine = new QRasterPaintEngine(paintDevice);
+
+    DQPaintEngine *engine = static_cast<DQPaintEngine*>(base_engine);
+
+    engine->clearFeatures(disable_features);
+
+    return engine;
 }
 
 QStringList DPlatformIntegration::themeNames() const
