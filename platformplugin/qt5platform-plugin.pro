@@ -34,7 +34,7 @@ TEMPLATE = lib
 isEmpty(VERSION) {
     isEmpty(VERSION): VERSION = $$system(git describe --tags --abbrev=0)
     VERSION = $$replace(VERSION, [^0-9.],)
-    isEmpty(VERSION): VERSION = 1.1.10
+    isEmpty(VERSION): VERSION = 1.1.11
 }
 
 DEFINES += DXCB_VERSION=\\\"$$VERSION\\\"
