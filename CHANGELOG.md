@@ -1,3 +1,14 @@
+<a name="1.1.11"></a>
+## 1.1.11 (2018-08-06)
+
+
+#### Features
+
+*   support disable QPaintEngine features for QImage ([8e990f3a](https://github.com/linuxdeepin/qt5dxcb-plugin/commit/8e990f3a46d70a2d88a18acf7493016f5c552c5b))
+*   support enable dxcb for the QWindow(the window had a platform-window) ([08c03f14](https://github.com/linuxdeepin/qt5dxcb-plugin/commit/08c03f14dec7e355304c3cb1bbc0b39d64067f09))
+
+
+
 <a name="1.1.10"></a>
 ## 1.1.10 (2018-07-31)
 
