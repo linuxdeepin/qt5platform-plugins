@@ -108,7 +108,7 @@ private:
 
     void updateClipPathByWindowRadius(const QSize &windowSize);
     void setClipPath(const QPainterPath &path);
-    void setWindowVaildGeometry(const QRect &geometry);
+    void setWindowValidGeometry(const QRect &geometry);
     bool updateWindowBlurAreasForWM();
     void updateSizeHints();
     void updateContentPathForFrameWindow();
@@ -147,7 +147,7 @@ private:
     QNativeWindow *m_nativeWindow;
     DFrameWindow *m_frameWindow;
 
-    QRect m_windowVaildGeometry;
+    QRect m_windowValidGeometry;
 
     // properties
     bool m_isUserSetClipPath = false;

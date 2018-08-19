@@ -577,7 +577,7 @@ bool DPlatformWindowHelper::eventFilter(QObject *watched, QEvent *event)
         case QEvent::MouseButtonRelease:
         case QEvent::MouseMove: {
             DQMouseEvent *e = static_cast<DQMouseEvent*>(event);
-            const QRectF rectF(m_windowVaildGeometry);
+            const QRectF rectF(m_windowValidGeometry);
             const QPointF posF(e->localPos() - m_frameWindow->contentOffsetHint());
 
             // QRectF::contains中判断时加入了右下边界
@@ -707,7 +707,7 @@ bool DPlatformWindowHelper::eventFilter(QObject *watched, QEvent *event)
         }
         case QEvent::Resize:
             if (m_isUserSetClipPath) {
-                setWindowVaildGeometry(m_clipPath.boundingRect().toRect() & QRect(QPoint(0, 0), static_cast<QResizeEvent*>(event)->size()));
+                setWindowValidGeometry(m_clipPath.boundingRect().toRect() & QRect(QPoint(0, 0), static_cast<QResizeEvent*>(event)->size()));
             } else {
                 updateClipPathByWindowRadius(static_cast<QResizeEvent*>(event)->size());
             }
@@ -760,13 +760,13 @@ void DPlatformWindowHelper::setNativeWindowGeometry(const QRect &rect, bool only
 void DPlatformWindowHelper::updateClipPathByWindowRadius(const QSize &windowSize)
 {
     if (!m_isUserSetClipPath) {
-        setWindowVaildGeometry(QRect(QPoint(0, 0), windowSize));
+        setWindowValidGeometry(QRect(QPoint(0, 0), windowSize));
 
         int window_radius = getWindowRadius();
 
         QPainterPath path;
 
-        path.addRoundedRect(m_windowVaildGeometry, window_radius, window_radius);
+        path.addRoundedRect(m_windowValidGeometry, window_radius, window_radius);
 
         setClipPath(path);
     }
@@ -780,7 +780,7 @@ void DPlatformWindowHelper::setClipPath(const QPainterPath &path)
     m_clipPath = path;
 
     if (m_isUserSetClipPath) {
-        setWindowVaildGeometry(m_clipPath.boundingRect().toRect() & QRect(QPoint(0, 0), m_nativeWindow->window()->size()));
+        setWindowValidGeometry(m_clipPath.boundingRect().toRect() & QRect(QPoint(0, 0), m_nativeWindow->window()->size()));
     }
 
     const QPainterPath &real_path = m_clipPath * m_nativeWindow->window()->devicePixelRatio();
@@ -798,15 +798,15 @@ void DPlatformWindowHelper::setClipPath(const QPainterPath &path)
     updateContentPathForFrameWindow();
 }
 
-void DPlatformWindowHelper::setWindowVaildGeometry(const QRect &geometry)
+void DPlatformWindowHelper::setWindowValidGeometry(const QRect &geometry)
 {
-    if (geometry == m_windowVaildGeometry)
+    if (geometry == m_windowValidGeometry)
         return;
 
-    m_windowVaildGeometry = geometry;
+    m_windowValidGeometry = geometry;
 
-    // The native window geometry may not update now, need to waiting for reisze
-    // event is procceed.
+    // The native window geometry may not update now, we need to wait for resize
+    // event to proceed.
     QTimer::singleShot(1, this, &DPlatformWindowHelper::updateWindowBlurAreasForWM);
 }
 
@@ -821,7 +821,7 @@ bool DPlatformWindowHelper::updateWindowBlurAreasForWM()
     }
 
     qreal device_pixel_ratio = m_nativeWindow->window()->devicePixelRatio();
-    const QRect &windowValidRect = m_windowVaildGeometry * device_pixel_ratio;
+    const QRect &windowValidRect = m_windowValidGeometry * device_pixel_ratio;
 
     if (windowValidRect.isEmpty() || !m_nativeWindow->window()->isVisible())
         return false;
@@ -858,10 +858,10 @@ bool DPlatformWindowHelper::updateWindowBlurAreasForWM()
         return Utility::blurWindowBackground(top_level_w, newAreas);
     }
 
-    QPainterPath window_vaild_path;
+    QPainterPath window_valid_path;
 
-    window_vaild_path.addRect(QRect(offset, m_nativeWindow->QPlatformWindow::geometry().size()));
-    window_vaild_path &= (m_clipPath * device_pixel_ratio).translated(offset);
+    window_valid_path.addRect(QRect(offset, m_nativeWindow->QPlatformWindow::geometry().size()));
+    window_valid_path &= (m_clipPath * device_pixel_ratio).translated(offset);
 
     if (m_blurPathList.isEmpty()) {
         if (m_blurAreaList.isEmpty())
@@ -880,25 +880,25 @@ bool DPlatformWindowHelper::updateWindowBlurAreasForWM()
             path.addRoundedRect(area.x, area.y, area.width, area.height,
                                 area.xRadius, area.yRaduis);
 
-            if (!window_vaild_path.contains(path)) {
-                const QPainterPath vaild_blur_path = window_vaild_path & path;
-                const QRectF vaild_blur_rect = vaild_blur_path.boundingRect();
+            if (!window_valid_path.contains(path)) {
+                const QPainterPath valid_blur_path = window_valid_path & path;
+                const QRectF valid_blur_rect = valid_blur_path.boundingRect();
 
-                if (path.boundingRect() != vaild_blur_rect) {
-                    area.x = vaild_blur_rect.x();
-                    area.y = vaild_blur_rect.y();
-                    area.width = vaild_blur_rect.width();
-                    area.height = vaild_blur_rect.height();
+                if (path.boundingRect() != valid_blur_rect) {
+                    area.x = valid_blur_rect.x();
+                    area.y = valid_blur_rect.y();
+                    area.width = valid_blur_rect.width();
+                    area.height = valid_blur_rect.height();
 
                     path = QPainterPath();
-                    path.addRoundedRect(vaild_blur_rect.x(), vaild_blur_rect.y(),
-                                        vaild_blur_rect.width(), vaild_blur_rect.height(),
+                    path.addRoundedRect(valid_blur_rect.x(), valid_blur_rect.y(),
+                                        valid_blur_rect.width(), valid_blur_rect.height(),
                                         area.xRadius, area.yRaduis);
 
-                    if (vaild_blur_path != path) {
+                    if (valid_blur_path != path) {
                         break;
                     }
-                } else if (vaild_blur_path != path) {
+                } else if (valid_blur_path != path) {
                     break;
                 }
             }
@@ -920,7 +920,7 @@ bool DPlatformWindowHelper::updateWindowBlurAreasForWM()
         area *= device_pixel_ratio;
         path.addRoundedRect(area.x + offset.x(), area.y + offset.y(), area.width, area.height,
                             area.xRadius, area.yRaduis);
-        path = path.intersected(window_vaild_path);
+        path = path.intersected(window_valid_path);
 
         if (!path.isEmpty())
             newPathList << path;
@@ -930,7 +930,7 @@ bool DPlatformWindowHelper::updateWindowBlurAreasForWM()
         newPathList.reserve(newPathList.size() + m_blurPathList.size());
 
         foreach (const QPainterPath &path, m_blurPathList) {
-            newPathList << (path * device_pixel_ratio).translated(offset).intersected(window_vaild_path);
+            newPathList << (path * device_pixel_ratio).translated(offset).intersected(window_valid_path);
         }
     }
 
@@ -960,7 +960,7 @@ void DPlatformWindowHelper::updateContentPathForFrameWindow()
     if (m_isUserSetClipPath) {
         m_frameWindow->setContentPath(m_clipPath);
     } else {
-        m_frameWindow->setContentRoundedRect(m_windowVaildGeometry, getWindowRadius());
+        m_frameWindow->setContentRoundedRect(m_windowValidGeometry, getWindowRadius());
     }
 }
 
@@ -971,7 +971,7 @@ void DPlatformWindowHelper::updateContentWindowGeometry()
     const auto &contentPlatformMargins = contentMargins * windowRatio;
     const QSize &size = m_frameWindow->handle()->geometry().marginsRemoved(contentPlatformMargins).size();
 
-    // update the content window gemetry
+    // update the content window geometry
     setNativeWindowGeometry(QRect(contentPlatformMargins.left(),
                                   contentPlatformMargins.top(),
                                   size.width(), size.height()));

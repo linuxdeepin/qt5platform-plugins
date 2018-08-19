@@ -470,7 +470,7 @@ private:
         cursorAnimation.start();
     }
 
-    /// mouse left button is pressed in window vaild geometry
+    /// mouse left button is pressed in window valid geometry
     bool leftButtonPressed = false;
 
     bool canAdsorbCursor = false;
