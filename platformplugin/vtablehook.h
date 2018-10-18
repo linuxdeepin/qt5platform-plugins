@@ -31,145 +31,23 @@ static inline quintptr toQuintptr(void *ptr)
     return *(quintptr*)ptr;
 }
 
-template <typename ReturnType>
-struct _TMP
+static inline int getVtableSize(quintptr **obj)
 {
-public:
-    template <typename Fun, typename... Args>
-    static ReturnType callOriginalFun(const QHash<quintptr**, quintptr*> &objToOriginalVfptr,
-                                      typename QtPrivate::FunctionPointer<Fun>::Object *obj, Fun fun, Args&&... args)
-    {
-        quintptr *vfptr_t2 = objToOriginalVfptr.value((quintptr**)obj, 0);
-
-        if (!vfptr_t2)
-            return (obj->*fun)(std::forward<Args>(args)...);
-
-        quintptr fun1_offset = toQuintptr(&fun);
-
-        if (fun1_offset < 0 || fun1_offset > UINT_LEAST16_MAX)
-            return (obj->*fun)(std::forward<Args>(args)...);
-
-        quintptr *vfptr_t1 = *(quintptr**)obj;
-        quintptr old_fun = *(vfptr_t1 + fun1_offset / sizeof(quintptr));
-        quintptr new_fun = *(vfptr_t2 + fun1_offset / sizeof(quintptr));
-
-        // reset to original fun
-        *(vfptr_t1 + fun1_offset / sizeof(quintptr)) = new_fun;
-
-        // call
-        const ReturnType &return_value = (obj->*fun)(std::forward<Args>(args)...);
-
-        // reset to old_fun
-        *(vfptr_t1 + fun1_offset / sizeof(quintptr)) = old_fun;
-
-        return return_value;
-    }
-};
-template <>
-struct _TMP<void>
-{
-public:
-    template <typename Fun, typename... Args>
-    static void callOriginalFun(const QHash<quintptr**, quintptr*> &objToOriginalVfptr,
-                                typename QtPrivate::FunctionPointer<Fun>::Object *obj, Fun fun, Args&&... args)
-    {
-        quintptr *vfptr_t2 = objToOriginalVfptr.value((quintptr**)obj, 0);
-
-        if (!vfptr_t2)
-            return (obj->*fun)(std::forward<Args>(args)...);
-
-        quintptr fun1_offset = toQuintptr(&fun);
-
-        if (fun1_offset < 0 || fun1_offset > UINT_LEAST16_MAX)
-            return (obj->*fun)(std::forward<Args>(args)...);
-
-        quintptr *vfptr_t1 = *(quintptr**)obj;
-        quintptr old_fun = *(vfptr_t1 + fun1_offset / sizeof(quintptr));
-        quintptr new_fun = *(vfptr_t2 + fun1_offset / sizeof(quintptr));
-
-        // reset to original fun
-        *(vfptr_t1 + fun1_offset / sizeof(quintptr)) = new_fun;
-
-        // call
-        (obj->*fun)(std::forward<Args>(args)...);
-
-        // reset to old_fun
-        *(vfptr_t1 + fun1_offset / sizeof(quintptr)) = old_fun;
-    }
-};
+    quintptr *begin = *obj;
+    while(*begin) ++begin;
+    return begin - *obj;
+}
 
 class VtableHook
 {
 public:
-    //###(zccrs): 由于无法通过代码直接获取析构函数在虚表中的位置
-    //            暂定QObject类型对象为第5项, 其它为第2项
-    enum DestructFunIndex {
-        Normal = 1,
-        Qt_Object = 4
-    };
-
-    static constexpr DestructFunIndex getDestructFunIndex(...) { return Normal;}
-    static constexpr DestructFunIndex getDestructFunIndex(const QObject*) { return Qt_Object;}
+    static int getDestructFunIndex(quintptr **obj, std::function<void(void)> destoryObjFun);
     static constexpr const QObject *getQObject(...) { return nullptr;}
     static constexpr const QObject *getQObject(const QObject *obj) { return obj;}
     static void autoCleanVtable(void *obj);
-
-    template<typename T>
-    static bool ensureVtable(T *obj) {
-        quintptr **_obj = (quintptr**)(obj);
-
-        if (objToOriginalVfptr.contains(_obj)) {
-            // 不知道什么原因, 此时obj对象的虚表已经被还原
-            if (objToGhostVfptr.value((void*)obj) != *_obj) {
-                clearGhostVtable((void*)obj);
-            } else {
-                return true;
-            }
-        }
-
-        if (!copyVtable(_obj))
-            return false;
-
-        // 备份对象的析构函数
-        int index = getDestructFunIndex(obj);
-
-        if (index == Qt_Object) {
-            // 如果是多继承，QObject对象的虚表会有所偏移，此处还是使用Normal
-            if ((quintptr)getQObject(obj) != (quintptr)obj) {
-                index = Normal;
-            }
-        }
-
-        quintptr *new_vtable = *_obj;
-        objDestructFun[(void*)obj] = new_vtable[index];
-
-        // 覆盖对象的析构函数, 用于自动清理虚表数据
-        static bool testResult = false;
-        class TestClass {
-        public:
-            static void testClean(T *that) {
-                Q_UNUSED(that)
-                testResult = true;
-            }
-        };
-
-        // 尝试覆盖析构函数并测试
-        testResult = false;
-        new_vtable[index] = reinterpret_cast<quintptr>(&TestClass::testClean);
-        delete obj;
-
-        // 析构函数覆盖失败
-        if (!testResult) {
-            qWarning("Failed do override destruct function");
-            qDebug() << "object:" << obj;
-            abort();
-        }
-
-        // 真正覆盖析构函数
-        new_vtable[index] = reinterpret_cast<quintptr>(&autoCleanVtable);
-
-        return true;
-    }
+    static bool ensureVtable(void *obj, std::function<void(void)> destoryObjFun);
+    static quintptr resetVfptrFun(void *obj, quintptr functionOffset);
+    static quintptr originalFun(void *obj, quintptr functionOffset);
 
     template <typename T> class OverrideDestruct : public T { ~OverrideDestruct() override;};
     template <typename List1, typename List2> struct CheckCompatibleArguments { enum { value = false }; };
@@ -196,7 +74,7 @@ public:
         if (fun1_offset < 0 || fun1_offset > UINT_LEAST16_MAX)
             return false;
 
-        if (!ensureVtable(t1)) {
+        if (!ensureVtable((void*)t1, std::bind(&_destory_helper<typename FunInfo1::Object>, t1))) {
             return false;
         }
 
@@ -242,7 +120,7 @@ public:
         if (fun1_offset < 0 || fun1_offset > UINT_LEAST16_MAX)
             return false;
 
-        if (!ensureVtable(t1)) {
+        if (!ensureVtable((void*)t1, std::bind(&_destory_helper<typename FunInfo1::Object>, t1))) {
             return false;
         }
 
@@ -253,39 +131,15 @@ public:
     }
 
     template<typename Fun1>
-    static bool resetVfptrFun(const typename QtPrivate::FunctionPointer<Fun1>::Object *t1, Fun1 fun1)
+    static bool resetVfptrFun(const typename QtPrivate::FunctionPointer<Fun1>::Object *obj, Fun1 fun)
     {
-        quintptr *vfptr_t2 = objToOriginalVfptr.value((quintptr**)t1, 0);
-
-        if (!vfptr_t2)
-            return false;
-
-        quintptr fun1_offset = toQuintptr(&fun1);
-
-        if (fun1_offset < 0 || fun1_offset > UINT_LEAST16_MAX)
-            return false;
-
-        quintptr *vfptr_t1 = *(quintptr**)t1;
-
-        *(vfptr_t1 + fun1_offset / sizeof(quintptr)) = *(vfptr_t2 + fun1_offset / sizeof(quintptr));
-
-        return true;
+        return resetVfptrFun((void*)obj, toQuintptr(&fun)) > 0;
     }
 
     template<typename Fun>
     static Fun originalFun(const typename QtPrivate::FunctionPointer<Fun>::Object *obj, Fun fun)
     {
-        quintptr *vfptr_t2 = objToOriginalVfptr.value((quintptr**)obj, 0);
-
-        if (!vfptr_t2)
-            return fun;
-
-        quintptr fun1_offset = *(quintptr *)&fun;
-
-        if (fun1_offset < 0 || fun1_offset > UINT_LEAST16_MAX)
-            return fun;
-
-        quintptr *o_fun = vfptr_t2 + fun1_offset / sizeof(quintptr);
+        quintptr o_fun = originalFun((void*)obj, toQuintptr(&fun));
 
         return *reinterpret_cast<Fun*>(o_fun);
     }
@@ -294,15 +148,45 @@ public:
     static typename QtPrivate::FunctionPointer<Fun>::ReturnType
     callOriginalFun(typename QtPrivate::FunctionPointer<Fun>::Object *obj, Fun fun, Args&&... args)
     {
-        return _TMP<typename QtPrivate::FunctionPointer<Fun>::ReturnType>::callOriginalFun(objToOriginalVfptr, obj, fun, std::forward<Args>(args)...);
+        quintptr fun_offset = toQuintptr(&fun);
+
+        class _ResetVFun
+        {
+        public:
+            ~_ResetVFun() {
+                *(vfptr + offset / sizeof(quintptr)) = oldFun;
+            }
+            quintptr *vfptr = nullptr;
+            quint16 offset = 0;
+            quintptr oldFun = 0;
+        };
+
+        _ResetVFun rvf;
+
+        rvf.vfptr = *(quintptr**)(obj);
+        rvf.offset = fun_offset;
+        rvf.oldFun = VtableHook::resetVfptrFun((void*)obj, fun_offset);
+
+        if (!rvf.oldFun) {
+            qWarning() << "Reset the function failed, object:" << obj;
+            abort();
+        }
+
+        // call
+        return (obj->*fun)(std::forward<Args>(args)...);
     }
 
 private:
     static bool copyVtable(quintptr **obj);
     static bool clearGhostVtable(void *obj);
 
-    static QHash<quintptr**, quintptr*> objToOriginalVfptr;
-    static QHash<void*, quintptr*> objToGhostVfptr;
+    template<typename T>
+    static void _destory_helper(const T *obj) {
+        delete obj;
+    }
+
+    static QMap<quintptr**, quintptr*> objToOriginalVfptr;
+    static QMap<void*, quintptr*> objToGhostVfptr;
     static QMap<void*, quintptr> objDestructFun;
 };
 
