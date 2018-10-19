@@ -147,10 +147,10 @@ void DPlatformBackingStoreHelper::flush(QWindow *window, const QRegion &region, 
             pa.setCompositionMode(QPainter::CompositionMode_Source);
             pa.fillPath(path, border_brush);
 
-            if (window_helper->m_borderWidth > 0
+            if (window_helper->getBorderWidth() > 0
                     && window_helper->m_borderColor != Qt::transparent) {
                 pa.setClipPath(path);
-                pa.setPen(QPen(window_helper->m_borderColor, window_helper->m_borderWidth,
+                pa.setPen(QPen(window_helper->m_borderColor, window_helper->getBorderWidth(),
                                Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
                 pa.drawPath(window_helper->m_clipPath);
             }

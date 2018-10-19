@@ -1019,7 +1019,7 @@ void DFrameWindow::startCursorAnimation()
 {
     const QPoint &cursorPos = qApp->primaryScreen()->handle()->cursor()->pos();
     QPoint toPos = cursorPos - handle()->geometry().topLeft();
-    const QRect geometry = (m_contentGeometry * devicePixelRatioF()).adjusted(-1, -1, 1, 1);
+    const QRect geometry = (m_contentGeometry * devicePixelRatioF()).adjusted(-2, -2, 2, 2);
 
     switch (m_lastCornerEdge) {
     case Utility::TopLeftCorner:

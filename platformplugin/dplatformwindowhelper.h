@@ -119,6 +119,7 @@ private:
 
     int getWindowRadius() const;
     int getShadowRadius() const;
+    int getBorderWidth() const;
     QColor getBorderColor() const;
 
     // update properties
@@ -159,6 +160,8 @@ private:
     bool m_isUserSetWindowRadius = false;
 
     int m_borderWidth = 1;
+    bool m_isUserSetBorderWidth = false;
+
     QColor m_borderColor = QColor(0, 0, 0, 255 * 0.15);
 
     int m_shadowRadius = 60;

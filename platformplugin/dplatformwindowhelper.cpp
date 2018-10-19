@@ -64,7 +64,7 @@ DPlatformWindowHelper::DPlatformWindowHelper(QNativeWindow *window)
     m_frameWindow->setShadowRadius(getShadowRadius());
     m_frameWindow->setShadowColor(m_shadowColor);
     m_frameWindow->setShadowOffset(m_shadowOffset);
-    m_frameWindow->setBorderWidth(m_borderWidth);
+    m_frameWindow->setBorderWidth(getBorderWidth());
     m_frameWindow->setBorderColor(getBorderColor());
     m_frameWindow->setEnableSystemMove(m_enableSystemMove);
     m_frameWindow->setEnableSystemResize(m_enableSystemResize);
@@ -1036,6 +1036,11 @@ int DPlatformWindowHelper::getShadowRadius() const
     return DWMSupport::instance()->hasComposite() ? m_shadowRadius : 0;
 }
 
+int DPlatformWindowHelper::getBorderWidth() const
+{
+    return (m_isUserSetBorderWidth || DWMSupport::instance()->hasComposite()) ? m_borderWidth : 2;
+}
+
 static QColor colorBlend(const QColor &color1, const QColor &color2)
 {
     QColor c2 = color2.toRgb();
@@ -1063,7 +1068,7 @@ void DPlatformWindowHelper::updateWindowRadiusFromProperty()
     const QVariant &v = m_nativeWindow->window()->property(windowRadius);
 
     if (!v.isValid()) {
-        m_nativeWindow->window()->setProperty(windowRadius, m_windowRadius);
+        m_nativeWindow->window()->setProperty(windowRadius, getWindowRadius());
 
         return;
     }
@@ -1085,7 +1090,7 @@ void DPlatformWindowHelper::updateBorderWidthFromProperty()
     const QVariant &v = m_nativeWindow->window()->property(borderWidth);
 
     if (!v.isValid()) {
-        m_nativeWindow->window()->setProperty(borderWidth, m_borderWidth);
+        m_nativeWindow->window()->setProperty(borderWidth, getBorderWidth());
 
         return;
     }
@@ -1095,6 +1100,7 @@ void DPlatformWindowHelper::updateBorderWidthFromProperty()
 
     if (ok && width != m_borderWidth) {
         m_borderWidth = width;
+        m_isUserSetBorderWidth = true;
         m_frameWindow->setBorderWidth(width);
     }
 }
@@ -1348,6 +1354,7 @@ void DPlatformWindowHelper::onWMHasCompositeChanged()
 //    }
 
     m_frameWindow->updateMask();
+    m_frameWindow->setBorderWidth(getBorderWidth());
     m_frameWindow->setBorderColor(getBorderColor());
 
     if (m_nativeWindow->window()->inherits("QWidgetWindow")) {
