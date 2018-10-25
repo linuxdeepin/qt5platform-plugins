@@ -1,3 +1,17 @@
+<a name="1.1.12"></a>
+## 1.1.12 (2018-10-25)
+
+
+#### Bug Fixes
+
+*   kwin not update blur ([58cda70e](https://github.com/linuxdeepin/qt5dxcb-plugin/commit/58cda70e10f1de04cb76fd98c5724ccc0f99e592))
+
+#### Features
+
+*   support Qt 5.11.2 ([52e74b16](https://github.com/linuxdeepin/qt5dxcb-plugin/commit/52e74b16f8fcf439f8b78807abdfb5b0d1c163ff))
+
+
+
 <a name="1.1.11"></a>
 ## 1.1.11 (2018-08-06)
 
