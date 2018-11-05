@@ -1038,7 +1038,10 @@ int DPlatformWindowHelper::getShadowRadius() const
 
 int DPlatformWindowHelper::getBorderWidth() const
 {
-    return (m_isUserSetBorderWidth || DWMSupport::instance()->hasComposite()) ? m_borderWidth : 2;
+    if (m_isUserSetBorderWidth || DWMSupport::instance()->hasComposite())
+        return m_borderWidth;
+
+    return m_frameWindow->canResize() ? 2 : m_borderWidth;
 }
 
 static QColor colorBlend(const QColor &color1, const QColor &color2)
