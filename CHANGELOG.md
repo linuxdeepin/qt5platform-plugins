@@ -1,3 +1,9 @@
+<a name="1.1.13"></a>
+## 1.1.13 (2018-11-08)
+
+*  refactor: set default border width to 1px of can not resize window
+
+
 <a name="1.1.12"></a>
 ## 1.1.12 (2018-10-25)
 
