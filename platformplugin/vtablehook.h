@@ -24,6 +24,8 @@
 
 #include "global.h"
 
+#include <functional>
+
 DPP_BEGIN_NAMESPACE
 
 static inline quintptr toQuintptr(void *ptr)
