@@ -1,3 +1,13 @@
+<a name="1.1.14"></a>
+## 1.1.14 (2018-11-19)
+
+
+#### Bug Fixes
+
+*   build failed on low version gcc ([dce47ff6](https://github.com/linuxdeepin/qt5dxcb-plugin/commit/dce47ff6aa4b34816c917cedd00e6c83048e540a))
+
+
+
 <a name="1.1.13"></a>
 ## 1.1.13 (2018-11-08)
 
