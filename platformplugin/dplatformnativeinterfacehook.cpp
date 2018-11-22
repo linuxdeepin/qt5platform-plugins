@@ -58,6 +58,8 @@ QFunctionPointer DPlatformNativeInterfaceHook::platformFunction(QPlatformNativeI
         return reinterpret_cast<QFunctionPointer>(&Utility::hasBlurWindow);
     } else if (function == hasComposite) {
         return reinterpret_cast<QFunctionPointer>(&Utility::hasComposite);
+    } else if (function == windowManagerName) {
+        return reinterpret_cast<QFunctionPointer>(&Utility::windowManagerName);
     } else if (function == connectWindowManagerChangedSignal) {
         return reinterpret_cast<QFunctionPointer>(&DWMSupport::connectWindowManagerChangedSignal);
     } else if (function == connectHasBlurWindowChanged) {

@@ -459,6 +459,11 @@ bool Utility::hasComposite()
     return DXcbWMSupport::instance()->hasComposite();
 }
 
+QString Utility::windowManagerName()
+{
+    return DXcbWMSupport::instance()->windowManagerName();
+}
+
 bool Utility::blurWindowBackground(const quint32 WId, const QVector<BlurArea> &areas)
 {
     if (!hasBlurWindow())
