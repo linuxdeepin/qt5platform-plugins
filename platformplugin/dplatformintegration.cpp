@@ -188,8 +188,12 @@ QPlatformWindow *DPlatformIntegration::createPlatformWindow(QWindow *window) con
     }
 
     // handle foreign native window
-    if (window->type() == Qt::ForeignWindow && window->property("_q_foreignWinId").isValid()) {
-        return new DForeignPlatformWindow(window);
+    if (window->type() == Qt::ForeignWindow) {
+        WId win_id = qvariant_cast<WId>(window->property("_q_foreignWinId"));
+
+        if (win_id > 0) {
+            return new DForeignPlatformWindow(window, win_id);
+        }
     }
 
     bool isUseDxcb = window->type() != Qt::Desktop && window->property(useDxcb).toBool();

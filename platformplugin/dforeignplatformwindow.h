@@ -37,7 +37,7 @@ DPP_BEGIN_NAMESPACE
 class DForeignPlatformWindow : public QNativeWindow
 {
 public:
-    explicit DForeignPlatformWindow(QWindow *window);
+    explicit DForeignPlatformWindow(QWindow *window, WId winId);
     ~DForeignPlatformWindow();
 
     QRect geometry() const Q_DECL_OVERRIDE;
@@ -49,6 +49,12 @@ public:
 
 private:
     void create() override;
+
+#if QT_VERSION >= QT_VERSION_CHECK(5, 9, 0)
+    bool isForeignWindow() const override {
+        return true;
+    }
+#endif
 
     void updateTitle();
     void updateWmClass();

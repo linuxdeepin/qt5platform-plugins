@@ -48,11 +48,15 @@ enum {
             | XCB_EVENT_MASK_COLOR_MAP_CHANGE | XCB_EVENT_MASK_OWNER_GRAB_BUTTON
 };
 
-DForeignPlatformWindow::DForeignPlatformWindow(QWindow *window)
+DForeignPlatformWindow::DForeignPlatformWindow(QWindow *window, WId winId)
     : QXcbWindow(window)
 {
+    m_window = winId;
+
+#if QT_VERSION < QT_VERSION_CHECK(5, 9, 0)
     // init window id
     QNativeWindow::create();
+#endif
 
     m_dirtyFrameMargins = true;
 
