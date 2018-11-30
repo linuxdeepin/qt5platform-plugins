@@ -589,14 +589,14 @@ void Utility::clearWindowBlur(const quint32 WId)
     clearWindowProperty(WId, DXcbWMSupport::instance()->_kde_net_wm_blur_rehind_region_atom);
 }
 
-quint32 Utility::getWorkspaceForWindow(quint32 WId)
+qint32 Utility::getWorkspaceForWindow(quint32 WId)
 {
     xcb_get_property_cookie_t cookie = xcb_get_property(DPlatformIntegration::xcbConnection()->xcb_connection(), false, WId,
                                                         Utility::internAtom("_NET_WM_DESKTOP"), XCB_ATOM_CARDINAL, 0, 1);
     QScopedPointer<xcb_get_property_reply_t, QScopedPointerPodDeleter> reply(
         xcb_get_property_reply(DPlatformIntegration::xcbConnection()->xcb_connection(), cookie, NULL));
     if (reply && reply->type == XCB_ATOM_CARDINAL && reply->format == 32 && reply->value_len == 1) {
-        return *(quint32*)xcb_get_property_value(reply.data());
+        return *(qint32*)xcb_get_property_value(reply.data());
     }
 
     return 0;
@@ -836,7 +836,7 @@ QVector<uint> Utility::getWindows()
 
 QVector<uint> Utility::getCurrentWorkspaceWindows()
 {
-    quint32 current_workspace = 0;
+    qint32 current_workspace = 0;
 
     xcb_get_property_cookie_t cookie = xcb_get_property(DPlatformIntegration::xcbConnection()->xcb_connection(), false,
                                                         DPlatformIntegration::xcbConnection()->rootWindow(),
@@ -844,13 +844,15 @@ QVector<uint> Utility::getCurrentWorkspaceWindows()
     QScopedPointer<xcb_get_property_reply_t, QScopedPointerPodDeleter> reply(
         xcb_get_property_reply(DPlatformIntegration::xcbConnection()->xcb_connection(), cookie, NULL));
     if (reply && reply->type == XCB_ATOM_CARDINAL && reply->format == 32 && reply->value_len == 1) {
-        current_workspace = *(quint32*)xcb_get_property_value(reply.data());
+        current_workspace = *(qint32*)xcb_get_property_value(reply.data());
     }
 
     QVector<uint> windows;
 
     foreach (quint32 WId, getWindows()) {
-        if (getWorkspaceForWindow(WId) == current_workspace) {
+        qint32 ws = getWorkspaceForWindow(WId);
+
+        if (ws < 0 || ws == current_workspace) {
             windows << WId;
         }
     }
