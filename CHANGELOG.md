@@ -1,3 +1,18 @@
+<a name="1.1.15"></a>
+## 1.1.15 (2018-11-30)
+
+
+#### Bug Fixes
+
+*   the Desktop application is not contains in current workspace ([e1d45711](https://github.com/linuxdeepin/qt5dxcb-plugin/commit/e1d45711fa14754cd72cff733a8a75f6d5a8efa6))
+*   support Qt version>=5.9.0 for DForeignPlatformWindow ([594f73e6](https://github.com/linuxdeepin/qt5dxcb-plugin/commit/594f73e638da488efbdb4e518fb0f726b0ee09bc))
+
+#### Features
+
+*   add inteface: "windowManagerName" ([711e6aa1](https://github.com/linuxdeepin/qt5dxcb-plugin/commit/711e6aa1dd119fdaaf196845733df67b7d0d6b20))
+
+
+
 <a name="1.1.14"></a>
 ## 1.1.14 (2018-11-19)
 
