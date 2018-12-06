@@ -148,7 +148,11 @@ void DForeignPlatformWindow::handleConfigureNotifyEvent(const xcb_configure_noti
     // will make the comparison later.
     QWindowSystemInterface::handleWindowScreenChanged(window(), newScreen->screen());
 
+#if QT_VERSION < QT_VERSION_CHECK(5, 12, 0)
     if (m_usingSyncProtocol && m_syncState == SyncReceived)
+#else
+    if (connection()->hasXSync() && m_syncState == SyncReceived)
+#endif
         m_syncState = SyncAndConfigureReceived;
 
     m_dirtyFrameMargins = true;

@@ -275,8 +275,8 @@ void WindowEventHook::handleClientMessageEvent(const xcb_client_message_event_t 
             const QUrl &url = dropData->property("DirectSaveUrl").toUrl();
 
             if (url.isValid() && drag->xdnd_dragsource) {
-                xcb_atom_t XdndDirectSaveAtom = me->connection()->internAtom("XdndDirectSave0");
-                xcb_atom_t textAtom = me->connection()->internAtom("text/plain");
+                xcb_atom_t XdndDirectSaveAtom = Utility::internAtom("XdndDirectSave0");
+                xcb_atom_t textAtom = Utility::internAtom("text/plain");
                 QByteArray basename = Utility::windowProperty(drag->xdnd_dragsource, XdndDirectSaveAtom, textAtom, 1024);
                 QByteArray fileUri = url.toString().toLocal8Bit() + "/" + basename;
 
@@ -538,7 +538,11 @@ void WindowEventHook::handleXIEnterLeave(xcb_ge_event_t *event)
     me->QXcbWindow::handleXIEnterLeave(event);
 }
 
+#if QT_VERSION < QT_VERSION_CHECK(5, 12, 0)
 void WindowEventHook::windowEvent(QEvent *event)
+#else
+bool WindowEventHook::windowEvent(QEvent *event)
+#endif
 {
     switch (event->type()) {
     case QEvent::DragEnter:
@@ -557,7 +561,7 @@ void WindowEventHook::windowEvent(QEvent *event)
 
     QXcbWindow *window = static_cast<QXcbWindow*>(reinterpret_cast<QPlatformWindow*>(this));
 
-    window->QXcbWindow::windowEvent(event);
+    return window->QXcbWindow::windowEvent(event);
 }
 #endif
 

@@ -42,7 +42,11 @@ public:
 #ifdef XCB_USE_XINPUT22
     void handleXIEnterLeave(xcb_ge_event_t *event);
 #endif
+#if QT_VERSION < QT_VERSION_CHECK(5, 12, 0)
     void windowEvent(QEvent *event);
+#else
+    bool windowEvent(QEvent *event);
+#endif
 
 private:
     static bool relayFocusToModalWindow(QWindow *w, QXcbConnection *connection);

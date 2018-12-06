@@ -87,7 +87,11 @@ bool XcbNativeEventFilter::nativeEventFilter(const QByteArray &eventType, void *
     xcb_generic_event_t *event = reinterpret_cast<xcb_generic_event_t*>(message);
     uint response_type = event->response_type & ~0x80;
 
+#if QT_VERSION < QT_VERSION_CHECK(5, 12, 0)
     if (response_type == m_connection->xfixes_first_event + XCB_XFIXES_SELECTION_NOTIFY) {
+#else
+    if (response_type == m_connection->m_xfixesFirstEvent + XCB_XFIXES_SELECTION_NOTIFY) {
+#endif
         xcb_xfixes_selection_notify_event_t *xsn = (xcb_xfixes_selection_notify_event_t *)event;
 
         if (xsn->selection == DPlatformIntegration::xcbConnection()->atom(QXcbAtom::_NET_WM_CM_S0)) {
@@ -241,7 +245,12 @@ void XcbNativeEventFilter::updateXIDeviceInfoMap()
     xiDeviceInfoMap.clear();
 
     QXcbConnection *xcb_connect = DPlatformIntegration::xcbConnection();
+
+#if QT_VERSION < QT_VERSION_CHECK(5, 12, 0)
     Display *xDisplay = static_cast<Display *>(xcb_connect->m_xlib_display);
+#else
+    Display *xDisplay = reinterpret_cast<Display *>(xcb_connect->xlib_display());
+#endif
     int deviceCount = 0;
     XIDeviceInfo *devices = XIQueryDevice(xDisplay, XIAllDevices, &deviceCount);
 
