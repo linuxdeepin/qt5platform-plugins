@@ -1,3 +1,13 @@
+<a name="1.1.2"></a>
+## 1.1.2 (2018-12-10)
+
+
+#### Bug Fixes
+
+*   a typo ([c46eb749](https://github.com/linuxdeepin/qt5dxcb-plugin/commit/c46eb749f8a7118d8ce817e4f9cd63f529f52650))
+
+
+
 <a name="1.1.15"></a>
 ## 1.1.15 (2018-11-30)
 
