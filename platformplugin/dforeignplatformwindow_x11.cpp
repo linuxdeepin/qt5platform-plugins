@@ -26,6 +26,7 @@
 #include <QDebug>
 
 #include <private/qwindow_p.h>
+#include <private/qguiapplication_p.h>
 
 #include <xcb/xcb_icccm.h>
 
@@ -51,6 +52,7 @@ enum {
 DForeignPlatformWindow::DForeignPlatformWindow(QWindow *window, WId winId)
     : QXcbWindow(window)
 {
+    QGuiApplicationPrivate::window_list.removeOne(window);
     m_window = winId;
 
 #if QT_VERSION < QT_VERSION_CHECK(5, 9, 0)
@@ -101,6 +103,7 @@ QRect DForeignPlatformWindow::geometry() const
     return result;
 }
 
+#ifdef Q_OS_LINUX
 void DForeignPlatformWindow::handleConfigureNotifyEvent(const xcb_configure_notify_event_t *event)
 {
     bool fromSendEvent = (event->response_type & 0x80);
@@ -182,6 +185,15 @@ void DForeignPlatformWindow::handlePropertyNotifyEvent(const xcb_property_notify
     }
 }
 
+QNativeWindow *DForeignPlatformWindow::toWindow()
+{
+    // 重写返回空，目的是防止QXcbConnection::platformWindowFromId接口能返回一个正常的QXcbWindow对象
+    // 这样会导致QXcbDrag中将本窗口认为是自己窗口的窗口，从而导致drag/drop事件没有通过x11发送给对应窗口
+    // 而是直接走了内部事件处理流程
+    return nullptr;
+}
+#endif
+
 void DForeignPlatformWindow::create()
 {
     const quint32 mask = XCB_CW_EVENT_MASK;
@@ -192,6 +204,11 @@ void DForeignPlatformWindow::create()
 
     connection()->addWindowEventListener(m_window, this);
     xcb_change_window_attributes(xcb_connection(), m_window, mask, values);
+}
+
+void DForeignPlatformWindow::destroy()
+{
+    connection()->removeWindowEventListener(m_window);
 }
 
 void DForeignPlatformWindow::updateTitle()

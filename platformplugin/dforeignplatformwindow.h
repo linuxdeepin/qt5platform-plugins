@@ -43,12 +43,15 @@ public:
     QRect geometry() const Q_DECL_OVERRIDE;
 
 #ifdef Q_OS_LINUX
-    void handleConfigureNotifyEvent(const xcb_configure_notify_event_t *);
-    void handlePropertyNotifyEvent(const xcb_property_notify_event_t *);
+    void handleConfigureNotifyEvent(const xcb_configure_notify_event_t *) override;
+    void handlePropertyNotifyEvent(const xcb_property_notify_event_t *) override;
+
+    QNativeWindow *toWindow() override;
 #endif
 
 private:
     void create() override;
+    void destroy() override;
 
 #if QT_VERSION >= QT_VERSION_CHECK(5, 9, 0)
     bool isForeignWindow() const override {
