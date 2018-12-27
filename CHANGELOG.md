@@ -1,3 +1,13 @@
+<a name="1.1.21"></a>
+## 1.1.21 (2018-12-27)
+
+
+#### Bug Fixes
+
+*   the drag/drop is invalid if use DForeignPlatformWindow for target XWindow ([b4c0ece2](https://github.com/linuxdeepin/qt5dxcb-plugin/commit/b4c0ece2f2651f34c461aca6d478c1e41886fe1d))
+
+
+
 <a name="1.1.2"></a>
 ## 1.1.20 (2018-12-10)
 
