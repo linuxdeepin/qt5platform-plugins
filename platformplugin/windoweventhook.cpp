@@ -522,7 +522,7 @@ void WindowEventHook::handleXIEnterLeave(xcb_ge_event_t *event)
 #endif
                                                      );
                     }
-                } else if (isSet) {
+                } /*else if (isSet) {
                     QGuiApplicationPrivate::lastCursorPosition = DHighDpi::fromNativePixels(QPointF(root_x, root_y), me->window());
                     me->handleButtonPressEvent(event_x, event_y, root_x, root_y,
                                                0, modifiers, ev->time
@@ -530,7 +530,10 @@ void WindowEventHook::handleXIEnterLeave(xcb_ge_event_t *event)
                                                , QEvent::MouseButtonPress
 #endif
                                                );
-                }
+                }*/
+                //###(zccrs): 只设置button状态，不补发事件。防止窗口管理器（deepin-wm，kwin中无此问题）在鼠标Press期间触发此类型的事件，
+                //            导致DTK窗口响应此点击事件后requestActive而将窗口显示到上层。此种情况发生在双击应用标题栏回复此窗口最大化状态时，
+                //            如果此窗口下层为DTK窗口，则有可能触发此问题。
             }
         }
     }
