@@ -1,3 +1,13 @@
+<a name="1.1.22"></a>
+## 1.1.22 (2019-01-02)
+
+
+#### Bug Fixes
+
+*   Does not reissue mouse press events when receiving an Ungrab type Enter event during mouse press ([e3569fe7](https://github.com/linuxdeepin/qt5dxcb-plugin/commit/e3569fe7a3b9b16f20fcc8cc7a793553fb87a2b4))
+
+
+
 <a name="1.1.21"></a>
 ## 1.1.21 (2018-12-27)
 
