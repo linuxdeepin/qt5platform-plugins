@@ -112,6 +112,7 @@ void DPlatformBackingStoreHelper::flush(QWindow *window, const QRegion &region, 
 
         if (window_helper && (window_helper->m_isUserSetClipPath || window_radius > 0)) {
             QPainterPath path;
+            QPainterPath clip_path = window_helper->m_clipPath * device_pixel_ratio;
             QRegion new_region = region;
 
 //            if (!window_helper->m_isUserSetClipPath) {
@@ -128,7 +129,7 @@ void DPlatformBackingStoreHelper::flush(QWindow *window, const QRegion &region, 
 //            }
 
             path.addRegion(new_region);
-            path -= window_helper->m_clipPath * device_pixel_ratio;
+            path -= clip_path;
 
             if (path.isEmpty())
                 goto end;
@@ -139,9 +140,10 @@ void DPlatformBackingStoreHelper::flush(QWindow *window, const QRegion &region, 
                 goto end;
 
             QBrush border_brush(window_helper->m_frameWindow->m_shadowImage);
-            const QPoint &offset = window_helper->m_frameWindow->m_contentGeometry.topLeft() * device_pixel_ratio;
+            const QPoint &offset = (window_helper->m_frameWindow->m_contentGeometry.topLeft()
+                                    - 2 * window_helper->m_frameWindow->contentOffsetHint()) * device_pixel_ratio;
 
-            border_brush.setMatrix(QMatrix(1, 0, 0, 1, -offset.x(), -offset.y()));
+            border_brush.setMatrix(QMatrix(1, 0, 0, 1, offset.x(), offset.y()));
 
             pa.setRenderHint(QPainter::Antialiasing);
             pa.setCompositionMode(QPainter::CompositionMode_Source);
@@ -152,7 +154,7 @@ void DPlatformBackingStoreHelper::flush(QWindow *window, const QRegion &region, 
                 pa.setClipPath(path);
                 pa.setPen(QPen(window_helper->m_borderColor, window_helper->getBorderWidth(),
                                Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
-                pa.drawPath(window_helper->m_clipPath);
+                pa.drawPath(clip_path);
             }
 
             pa.end();
