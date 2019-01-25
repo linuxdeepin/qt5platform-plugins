@@ -1,3 +1,13 @@
+<a name="1.1.23"></a>
+## 1.1.23 (2019-01-25)
+
+
+#### Bug Fixes
+
+*   Fix window shadow drawing error if setting clip path ([c8b87b42](https://github.com/linuxdeepin/qt5dxcb-plugin/commit/c8b87b42a875eb6bbb506f0019d5ff4d4f580371))
+
+
+
 <a name="1.1.22"></a>
 ## 1.1.22 (2019-01-02)
 
