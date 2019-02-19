@@ -464,8 +464,8 @@ void DPlatformWindowHelper::requestActivateWindow()
     DPlatformWindowHelper *helper = me();
 
 #ifdef Q_OS_LINUX
-    if (helper->m_frameWindow->handle()->isExposed() && !DXcbWMSupport::instance()->hasComposite()
-            && helper->m_frameWindow->windowState() == Qt::WindowMinimized) {
+    // 窗口管理器不支持混成时，最小化窗口会导致窗口被unmap
+    if (!DXcbWMSupport::instance()->hasComposite() && helper->m_frameWindow->windowState() == Qt::WindowMinimized) {
 #ifdef Q_XCB_CALL
         Q_XCB_CALL(xcb_map_window(DPlatformIntegration::xcbConnection()->xcb_connection(), helper->m_frameWindow->winId()));
 #else
