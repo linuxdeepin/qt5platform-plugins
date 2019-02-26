@@ -1,3 +1,14 @@
+<a name="1.1.24"></a>
+## 1.1.24 (2019-02-26)
+
+
+#### Bug Fixes
+
+*   compatibility with Qt 5.12.1 ([1a9a05ef](https://github.com/linuxdeepin/qt5dxcb-plugin/commit/1a9a05ef7942c91dafaf24023404aef9cbd77dbe))
+*   the minimized window can not active on 2D window manager ([c56c9949](https://github.com/linuxdeepin/qt5dxcb-plugin/commit/c56c9949384d51f4be13272898bd3f641c40081b))
+
+
+
 <a name="1.1.23"></a>
 ## 1.1.23 (2019-01-25)
 
