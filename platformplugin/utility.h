@@ -122,7 +122,7 @@ public:
     };
 
     static QtMotifWmHints getMotifWmHints(quint32 WId);
-    static void setMotifWmHints(quint32 WId, const QtMotifWmHints &hints);
+    static void setMotifWmHints(quint32 WId, QtMotifWmHints hints);
     static quint32 getNativeTopLevelWindow(quint32 WId);
 
     static QPoint translateCoordinates(const QPoint &pos, quint32 src, quint32 dst);

@@ -629,9 +629,19 @@ Utility::QtMotifWmHints Utility::getMotifWmHints(quint32 WId)
     return hints;
 }
 
-void Utility::setMotifWmHints(quint32 WId, const Utility::QtMotifWmHints &hints)
+void Utility::setMotifWmHints(quint32 WId, Utility::QtMotifWmHints hints)
 {
     if (hints.flags != 0l) {
+        // 如果标志为设置了xxx_all标志，则其它标志位的设置无任何意义
+        // 反而会导致窗管忽略xxx_all标志，因此此处重设此标志位
+        if (hints.functions & DXcbWMSupport::MWM_FUNC_ALL) {
+            hints.functions = DXcbWMSupport::MWM_FUNC_ALL;
+        }
+
+        if (hints.decorations & DXcbWMSupport::MWM_DECOR_ALL) {
+            hints.functions = DXcbWMSupport::MWM_DECOR_ALL;
+        }
+
 #ifdef Q_XCB_CALL2
         Q_XCB_CALL2(xcb_change_property(DPlatformIntegration::xcbConnection()->xcb_connection(),
                                         XCB_PROP_MODE_REPLACE,
