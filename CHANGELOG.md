@@ -1,3 +1,13 @@
+<a name="1.1.25"></a>
+## 1.1.25 (2019-03-27)
+
+
+#### Bug Fixes
+
+*   the window can not move ([2011cb3f](https://github.com/linuxdeepin/qt5dxcb-plugin/commit/2011cb3fb31be1a5be540901a1af5b8c320b71e5))
+
+
+
 <a name="1.1.24"></a>
 ## 1.1.24 (2019-02-26)
 
