@@ -135,8 +135,11 @@ DPlatformWindowHelper::DPlatformWindowHelper(QNativeWindow *window)
             this, &DPlatformWindowHelper::onWMHasCompositeChanged);
     connect(DWMSupport::instance(), &DXcbWMSupport::windowManagerChanged,
             this, &DPlatformWindowHelper::updateWindowBlurAreasForWM);
+    // 必须保证两个窗口QScreen对象一致
     connect(m_frameWindow, &DFrameWindow::screenChanged,
-            window->window(), &QWindow::setScreen);
+            this, &DPlatformWindowHelper::onScreenChanged);
+    connect(window->window(), &QWindow::screenChanged,
+            m_frameWindow, &DFrameWindow::setScreen);
     connect(m_frameWindow, &DFrameWindow::contentOrientationChanged,
             window->window(), &QWindow::reportContentOrientationChange);
 
@@ -628,6 +631,7 @@ bool DPlatformWindowHelper::eventFilter(QObject *watched, QEvent *event)
         case QEvent::Drop: {
             DQDropEvent *e = static_cast<DQDropEvent*>(event);
             e->p -= m_frameWindow->contentOffsetHint();
+            Q_FALLTHROUGH();
         } // deliberate
         case QEvent::DragLeave:
             QCoreApplication::sendEvent(m_nativeWindow->window(), event);
@@ -715,7 +719,8 @@ bool DPlatformWindowHelper::eventFilter(QObject *watched, QEvent *event)
         }
         case QEvent::Resize:
             if (m_isUserSetClipPath) {
-                setWindowValidGeometry(m_clipPath.boundingRect().toRect() & QRect(QPoint(0, 0), static_cast<QResizeEvent*>(event)->size()));
+                // 窗口大小改变时要强制更新模糊区域，所以需要将第二个参数传递为true
+                setWindowValidGeometry(m_clipPath.boundingRect().toRect() & QRect(QPoint(0, 0), static_cast<QResizeEvent*>(event)->size()), true);
             } else {
                 updateClipPathByWindowRadius(static_cast<QResizeEvent*>(event)->size());
             }
@@ -768,7 +773,8 @@ void DPlatformWindowHelper::setNativeWindowGeometry(const QRect &rect, bool only
 void DPlatformWindowHelper::updateClipPathByWindowRadius(const QSize &windowSize)
 {
     if (!m_isUserSetClipPath) {
-        setWindowValidGeometry(QRect(QPoint(0, 0), windowSize));
+        // 第二个参数传递true，强制更新模糊区域
+        setWindowValidGeometry(QRect(QPoint(0, 0), windowSize), true);
 
         int window_radius = getWindowRadius();
 
@@ -791,31 +797,21 @@ void DPlatformWindowHelper::setClipPath(const QPainterPath &path)
         setWindowValidGeometry(m_clipPath.boundingRect().toRect() & QRect(QPoint(0, 0), m_nativeWindow->window()->size()));
     }
 
-    const QPainterPath &real_path = m_clipPath * m_nativeWindow->window()->devicePixelRatio();
-    QPainterPathStroker stroker;
-
-    stroker.setJoinStyle(Qt::MiterJoin);
-    stroker.setWidth(4 * m_nativeWindow->window()->devicePixelRatio());
-
-    Utility::setShapePath(m_nativeWindow->QNativeWindow::winId(),
-                          stroker.createStroke(real_path).united(real_path),
-                          m_frameWindow->m_redirectContent || !m_isUserSetClipPath,
-                          m_nativeWindow->window()->flags().testFlag(Qt::WindowTransparentForInput));
-
+    updateWindowShape();
     updateWindowBlurAreasForWM();
     updateContentPathForFrameWindow();
 }
 
-void DPlatformWindowHelper::setWindowValidGeometry(const QRect &geometry)
+void DPlatformWindowHelper::setWindowValidGeometry(const QRect &geometry, bool force)
 {
-    if (geometry == m_windowValidGeometry)
+    if (!force && geometry == m_windowValidGeometry)
         return;
 
     m_windowValidGeometry = geometry;
 
     // The native window geometry may not update now, we need to wait for resize
     // event to proceed.
-    QTimer::singleShot(1, this, &DPlatformWindowHelper::updateWindowBlurAreasForWM);
+    QTimer::singleShot(0, this, &DPlatformWindowHelper::updateWindowBlurAreasForWM);
 }
 
 bool DPlatformWindowHelper::updateWindowBlurAreasForWM()
@@ -1017,6 +1013,20 @@ void DPlatformWindowHelper::updateWindowNormalHints()
     xcb_icccm_size_hints_set_resize_inc(&hints, size_inc.width(), size_inc.height());
     xcb_icccm_set_wm_normal_hints(m_nativeWindow->xcb_connection(),
                                   m_frameWindow->winId(), &hints);
+}
+
+void DPlatformWindowHelper::updateWindowShape()
+{
+    const QPainterPath &real_path = m_clipPath * m_nativeWindow->window()->devicePixelRatio();
+    QPainterPathStroker stroker;
+
+    stroker.setJoinStyle(Qt::MiterJoin);
+    stroker.setWidth(4 * m_nativeWindow->window()->devicePixelRatio());
+
+    Utility::setShapePath(m_nativeWindow->QNativeWindow::winId(),
+                          stroker.createStroke(real_path).united(real_path),
+                          m_frameWindow->m_redirectContent || !m_isUserSetClipPath,
+                          m_nativeWindow->window()->flags().testFlag(Qt::WindowTransparentForInput));
 }
 #endif
 
@@ -1376,14 +1386,28 @@ void DPlatformWindowHelper::onWMHasCompositeChanged()
     }
 }
 
+void DPlatformWindowHelper::onDevicePixelRatioChanged()
+{
+    updateWindowShape();
+    updateFrameMaskFromProperty();
+
+    m_frameWindow->onDevicePixelRatioChanged();
+}
+
+void DPlatformWindowHelper::onScreenChanged(QScreen *screen)
+{
+    QScreen *old_screen = m_nativeWindow->window()->screen();
+
+    if (old_screen != screen) {
+        m_nativeWindow->window()->setScreen(screen);
+    }
+
+    onDevicePixelRatioChanged();
+}
+
 void DPlatformWindowHelper::updateClipPathFromProperty()
 {
     const QVariant &v = m_nativeWindow->window()->property(clipPath);
-
-    if (!v.isValid()) {
-        return;
-    }
-
     QPainterPath path;
 
     path = qvariant_cast<QPainterPath>(v);
@@ -1409,7 +1433,7 @@ void DPlatformWindowHelper::updateFrameMaskFromProperty()
 
     QRegion region = qvariant_cast<QRegion>(v);
 
-    m_frameWindow->setMask(region * m_frameWindow->devicePixelRatio());
+    m_frameWindow->setMask(region * m_nativeWindow->window()->devicePixelRatio());
     m_isUserSetFrameMask = !region.isEmpty();
     m_frameWindow->m_enableAutoFrameMask = !m_isUserSetFrameMask;
 }

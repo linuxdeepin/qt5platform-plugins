@@ -864,7 +864,7 @@ void DFrameWindow::updateShadowAsync(int delaye)
     m_updateShadowTimer.start(delaye);
 }
 
-void DFrameWindow::updateContentMarginsHint()
+void DFrameWindow::updateContentMarginsHint(bool force)
 {
     QMargins margins;
 
@@ -873,7 +873,7 @@ void DFrameWindow::updateContentMarginsHint()
                        qMax(m_shadowRadius + m_shadowOffset.x(), m_borderWidth),
                        qMax(m_shadowRadius + m_shadowOffset.y(), m_borderWidth));
 
-    if (margins == m_contentMarginsHint)
+    if (!force && margins == m_contentMarginsHint)
         return;
 
     qreal device_pixel_ratio = devicePixelRatio();
@@ -1068,6 +1068,11 @@ bool DFrameWindow::disableFrame() const
     return windowState() == Qt::WindowFullScreen
             || windowState() == Qt::WindowMaximized
             || windowState() == Qt::WindowMinimized;
+}
+
+void DFrameWindow::onDevicePixelRatioChanged()
+{
+    updateContentMarginsHint(true);
 }
 
 DPP_END_NAMESPACE

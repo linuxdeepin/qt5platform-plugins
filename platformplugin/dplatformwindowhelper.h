@@ -108,7 +108,7 @@ private:
 
     void updateClipPathByWindowRadius(const QSize &windowSize);
     void setClipPath(const QPainterPath &path);
-    void setWindowValidGeometry(const QRect &geometry);
+    void setWindowValidGeometry(const QRect &geometry, bool force = false);
     bool updateWindowBlurAreasForWM();
     void updateSizeHints();
     void updateContentPathForFrameWindow();
@@ -116,6 +116,7 @@ private:
 #ifdef Q_OS_LINUX
     void updateWindowNormalHints();
 #endif
+    void updateWindowShape();
 
     int getWindowRadius() const;
     int getShadowRadius() const;
@@ -142,6 +143,8 @@ private:
 
     void onFrameWindowContentMarginsHintChanged(const QMargins &old_margins);
     void onWMHasCompositeChanged();
+    void onDevicePixelRatioChanged();
+    void onScreenChanged(QScreen *screen);
 
     static QHash<const QPlatformWindow*, DPlatformWindowHelper*> mapped;
 

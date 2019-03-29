@@ -107,7 +107,7 @@ private:
 
     void updateShadow();
     void updateShadowAsync(int delaye = 30);
-    void updateContentMarginsHint();
+    void updateContentMarginsHint(bool force = false);
     void updateMask();
     void updateFrameMask();
 
@@ -117,6 +117,8 @@ private:
     void startCursorAnimation();
 
     bool disableFrame() const;
+
+    void onDevicePixelRatioChanged();
 
     static QList<DFrameWindow*> frameWindowList;
 
