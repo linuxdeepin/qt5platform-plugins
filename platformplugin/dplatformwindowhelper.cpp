@@ -68,6 +68,8 @@ DPlatformWindowHelper::DPlatformWindowHelper(QNativeWindow *window)
     m_frameWindow->setBorderColor(getBorderColor());
     m_frameWindow->setEnableSystemMove(m_enableSystemMove);
     m_frameWindow->setEnableSystemResize(m_enableSystemResize);
+    // 防止被自动更新窗口大小(参见：qdeepintheme.cpp, https://github.com/linuxdeepin/qt5integration)
+    m_frameWindow->setProperty("_d_disable_update_geometry_for_scale", true);
 
     window->setParent(m_frameWindow->handle());
     window->window()->installEventFilter(this);
