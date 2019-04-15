@@ -225,7 +225,27 @@ bool XcbNativeEventFilter::nativeEventFilter(const QByteArray &eventType, void *
             break;
         }
 #endif
-        default: break;
+        default:
+            static auto updateScaleLogcailDpi = qApp->property("_d_updateScaleLogcailDpi").toULongLong();
+            if (updateScaleLogcailDpi && DPlatformIntegration::xcbConnection()->has_randr_extension
+                    && response_type == DPlatformIntegration::xcbConnection()->xrandr_first_event + XCB_RANDR_NOTIFY) {
+                xcb_randr_notify_event_t *e = reinterpret_cast<xcb_randr_notify_event_t *>(event);
+                xcb_randr_output_change_t output = e->u.oc;
+
+                if (e->subCode == XCB_RANDR_NOTIFY_OUTPUT_CHANGE) {
+                    QXcbScreen *screen = DPlatformIntegration::xcbConnection()->findScreenForOutput(output.window, output.output);
+
+                    if (!screen && output.connection == XCB_RANDR_CONNECTION_CONNECTED
+                            && output.crtc != XCB_NONE && output.mode != XCB_NONE) {
+                        DPlatformIntegration::xcbConnection()->updateScreens(e);
+                        // 通知deepin platform插件重设缩放后的dpi值
+                        reinterpret_cast<void(*)()>(updateScaleLogcailDpi)();
+
+                        return true;
+                    }
+                }
+            }
+            break;
         }
     }
 
