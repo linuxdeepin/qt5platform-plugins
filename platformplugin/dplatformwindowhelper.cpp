@@ -766,7 +766,12 @@ void DPlatformWindowHelper::setNativeWindowGeometry(const QRect &rect, bool only
 {
     qt_window_private(m_nativeWindow->window())->parentWindow = m_frameWindow;
     qt_window_private(m_nativeWindow->window())->positionAutomatic = onlyResize;
+    // 对于非顶层窗口，Qt会根据新的geometry获取窗口所在屏幕，并将屏幕设置给此窗口
+    // 因此此处设置native window对于的parent window，避免它被判断为顶层窗口。
+    // note: 有父窗口的窗口则会使用父窗口的screen对象。
+    QWindowPrivate::get(m_nativeWindow->window())->parentWindow = m_frameWindow;
     m_nativeWindow->QNativeWindow::setGeometry(rect);
+    QWindowPrivate::get(m_nativeWindow->window())->parentWindow = nullptr;
     qt_window_private(m_nativeWindow->window())->parentWindow = 0;
     qt_window_private(m_nativeWindow->window())->positionAutomatic = false;
     updateWindowNormalHints();

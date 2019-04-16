@@ -352,6 +352,11 @@ void DFrameWindow::enableRepaintShadow()
     m_canUpdateShadow = true;
 }
 
+bool DFrameWindow::redirectContent() const
+{
+    return m_redirectContent;
+}
+
 void DFrameWindow::paintEvent(QPaintEvent *)
 {
     if (m_redirectContent) {

@@ -47,11 +47,12 @@ WindowEventHook::WindowEventHook(QXcbWindow *window, bool redirectContent)
     const Qt::WindowType &type = window->window()->type();
 
     if (redirectContent) {
-        VtableHook::overrideVfptrFun(window, &QXcbWindowEventListener::handleConfigureNotifyEvent,
-                                     this, &WindowEventHook::handleConfigureNotifyEvent);
         VtableHook::overrideVfptrFun(window, &QXcbWindowEventListener::handleMapNotifyEvent,
                                      this, &WindowEventHook::handleMapNotifyEvent);
     }
+
+    VtableHook::overrideVfptrFun(window, &QXcbWindowEventListener::handleConfigureNotifyEvent,
+                                 this, &WindowEventHook::handleConfigureNotifyEvent);
 
     if (type == Qt::Widget || type == Qt::Window || type == Qt::Dialog) {
         VtableHook::overrideVfptrFun(window, &QXcbWindowEventListener::handleClientMessageEvent,
@@ -112,11 +113,19 @@ xcb_atom_t toXdndAction(const QXcbDrag *drag, Qt::DropAction a)
 void WindowEventHook::handleConfigureNotifyEvent(const xcb_configure_notify_event_t *event)
 {
     QXcbWindow *me = window();
+    DPlatformWindowHelper *helper = DPlatformWindowHelper::mapped.value(me);
+
+    if (helper) {
+        QWindowPrivate::get(me->window())->parentWindow = helper->m_frameWindow;
+    }
 
     me->QXcbWindow::handleConfigureNotifyEvent(event);
 
-    if (DPlatformWindowHelper *helper = DPlatformWindowHelper::mapped.value(me)) {
-        helper->m_frameWindow->markXPixmapToDirty(event->width, event->height);
+    if (helper) {
+        QWindowPrivate::get(me->window())->parentWindow = nullptr;
+
+        if (helper->m_frameWindow->redirectContent())
+            helper->m_frameWindow->markXPixmapToDirty(event->width, event->height);
     }
 }
 

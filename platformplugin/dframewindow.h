@@ -80,6 +80,8 @@ public:
     void disableRepaintShadow();
     void enableRepaintShadow();
 
+    bool redirectContent() const;
+
 signals:
     void contentMarginsHintChanged(const QMargins &oldMargins) const;
 
