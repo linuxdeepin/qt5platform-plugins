@@ -1,3 +1,15 @@
+<a name="1.1.26"></a>
+## 1.1.26 (2019-04-17)
+
+
+#### Bug Fixes
+
+*   Synchronize its screen object only when the native window is called directly on setScreen ([a5749da3](https://github.com/linuxdeepin/qt5dxcb-plugin/commit/a5749da392d77c8b92cf66480b52207af3c7452f))
+*   call QDeepinTheme::updateScaleLogcailDpi when screen added ([d4815e53](https://github.com/linuxdeepin/qt5dxcb-plugin/commit/d4815e5306460133bf4018040d748940e35fa014))
+*   window shadow dislocation on multi-screen and the screens have different device pixel scale ratio ([d8013112](https://github.com/linuxdeepin/qt5dxcb-plugin/commit/d8013112ee4635a5e5d6177321d6fb954246d53b))
+
+
+
 <a name="1.1.25"></a>
 ## 1.1.25 (2019-03-27)
 
