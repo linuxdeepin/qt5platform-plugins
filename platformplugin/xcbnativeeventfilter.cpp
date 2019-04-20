@@ -90,7 +90,7 @@ bool XcbNativeEventFilter::nativeEventFilter(const QByteArray &eventType, void *
 #if QT_VERSION < QT_VERSION_CHECK(5, 12, 0)
     if (response_type == m_connection->xfixes_first_event + XCB_XFIXES_SELECTION_NOTIFY) {
 #else
-    if (response_type == m_connection->m_xfixesFirstEvent + XCB_XFIXES_SELECTION_NOTIFY) {
+    if (m_connection->isXFixesType(response_type, XCB_XFIXES_SELECTION_NOTIFY)) {
 #endif
         xcb_xfixes_selection_notify_event_t *xsn = (xcb_xfixes_selection_notify_event_t *)event;
 
@@ -227,8 +227,13 @@ bool XcbNativeEventFilter::nativeEventFilter(const QByteArray &eventType, void *
 #endif
         default:
             static auto updateScaleLogcailDpi = qApp->property("_d_updateScaleLogcailDpi").toULongLong();
+#if QT_VERSION < QT_VERSION_CHECK(5, 12, 0)
             if (updateScaleLogcailDpi && DPlatformIntegration::xcbConnection()->has_randr_extension
                     && response_type == DPlatformIntegration::xcbConnection()->xrandr_first_event + XCB_RANDR_NOTIFY) {
+#else
+            if (updateScaleLogcailDpi && DPlatformIntegration::xcbConnection()->hasXRender()
+                    && DPlatformIntegration::xcbConnection()->isXRandrType(response_type, XCB_RANDR_NOTIFY)) {
+#endif
                 xcb_randr_notify_event_t *e = reinterpret_cast<xcb_randr_notify_event_t *>(event);
                 xcb_randr_output_change_t output = e->u.oc;
 
