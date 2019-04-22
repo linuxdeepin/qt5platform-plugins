@@ -633,7 +633,9 @@ bool DPlatformWindowHelper::eventFilter(QObject *watched, QEvent *event)
         case QEvent::Drop: {
             DQDropEvent *e = static_cast<DQDropEvent*>(event);
             e->p -= m_frameWindow->contentOffsetHint();
+#if QT_VERSION >= QT_VERSION_CHECK(5, 8, 0)
             Q_FALLTHROUGH();
+#endif
         } // deliberate
         case QEvent::DragLeave:
             QCoreApplication::sendEvent(m_nativeWindow->window(), event);
