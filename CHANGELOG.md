@@ -1,3 +1,13 @@
+<a name="1.1.26.1"></a>
+## 1.1.26.1 (2019-04-22)
+
+
+#### Bug Fixes
+
+*   failed on build(Qt 5.7.x) ([b7a973db](https://github.com/linuxdeepin/qt5dxcb-plugin/commit/b7a973dbd2a6ff086114aff01c9ff33f6e01cb17))
+
+
+
 <a name="1.1.26"></a>
 ## 1.1.26 (2019-04-17)
 
