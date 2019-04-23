@@ -488,6 +488,12 @@ void DPlatformWindowHelper::requestActivateWindow()
 #endif
 
     helper->m_frameWindow->handle()->requestActivateWindow();
+#ifdef Q_OS_LINUX
+    // 对于有parent的窗口，需要调用此接口让其获得输入焦点
+    xcb_set_input_focus(DPlatformIntegration::xcbConnection()->xcb_connection(),
+                        XCB_INPUT_FOCUS_PARENT, helper->m_nativeWindow->QNativeWindow::winId(),
+                        DPlatformIntegration::xcbConnection()->time());
+#endif
 }
 
 bool DPlatformWindowHelper::setKeyboardGrabEnabled(bool grab)
