@@ -1,3 +1,15 @@
+<a name="1.1.27"></a>
+## 1.1.27 (2019-04-23)
+
+
+#### Bug Fixes
+
+*   window can not get focus at mapped ([42684bc9](https://github.com/linuxdeepin/qt5dxcb-plugin/commit/42684bc9dc937d0c1373d0d4d132391fa2118250))
+*   do not use methods because symbols are not exported ([07eb94cd](https://github.com/linuxdeepin/qt5dxcb-plugin/commit/07eb94cd51ed05e83571c32b233ebf2e48e56700))
+*   compatibility with Qt 5.12+ ([b6355ce1](https://github.com/linuxdeepin/qt5dxcb-plugin/commit/b6355ce160c2ba48df7efb81a96a4a7f6d8923e6))
+
+
+
 <a name="1.1.26.1"></a>
 ## 1.1.26.1 (2019-04-22)
 
