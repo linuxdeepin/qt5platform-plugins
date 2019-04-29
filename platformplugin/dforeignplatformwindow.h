@@ -57,6 +57,8 @@ private:
     bool isForeignWindow() const override {
         return true;
     }
+#else
+    QPlatformScreen *screenForGeometry(const QRect &newGeometry) const;
 #endif
 
     void updateTitle();
