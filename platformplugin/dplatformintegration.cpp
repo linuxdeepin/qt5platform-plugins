@@ -669,7 +669,7 @@ static xcb_cursor_t overrideCreateFontCursor(QXcbCursor *xcb_cursor, QCursor *c,
     // Non-standard X11 cursors are created from bitmaps
     cursor = overrideCreateNonStandardCursor(xcb_cursor, cshape, window);
 
-    // Create a glpyh cursor if everything else failed
+    // Create a glyph cursor if everything else failed
     if (!cursor && cursorId) {
         cursor = xcb_generate_id(conn);
         xcb_create_glyph_cursor(conn, cursor, cursorFont, cursorFont,
