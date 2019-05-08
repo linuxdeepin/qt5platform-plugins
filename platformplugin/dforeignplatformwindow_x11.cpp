@@ -367,6 +367,10 @@ void DForeignPlatformWindow::init()
     updateWmDesktop();
     updateProcessId();
 
+    if (QPlatformScreen * qplatformScreen = screenForGeometry(geometry())) {
+        window()->setScreen(qplatformScreen->screen());
+    }
+
 //    m_mapped = Utility::getWindows().contains(m_window);
 //    qt_window_private(window())->visible = m_mapped;
 }
