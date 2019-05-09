@@ -1,3 +1,18 @@
+<a name="1.2.0"></a>
+## 1.2.0 (2019-05-09)
+
+
+#### Bug Fixes
+
+*   DForeignPlatformWindow have a wrong screen object ([49658492](https://github.com/linuxdeepin/qt5dxcb-plugin/commit/4965849204cc5fa67fb207f136222af3e4f0b2a8))
+*   crash at DForeignPlatformWindow::handleConfigureNotifyEvent ([5ff0224a](https://github.com/linuxdeepin/qt5dxcb-plugin/commit/5ff0224aeafb6ec6fb76c5ad5eb3351f6de883d4))
+
+#### Others
+
+*   correct a typo ([83f8d46c](https://github.com/linuxdeepin/qt5dxcb-plugin/commit/83f8d46c11ac2c3a58a53ec88db08fe7d72eaf8f))
+
+
+
 <a name="1.1.27"></a>
 ## 1.1.27 (2019-04-23)
 
