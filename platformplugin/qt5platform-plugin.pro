@@ -18,6 +18,9 @@ greaterThan(QT_MAJOR_VERSION, 4) {
 
     # Qt >= 5.10
     greaterThan(QT_MINOR_VERSION, 9): QT += edid_support-private
+
+    # Qt >= 5.13
+    greaterThan(QT_MINOR_VERSION, 12): QT += xkbcommon_support-private
 }
 
 TEMPLATE = lib
