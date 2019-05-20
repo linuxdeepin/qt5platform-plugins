@@ -208,6 +208,8 @@ void Utility::showWindowSystemMenu(quint32 WId, QPoint globalPos)
     xev.data.data32[1] = globalPos.x();
     xev.data.data32[2] = globalPos.y();
 
+    // ungrab鼠标，防止窗管的菜单窗口无法grab鼠标
+    xcb_ungrab_pointer(QX11Info::connection(), XCB_CURRENT_TIME);
     xcb_send_event(QX11Info::connection(), false, QX11Info::appRootWindow(QX11Info::appScreen()),
                    XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT | XCB_EVENT_MASK_SUBSTRUCTURE_NOTIFY,
                    (const char *)&xev);
