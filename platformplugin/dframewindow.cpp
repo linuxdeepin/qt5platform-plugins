@@ -378,16 +378,17 @@ void DFrameWindow::showEvent(QShowEvent *event)
 
 void DFrameWindow::mouseMoveEvent(QMouseEvent *event)
 {
+    // 无论如何，在已进入move resize时都不再进行后面的处理，防止触屏移动窗口时会误触进入到窗口resize状态
+    if (m_isSystemMoveResizeState && qApp->mouseButtons() == Qt::LeftButton) {
+        Utility::updateMousePointForWindowMove(Utility::getNativeTopLevelWindow(winId()));
+
+        return;
+    }
+
     if (event->source() == Qt::MouseEventSynthesizedByQt && qApp->mouseButtons() == Qt::LeftButton
             && m_clipPathOfContent.contains(event->pos() - contentOffsetHint())) {
         if (!isEnableSystemMove())
             return;
-
-        if (m_isSystemMoveResizeState) {
-            Utility::updateMousePointForWindowMove(Utility::getNativeTopLevelWindow(winId()));
-
-            return;
-        }
 
         ///TODO: Warning: System move finished no mouse release event
         Utility::startWindowSystemMove(Utility::getNativeTopLevelWindow(winId()));
