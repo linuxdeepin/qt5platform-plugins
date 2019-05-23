@@ -1,3 +1,20 @@
+<a name="1.2.1"></a>
+## 1.2.1 (2019-05-23)
+
+
+#### Features
+
+*   add new Qt private component for Qt 5.13+ ([796ad523](https://github.com/linuxdeepin/qt5dxcb-plugin/commit/796ad5235fec4ac83b734f2876614fd8eb7b3c2b))
+*   support Qt 15.12.1/15.12.2/15.12.3 ([ee3e4c8a](https://github.com/linuxdeepin/qt5dxcb-plugin/commit/ee3e4c8a965b4e0a7b920ac8bcf8af96ff47f5b2))
+
+#### Bug Fixes
+
+*   It is easy to trigger resize when using the touch screen to move the window ([99e43da8](https://github.com/linuxdeepin/qt5dxcb-plugin/commit/99e43da805ae29d078315dd23683d0277d0bb760))
+*   the window menu cannot hide ([a077611d](https://github.com/linuxdeepin/qt5dxcb-plugin/commit/a077611df0469f498ebec29e566c68d260f10ddb))
+*   the foreign platform window screen is wrong ([6eac7834](https://github.com/linuxdeepin/qt5dxcb-plugin/commit/6eac7834c93d54c9e9cbb18b155d0da1768ddf61))
+
+
+
 <a name="1.2.0"></a>
 ## 1.2.0 (2019-05-09)
 
