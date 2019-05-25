@@ -39,6 +39,8 @@ class DXcbWMSupport : public QObject
 
     Q_PROPERTY(bool hasBlurWindow READ hasBlurWindow NOTIFY hasBlurWindowChanged)
     Q_PROPERTY(bool hasComposite READ hasComposite NOTIFY hasCompositeChanged)
+    // 属性值只有可能在窗管是否支持混成时发生改变
+    Q_PROPERTY(bool hasWindowAlpha READ hasWindowAlpha FINAL)
 
 public:
     enum {
@@ -88,6 +90,7 @@ public:
     bool isContainsForRootWindow(xcb_atom_t atom) const;
     bool hasBlurWindow() const;
     bool hasComposite() const;
+    bool hasWindowAlpha() const;
 
     QString windowManagerName() const;
 
@@ -116,6 +119,7 @@ private:
     bool m_isKwin = false;
     bool m_hasBlurWindow = false;
     bool m_hasComposite = false;
+    bool m_windowHasAlpha = true;
 
     QString m_wmName;
 

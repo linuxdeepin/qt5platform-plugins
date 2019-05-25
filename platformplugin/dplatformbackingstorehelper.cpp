@@ -95,7 +95,7 @@ void DPlatformBackingStoreHelper::flush(QWindow *window, const QRegion &region, 
     if (!backingStore()->paintDevice())
         return;
 
-    if (Q_LIKELY(DWMSupport::instance()->hasComposite())) {
+    if (Q_LIKELY(DWMSupport::instance()->hasWindowAlpha())) {
         DPlatformWindowHelper *window_helper = DPlatformWindowHelper::mapped.value(window->handle());
 
         if (!window_helper)

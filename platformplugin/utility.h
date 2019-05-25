@@ -105,6 +105,7 @@ public:
     // by Deepin Window Manager
     static bool hasBlurWindow();
     static bool hasComposite();
+    static bool hasWindowAlpha();
     static QString windowManagerName();
     static bool blurWindowBackground(const quint32 WId, const QVector<BlurArea> &areas);
     static bool blurWindowBackgroundByPaths(const quint32 WId, const QList<QPainterPath> &paths);
