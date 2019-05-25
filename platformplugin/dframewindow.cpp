@@ -567,9 +567,13 @@ static cairo_format_t cairo_format_from_qimage_format (QImage::Format fmt)
     case QImage::Format_Mono:
     case QImage::Format_MonoLSB:
         return CAIRO_FORMAT_A1;
+    case QImage::Format_RGB16:
+        return CAIRO_FORMAT_RGB16_565;
+    case QImage::Format_RGB30:
+    case QImage::Format_A2RGB30_Premultiplied: // 忽略2 bits的alpha通道
+        return CAIRO_FORMAT_RGB30;
     case QImage::Format_Invalid:
     case QImage::Format_ARGB32:
-    case QImage::Format_RGB16:
     case QImage::Format_ARGB8565_Premultiplied:
     case QImage::Format_RGB666:
     case QImage::Format_ARGB6666_Premultiplied:
