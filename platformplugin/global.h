@@ -60,6 +60,7 @@ DEFINE_CONST_CHAR(setWmBlurWindowBackgroundPathList);
 DEFINE_CONST_CHAR(setWmBlurWindowBackgroundMaskImage);
 DEFINE_CONST_CHAR(hasBlurWindow);
 DEFINE_CONST_CHAR(hasComposite);
+DEFINE_CONST_CHAR(hasWindowAlpha);
 DEFINE_CONST_CHAR(windowManagerName);
 DEFINE_CONST_CHAR(connectWindowManagerChangedSignal);
 DEFINE_CONST_CHAR(connectHasBlurWindowChanged);

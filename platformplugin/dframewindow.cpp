@@ -640,13 +640,13 @@ void DFrameWindow::drawShadowTo(QPaintDevice *device)
 
     pa.setCompositionMode(QPainter::CompositionMode_Source);
 
-    if (!disableFrame() && Q_LIKELY(DXcbWMSupport::instance()->hasComposite())
+    if (!disableFrame() && Q_LIKELY(DXcbWMSupport::instance()->hasWindowAlpha())
             && !m_shadowImage.isNull()) {
         pa.drawImage(offset * device_pixel_ratio, m_shadowImage);
     }
 
     if (m_borderWidth > 0 && m_borderColor != Qt::transparent) {
-        if (Q_LIKELY(DXcbWMSupport::instance()->hasComposite())) {
+        if (Q_LIKELY(DXcbWMSupport::instance()->hasWindowAlpha())) {
             pa.setRenderHint(QPainter::Antialiasing);
             pa.fillPath(m_borderPath, m_borderColor);
         } else {
@@ -920,7 +920,7 @@ void DFrameWindow::updateMask()
 
     if (disableFrame()) {
         QRegion region(m_contentGeometry * devicePixelRatio());
-        Utility::setShapeRectangles(winId(), region, DWMSupport::instance()->hasComposite(), flags().testFlag(Qt::WindowTransparentForInput));
+        Utility::setShapeRectangles(winId(), region, DWMSupport::instance()->hasWindowAlpha(), flags().testFlag(Qt::WindowTransparentForInput));
 
         return;
     }
@@ -928,7 +928,7 @@ void DFrameWindow::updateMask()
     // Set window clip mask
     int mouse_margins;
 
-    if (DWMSupport::instance()->hasComposite())
+    if (DWMSupport::instance()->hasWindowAlpha())
         mouse_margins = canResize() ? MOUSE_MARGINS : 0;
     else
         mouse_margins = qRound(m_borderWidth * devicePixelRatio());
@@ -948,10 +948,10 @@ void DFrameWindow::updateMask()
             p = path;
         }
 
-        Utility::setShapePath(winId(), p, DWMSupport::instance()->hasComposite(), flags().testFlag(Qt::WindowTransparentForInput));
+        Utility::setShapePath(winId(), p, DWMSupport::instance()->hasWindowAlpha(), flags().testFlag(Qt::WindowTransparentForInput));
     } else {
         QRegion region((m_contentGeometry * devicePixelRatio()).adjusted(-mouse_margins, -mouse_margins, mouse_margins, mouse_margins));
-        Utility::setShapeRectangles(winId(), region, DWMSupport::instance()->hasComposite(), flags().testFlag(Qt::WindowTransparentForInput));
+        Utility::setShapeRectangles(winId(), region, DWMSupport::instance()->hasWindowAlpha(), flags().testFlag(Qt::WindowTransparentForInput));
     }
 
     QPainterPathStroker stroker;
@@ -972,7 +972,7 @@ void DFrameWindow::updateFrameMask()
 //    if (!xw || !xw->wmWindowTypes().testFlag(QXcbWindowFunctions::Dock))
 //        return;
 
-//    if (!m_enableAutoFrameMask || !DWMSupport::instance()->hasComposite())
+//    if (!m_enableAutoFrameMask || !DWMSupport::instance()->hasWindowAlpha())
 //        return;
 
 //    const QRect rect(QRect(QPoint(0, 0), size()));

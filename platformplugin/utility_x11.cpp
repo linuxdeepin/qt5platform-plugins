@@ -458,7 +458,15 @@ bool Utility::hasBlurWindow()
 
 bool Utility::hasComposite()
 {
-    return DXcbWMSupport::instance()->hasComposite();
+    // 为了兼容现有的dtk应用中的逻辑，此处默认认为窗管是否支持混成等价于窗口是否支持alpha通道
+    static bool composite_with_alpha = qgetenv("D_DXCB_COMPOSITE_WITH_WINDOW_ALPHA") != "0";
+
+    return composite_with_alpha ? hasWindowAlpha() : DXcbWMSupport::instance()->hasComposite();
+}
+
+bool Utility::hasWindowAlpha()
+{
+    return DXcbWMSupport::instance()->hasWindowAlpha();
 }
 
 QString Utility::windowManagerName()

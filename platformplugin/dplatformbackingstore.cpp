@@ -526,7 +526,7 @@ DPlatformBackingStore::DPlatformBackingStore(QWindow *window, QXcbBackingStore *
     shadowPixmap.fill(Qt::transparent);
 
 #ifdef Q_OS_LINUX
-    m_enableShadow = DXcbWMSupport::instance()->hasComposite();
+    m_enableShadow = DXcbWMSupport::instance()->hasWindowAlpha();
 
     QObject::connect(DXcbWMSupport::instance(), &DXcbWMSupport::hasCompositeChanged,
                      m_eventListener, [this, window] (bool hasComposite) {
@@ -600,7 +600,7 @@ void DPlatformBackingStore::flush(QWindow *window, const QRegion &region, const 
 
     pa.setCompositionMode(QPainter::CompositionMode_Source);
 #ifdef Q_OS_LINUX
-    if (DXcbWMSupport::instance()->hasComposite())
+    if (DXcbWMSupport::instance()->hasWindowAlpha())
 #endif
     pa.setRenderHint(QPainter::Antialiasing);
 
@@ -624,7 +624,7 @@ void DPlatformBackingStore::flush(QWindow *window, const QRegion &region, const 
         QColor border_color = m_borderColor;
 
 #ifdef Q_OS_LINUX
-        if (!DXcbWMSupport::instance()->hasComposite())
+        if (!DXcbWMSupport::instance()->hasWindowAlpha())
             border_color = colorBlend(QColor("#e0e0e0"), m_borderColor);
 #endif
         tmp_region += QRect(QPoint(0, 0), m_size);
@@ -1072,14 +1072,14 @@ void DPlatformBackingStore::updateInputShapeRegion()
 
         Utility::setShapePath(window()->winId(), p
                       #ifdef Q_OS_LINUX
-                              , DXcbWMSupport::instance()->hasComposite()
+                              , DXcbWMSupport::instance()->hasWindowAlpha()
                       #endif
                               );
     } else {
         QRegion region(windowGeometry().adjusted(-mouse_margins, -mouse_margins, mouse_margins, mouse_margins));
         Utility::setShapeRectangles(window()->winId(), region
                        #ifdef Q_OS_LINUX
-                               , DXcbWMSupport::instance()->hasComposite()
+                               , DXcbWMSupport::instance()->hasWindowAlpha()
                        #endif
                                );
     }
@@ -1657,7 +1657,7 @@ QWidgetWindow *DPlatformBackingStore::widgetWindow() const
 int DPlatformBackingStore::getWindowRadius() const
 {
 #ifdef Q_OS_LINUX
-    return (isUserSetWindowRadius || DXcbWMSupport::instance()->hasComposite()) ? m_windowRadius : 0;
+    return (isUserSetWindowRadius || DXcbWMSupport::instance()->hasWindowAlpha()) ? m_windowRadius : 0;
 #else
     return m_windowRadius;
 #endif

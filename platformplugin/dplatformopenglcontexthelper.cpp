@@ -76,7 +76,7 @@ static void drawCornerImage(const QImage &source, const QPoint &source_offset, Q
 
 void DPlatformOpenGLContextHelper::swapBuffers(QPlatformSurface *surface)
 {
-    if (!DWMSupport::instance()->hasComposite())
+    if (!DWMSupport::instance()->hasWindowAlpha())
         goto end;
 
     if (surface->surface()->surfaceClass() == QSurface::Window) {

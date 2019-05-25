@@ -1061,17 +1061,17 @@ int DPlatformWindowHelper::getWindowRadius() const
         return 0;
 //#endif
 
-    return (m_isUserSetWindowRadius || DWMSupport::instance()->hasComposite()) ? m_windowRadius : 0;
+    return (m_isUserSetWindowRadius || DWMSupport::instance()->hasWindowAlpha()) ? m_windowRadius : 0;
 }
 
 int DPlatformWindowHelper::getShadowRadius() const
 {
-    return DWMSupport::instance()->hasComposite() ? m_shadowRadius : 0;
+    return DWMSupport::instance()->hasWindowAlpha() ? m_shadowRadius : 0;
 }
 
 int DPlatformWindowHelper::getBorderWidth() const
 {
-    if (m_isUserSetBorderWidth || DWMSupport::instance()->hasComposite())
+    if (m_isUserSetBorderWidth || DWMSupport::instance()->hasWindowAlpha())
         return m_borderWidth;
 
     return m_frameWindow->canResize() ? 2 : m_borderWidth;
@@ -1096,7 +1096,7 @@ static QColor colorBlend(const QColor &color1, const QColor &color2)
 
 QColor DPlatformWindowHelper::getBorderColor() const
 {
-    return DWMSupport::instance()->hasComposite() ? m_borderColor : colorBlend(QColor("#e0e0e0"), m_borderColor);
+    return DWMSupport::instance()->hasWindowAlpha() ? m_borderColor : colorBlend(QColor("#e0e0e0"), m_borderColor);
 }
 
 void DPlatformWindowHelper::updateWindowRadiusFromProperty()
@@ -1175,7 +1175,7 @@ void DPlatformWindowHelper::updateShadowRadiusFromProperty()
     if (ok && radius != m_shadowRadius) {
         m_shadowRadius = radius;
 
-        if (DWMSupport::instance()->hasComposite())
+        if (DWMSupport::instance()->hasWindowAlpha())
             m_frameWindow->setShadowRadius(radius);
     }
 }
@@ -1373,7 +1373,7 @@ void DPlatformWindowHelper::onWMHasCompositeChanged()
 
     updateClipPathByWindowRadius(window_size);
 
-    if (!DXcbWMSupport::instance()->hasComposite())
+    if (!DXcbWMSupport::instance()->hasWindowAlpha())
         m_frameWindow->disableRepaintShadow();
 
     m_frameWindow->setShadowRadius(getShadowRadius());
@@ -1381,7 +1381,7 @@ void DPlatformWindowHelper::onWMHasCompositeChanged()
 
 //    QPainterPath clip_path = m_clipPath * m_nativeWindow->window()->devicePixelRatio();
 
-//    if (DXcbWMSupport::instance()->hasComposite()) {
+//    if (DXcbWMSupport::instance()->hasWindowAlpha()) {
 //        QPainterPathStroker stroker;
 
 //        stroker.setJoinStyle(Qt::MiterJoin);
