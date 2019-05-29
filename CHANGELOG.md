@@ -1,3 +1,13 @@
+<a name="1.2.2"></a>
+## 1.2.2 (2019-05-29)
+
+
+#### Features
+
+*   support the 16bits/30bits image formats ([c50d83ef](https://github.com/linuxdeepin/qt5dxcb-plugin/commit/c50d83efa671780fd91ae73ef86ac31fb5256292))
+
+
+
 <a name="1.2.1"></a>
 ## 1.2.1 (2019-05-23)
 
