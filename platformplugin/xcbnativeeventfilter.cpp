@@ -27,6 +27,7 @@
 
 #include "dplatformintegration.h"
 #include "dxcbwmsupport.h"
+#include "dxcbxsettings.h"
 
 #include <xcb/xfixes.h>
 #include <xcb/damage.h>
@@ -124,6 +125,10 @@ bool XcbNativeEventFilter::nativeEventFilter(const QByteArray &eventType, void *
         switch (response_type) {
         case XCB_PROPERTY_NOTIFY: {
             xcb_property_notify_event_t *pn = (xcb_property_notify_event_t *)event;
+
+            if (auto settings = DPlatformIntegration::instance()->xSettings(true)) {
+                settings->handlePropertyNotifyEvent(pn);
+            }
 
             if (pn->atom == DPlatformIntegration::xcbConnection()->atom(QXcbAtom::_MOTIF_WM_HINTS)) {
                 emit DXcbWMSupport::instance()->windowMotifWMHintsChanged(pn->window);

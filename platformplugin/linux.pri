@@ -15,14 +15,16 @@ greaterThan(QT_MINOR_VERSION, 4): LIBS += -lQt5XcbQpa
 HEADERS += \
     $$PWD/windoweventhook.h \
     $$PWD/xcbnativeeventfilter.h \
-    $$PWD/dxcbwmsupport.h
+    $$PWD/dxcbwmsupport.h \
+    $$PWD/dxcbxsettings.h
 
 SOURCES += \
     $$PWD/windoweventhook.cpp \
     $$PWD/xcbnativeeventfilter.cpp \
     $$PWD/utility_x11.cpp \
     $$PWD/dxcbwmsupport.cpp \
-    $$PWD/dforeignplatformwindow_x11.cpp
+    $$PWD/dforeignplatformwindow_x11.cpp \
+    $$PWD/dxcbxsettings.cpp
 
 contains(QT_CONFIG, xcb-xlib)|qtConfig(xcb-xlib) {
     DEFINES += XCB_USE_XLIB

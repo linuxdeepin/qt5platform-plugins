@@ -39,6 +39,7 @@
 #include "windoweventhook.h"
 #include "xcbnativeeventfilter.h"
 #include "dplatformnativeinterfacehook.h"
+#include "dxcbxsettings.h"
 
 #include "qxcbscreen.h"
 #include "qxcbbackingstore.h"
@@ -58,6 +59,7 @@
 #include <QGuiApplication>
 #include <QLibrary>
 #include <QDrag>
+#include <QStyleHints>
 
 #include <private/qguiapplication_p.h>
 #define protected public
@@ -65,6 +67,11 @@
 #undef protected
 #include <qpa/qplatformnativeinterface.h>
 #include <private/qpaintengine_raster_p.h>
+
+// https://www.freedesktop.org/wiki/Specifications/XSettingsRegistry/
+#define XSETTINGS_CURSOR_BLINK QByteArrayLiteral("Net/CursorBlink")
+#define XSETTINGS_CURSOR_BLINK_TIME QByteArrayLiteral("Net/CursorBlinkTime")
+#define XSETTINGS_DOUBLE_CLICK_TIME QByteArrayLiteral("Net/DoubleClickTime")
 
 class DQPaintEngine : public QPaintEngine
 {
@@ -347,6 +354,33 @@ QStringList DPlatformIntegration::themeNames() const
     list.prepend("deepin");
 
     return list;
+}
+
+#define GET_VALID_XSETTINGS(key) { \
+    auto value = xSettings()->setting(key); \
+    if (value.isValid()) return value; \
+}
+
+QVariant DPlatformIntegration::styleHint(QPlatformIntegration::StyleHint hint) const
+{
+#ifdef Q_OS_LINUX
+    switch ((int)hint) {
+    case CursorFlashTime:
+        if (enableCursorBlink()) {
+            GET_VALID_XSETTINGS(XSETTINGS_CURSOR_BLINK_TIME);
+            break;
+        } else {
+            return 0;
+        }
+    case MouseDoubleClickInterval:
+        GET_VALID_XSETTINGS(XSETTINGS_DOUBLE_CLICK_TIME);
+        break;
+    default:
+        break;
+    }
+#endif
+
+    return DPlatformIntegrationParent::styleHint(hint);
 }
 
 #ifdef Q_OS_LINUX
@@ -852,6 +886,51 @@ void DPlatformIntegration::initialize()
 
     QObject::connect(qApp, &QGuiApplication::screenAdded, qApp, &hookScreenGetWindow);
 }
+
+#ifdef Q_OS_LINUX
+static void onXSettingsChanged(QXcbVirtualDesktop *screen, const QByteArray &name, const QVariant &property, void *handle)
+{
+    Q_UNUSED(screen)
+    Q_UNUSED(property)
+    Q_UNUSED(name)
+
+    if (handle == reinterpret_cast<void*>(QPlatformIntegration::CursorFlashTime)) {
+        // 由于QStyleHints中的属性值可能已经被自定义，因此不应该使用property中的值
+        // 此处只表示 QStyleHints 的 cursorFlashTime 属性可能变了
+        Q_EMIT qGuiApp->styleHints()->cursorFlashTimeChanged(qGuiApp->styleHints()->cursorFlashTime());
+    }
+}
+
+bool DPlatformIntegration::enableCursorBlink() const
+{
+    auto value = xSettings()->setting(XSETTINGS_CURSOR_BLINK);
+    bool ok = false;
+    int enable = value.toInt(&ok);
+
+    return !ok || enable;
+}
+
+DXcbXSettings *DPlatformIntegration::xSettings(bool onlyExists) const
+{
+    if (onlyExists)
+        return m_xsettings;
+
+    if (!m_xsettings) {
+        auto xsettings = new DXcbXSettings(xcbConnection()->primaryVirtualDesktop());
+        const_cast<DPlatformIntegration*>(this)->m_xsettings = xsettings;
+
+        // 注册回调，用于通知 QStyleHints 属性改变
+        xsettings->registerCallbackForProperty(XSETTINGS_CURSOR_BLINK_TIME,
+                                               onXSettingsChanged,
+                                               reinterpret_cast<void*>(CursorFlashTime));
+        xsettings->registerCallbackForProperty(XSETTINGS_CURSOR_BLINK,
+                                               onXSettingsChanged,
+                                               reinterpret_cast<void*>(CursorFlashTime));
+    }
+
+    return m_xsettings;
+}
+#endif
 
 bool DPlatformIntegration::isWindowBlockedHandle(QWindow *window, QWindow **blockingWindow)
 {
