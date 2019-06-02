@@ -36,6 +36,7 @@ class DPlatformWindowHook;
 class XcbNativeEventFilter;
 class DPlatformBackingStoreHelper;
 class DPlatformOpenGLContextHelper;
+class DXcbXSettings;
 
 class DPlatformIntegration : public DPlatformIntegrationParent
 {
@@ -52,6 +53,7 @@ public:
     QPaintEngine *createImagePaintEngine(QPaintDevice *paintDevice) const override;
 
     QStringList themeNames() const Q_DECL_OVERRIDE;
+    QVariant styleHint(StyleHint hint) const override;
 
     void initialize() Q_DECL_OVERRIDE;
 
@@ -73,8 +75,12 @@ private:
     inline XcbNativeEventFilter *eventFilter()
     { return m_eventFilter;}
 
+    bool enableCursorBlink() const;
+    DXcbXSettings *xSettings(bool onlyExists = false) const;
+
 private:
     XcbNativeEventFilter *m_eventFilter = Q_NULLPTR;
+    DXcbXSettings *m_xsettings = nullptr;
 #endif
 private:
     // handle the DFrameWindow modal blocked state
