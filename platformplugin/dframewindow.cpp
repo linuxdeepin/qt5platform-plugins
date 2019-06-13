@@ -161,6 +161,8 @@ DFrameWindow::~DFrameWindow()
     if (nativeWindowXPixmap != XCB_PIXMAP_NONE)
         xcb_free_pixmap(DPlatformIntegration::xcbConnection()->xcb_connection(), nativeWindowXPixmap);
 #endif
+
+    delete platformBackingStore;
 }
 
 QWindow *DFrameWindow::contentWindow() const
