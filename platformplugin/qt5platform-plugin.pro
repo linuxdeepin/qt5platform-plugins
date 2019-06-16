@@ -43,7 +43,8 @@ SOURCES += \
     $$PWD/dplatformintegration.cpp \
     $$PWD/vtablehook.cpp \
     $$PWD/dplatformnativeinterfacehook.cpp \
-    dhighdpi.cpp
+    dhighdpi.cpp \
+    dnotitlebarwindowhelper.cpp
 
 HEADERS += \
     $$PWD/dplatformintegration.h \
@@ -53,7 +54,8 @@ HEADERS += \
     $$PWD/dplatformnativeinterfacehook.h \
     $$PWD/dforeignplatformwindow.h \
     $$PWD/dwmsupport.h \
-    dhighdpi.h
+    dhighdpi.h \
+    dnotitlebarwindowhelper.h
 
 DISTFILES += \
     $$PWD/dpp.json

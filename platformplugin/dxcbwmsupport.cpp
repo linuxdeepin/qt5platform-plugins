@@ -44,16 +44,6 @@ DXcbWMSupport::DXcbWMSupport()
             }
         }
     });
-
-    // 测试窗口visual是否支持alpha通道
-    QWindow test_window;
-    QSurfaceFormat sf = test_window.format();
-    sf.setDepthBufferSize(32);
-    sf.setAlphaBufferSize(8);
-    test_window.setFormat(sf);
-    test_window.create();
-    // 当窗口位深不等于32时即认为它不支持alpha通道
-    m_windowHasAlpha = static_cast<QXcbWindow*>(test_window.handle())->depth() == 32;
 }
 
 void DXcbWMSupport::updateWMName(bool emitSignal)
@@ -61,6 +51,8 @@ void DXcbWMSupport::updateWMName(bool emitSignal)
     _net_wm_deepin_blur_region_rounded_atom = Utility::internAtom(QT_STRINGIFY(_NET_WM_DEEPIN_BLUR_REGION_ROUNDED), false);
     _net_wm_deepin_blur_region_mask = Utility::internAtom(QT_STRINGIFY(_NET_WM_DEEPIN_BLUR_REGION_MASK), false);
     _kde_net_wm_blur_rehind_region_atom = Utility::internAtom(QT_STRINGIFY(_KDE_NET_WM_BLUR_BEHIND_REGION), false);
+    _deepin_no_titlebar = Utility::internAtom(QT_STRINGIFY(_DEEPIN_NO_TITLEBAR), false);
+    _deepin_scissor_window = Utility::internAtom(QT_STRINGIFY(_DEEPIN_SCISSOR_WINDOW), false);
 
     m_wmName.clear();
 
@@ -137,6 +129,8 @@ void DXcbWMSupport::updateNetWMAtoms()
     } while (remaining > 0);
 
     updateHasBlurWindow();
+    updateHasNoTitlebar();
+    updateHasScissorWindow();
 }
 
 void DXcbWMSupport::updateRootWindowProperties()
@@ -166,15 +160,15 @@ void DXcbWMSupport::updateHasBlurWindow()
 {
     bool hasBlurWindow((m_isDeepinWM && isSupportedByWM(_net_wm_deepin_blur_region_rounded_atom))
                        || (m_isKwin && isContainsForRootWindow(_kde_net_wm_blur_rehind_region_atom)));
+    // 当窗口visual不支持alpha通道时，也等价于不支持窗口背景模糊
+    hasBlurWindow = hasBlurWindow && getHasWindowAlpha();
 
     if (m_hasBlurWindow == hasBlurWindow)
         return;
 
     m_hasBlurWindow = hasBlurWindow;
 
-    // 当窗口visual不支持alpha通道时，也等价于不支持窗口背景模糊
-    if (m_windowHasAlpha)
-        emit hasBlurWindowChanged(hasBlurWindow);
+    emit hasBlurWindowChanged(hasBlurWindow);
 }
 
 void DXcbWMSupport::updateHasComposite()
@@ -196,6 +190,47 @@ void DXcbWMSupport::updateHasComposite()
     m_hasComposite = hasComposite;
 
     emit hasCompositeChanged(hasComposite);
+}
+
+void DXcbWMSupport::updateHasNoTitlebar()
+{
+    bool hasNoTitlebar(net_wm_atoms.contains(_deepin_no_titlebar));
+
+    if (m_hasNoTitlebar == hasNoTitlebar)
+        return;
+
+    m_hasNoTitlebar = hasNoTitlebar;
+
+    emit hasNoTitlebarChanged(m_hasNoTitlebar);
+}
+
+void DXcbWMSupport::updateHasScissorWindow()
+{
+    bool hasScissorWindow(net_wm_atoms.contains(_deepin_scissor_window));
+
+    if (m_hasScissorWindow == hasScissorWindow)
+        return;
+
+    m_hasScissorWindow = hasScissorWindow;
+
+    emit hasScissorWindowChanged(m_hasScissorWindow);
+}
+
+qint8 DXcbWMSupport::getHasWindowAlpha() const
+{
+    if (m_windowHasAlpha < 0) {
+        // 测试窗口visual是否支持alpha通道
+        QWindow test_window;
+        QSurfaceFormat sf = test_window.format();
+        sf.setDepthBufferSize(32);
+        sf.setAlphaBufferSize(8);
+        test_window.setFormat(sf);
+        test_window.create();
+        // 当窗口位深不等于32时即认为它不支持alpha通道
+        const_cast<DXcbWMSupport*>(this)->m_windowHasAlpha = static_cast<QXcbWindow*>(test_window.handle())->depth() == 32;
+    }
+
+    return m_windowHasAlpha;
 }
 
 DXcbWMSupport *DXcbWMSupport::instance()
@@ -225,6 +260,14 @@ bool DXcbWMSupport::connectHasCompositeChanged(QObject *object, std::function<vo
         return QObject::connect(globalXWMS, &DXcbWMSupport::hasCompositeChanged, slot);
 
     return QObject::connect(globalXWMS, &DXcbWMSupport::hasCompositeChanged, object, slot);
+}
+
+bool DXcbWMSupport::connectHasNoTitlebarChanged(QObject *object, std::function<void ()> slot)
+{
+    if (!object)
+        return QObject::connect(globalXWMS, &DXcbWMSupport::hasNoTitlebarChanged, slot);
+
+    return QObject::connect(globalXWMS, &DXcbWMSupport::hasNoTitlebarChanged, object, slot);
 }
 
 bool DXcbWMSupport::connectWindowListChanged(QObject *object, std::function<void ()> slot)
@@ -371,7 +414,7 @@ bool DXcbWMSupport::isContainsForRootWindow(xcb_atom_t atom) const
 
 bool DXcbWMSupport::hasBlurWindow() const
 {
-    return m_hasBlurWindow && m_windowHasAlpha;
+    return m_hasBlurWindow && getHasWindowAlpha();
 }
 
 bool DXcbWMSupport::hasComposite() const
@@ -379,10 +422,48 @@ bool DXcbWMSupport::hasComposite() const
     return m_hasComposite;
 }
 
+bool DXcbWMSupport::hasNoTitlebar() const
+{
+    return m_hasNoTitlebar;
+}
+
+bool DXcbWMSupport::hasScissorWindow() const
+{
+    return m_hasScissorWindow;
+}
+
 bool DXcbWMSupport::hasWindowAlpha() const
 {
     // 窗管不支持混成时也等价于窗口visual不支持alpha通道
-    return  m_hasComposite && m_windowHasAlpha;
+    return m_hasComposite && getHasWindowAlpha();
+}
+
+bool DXcbWMSupport::Global::hasBlurWindow()
+{
+    return  DXcbWMSupport::instance()->hasBlurWindow();
+}
+
+bool DXcbWMSupport::Global::hasComposite()
+{
+    // 为了兼容现有的dtk应用中的逻辑，此处默认认为窗管是否支持混成等价于窗口是否支持alpha通道
+    static bool composite_with_alpha = qgetenv("D_DXCB_COMPOSITE_WITH_WINDOW_ALPHA") != "0";
+
+    return composite_with_alpha ? hasWindowAlpha() : DXcbWMSupport::instance()->hasComposite();
+}
+
+bool DXcbWMSupport::Global::hasNoTitlebar()
+{
+    return DXcbWMSupport::instance()->hasNoTitlebar();
+}
+
+bool DXcbWMSupport::Global::hasWindowAlpha()
+{
+    return DXcbWMSupport::instance()->hasWindowAlpha();
+}
+
+QString DXcbWMSupport::Global::windowManagerName()
+{
+    return DXcbWMSupport::instance()->windowManagerName();
 }
 
 DPP_END_NAMESPACE

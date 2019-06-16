@@ -19,6 +19,8 @@
 #include "global.h"
 #include "dforeignplatformwindow.h"
 #include "vtablehook.h"
+#include "dwmsupport.h"
+#include "dnotitlebarwindowhelper.h"
 
 #ifdef USE_NEW_IMPLEMENTING
 #include "dplatformwindowhelper.h"
@@ -124,6 +126,15 @@ DPlatformIntegration::~DPlatformIntegration()
 #endif
 }
 
+void DPlatformIntegration::setWindowProperty(QWindow *window, const char *name, const QVariant &value)
+{
+    if (isEnableNoTitlebar(window)) {
+        DNoTitlebarWindowHelper::setWindowProperty(window, name, value);
+    } else if (isEnableDxcb(window)) {
+        DPlatformWindowHelper::setWindowProperty(window, name, value);
+    }
+}
+
 bool DPlatformIntegration::enableDxcb(QWindow *window)
 {
     qDebug() << __FUNCTION__ << window << window->type() << window->parent();
@@ -186,6 +197,48 @@ bool DPlatformIntegration::isEnableDxcb(const QWindow *window)
     return window->property(useDxcb).toBool();
 }
 
+bool DPlatformIntegration::setEnableNoTitlebar(QWindow *window, bool enable)
+{
+    qDebug() << __FUNCTION__ << enable << window << window->type() << window->parent();
+
+    if (enable) {
+        if (window->type() == Qt::Desktop)
+            return false;
+
+        if (!DWMSupport::instance()->hasNoTitlebar())
+            return false;
+
+        QNativeWindow *xw = static_cast<QNativeWindow*>(window->handle());
+
+        if (!xw) {
+            window->setProperty(noTitlebar, true);
+
+            return true;
+        }
+
+        if (DNoTitlebarWindowHelper::mapped.value(window))
+            return true;
+
+        Utility::setNoTitlebar(xw->winId(), true);
+        // 跟随窗口被销毁
+        Q_UNUSED(new DNoTitlebarWindowHelper(window))
+    } else {
+        if (auto helper = DNoTitlebarWindowHelper::mapped.value(window)) {
+            Utility::setNoTitlebar(window->winId(), false);
+            helper->deleteLater();
+        }
+
+        window->setProperty(noTitlebar, QVariant());
+    }
+
+    return true;
+}
+
+bool DPlatformIntegration::isEnableNoTitlebar(const QWindow *window)
+{
+    return window->property(noTitlebar).toBool();
+}
+
 QPlatformWindow *DPlatformIntegration::createPlatformWindow(QWindow *window) const
 {
     qDebug() << __FUNCTION__ << window << window->type() << window->parent();
@@ -201,6 +254,17 @@ QPlatformWindow *DPlatformIntegration::createPlatformWindow(QWindow *window) con
         if (win_id > 0) {
             return new DForeignPlatformWindow(window, win_id);
         }
+    }
+
+    bool isNoTitlebar = window->type() != Qt::Desktop && window->property(noTitlebar).toBool();
+
+    if (isNoTitlebar && DWMSupport::instance()->hasNoTitlebar()) {
+        QPlatformWindow *w = DPlatformIntegrationParent::createPlatformWindow(window);
+        Utility::setNoTitlebar(w->winId(), true);
+        // 跟随窗口被销毁
+        Q_UNUSED(new DNoTitlebarWindowHelper(window))
+
+        return w;
     }
 
     bool isUseDxcb = window->type() != Qt::Desktop && window->property(useDxcb).toBool();

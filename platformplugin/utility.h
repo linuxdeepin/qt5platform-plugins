@@ -71,6 +71,8 @@ public:
     static void setWindowProperty(quint32 WId, xcb_atom_t propAtom, xcb_atom_t typeAtom, const void *data, quint32 len, uint8_t format = 8);
     static void clearWindowProperty(quint32 WId, xcb_atom_t propAtom);
 
+    static void setNoTitlebar(quint32 WId, bool on);
+
     struct BlurArea {
         qint32 x;
         qint32 y;
@@ -103,10 +105,6 @@ public:
     };
 
     // by Deepin Window Manager
-    static bool hasBlurWindow();
-    static bool hasComposite();
-    static bool hasWindowAlpha();
-    static QString windowManagerName();
     static bool blurWindowBackground(const quint32 WId, const QVector<BlurArea> &areas);
     static bool blurWindowBackgroundByPaths(const quint32 WId, const QList<QPainterPath> &paths);
     static bool blurWindowBackgroundByImage(const quint32 WId, const QRect &blurRect, const QImage &maskImage);

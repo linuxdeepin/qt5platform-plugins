@@ -451,32 +451,15 @@ void Utility::clearWindowProperty(quint32 WId, xcb_atom_t propAtom)
     xcb_delete_property_checked(QX11Info::connection(), WId, propAtom);
 }
 
-bool Utility::hasBlurWindow()
+void Utility::setNoTitlebar(quint32 WId, bool on)
 {
-    return  DXcbWMSupport::instance()->hasBlurWindow();
-}
-
-bool Utility::hasComposite()
-{
-    // 为了兼容现有的dtk应用中的逻辑，此处默认认为窗管是否支持混成等价于窗口是否支持alpha通道
-    static bool composite_with_alpha = qgetenv("D_DXCB_COMPOSITE_WITH_WINDOW_ALPHA") != "0";
-
-    return composite_with_alpha ? hasWindowAlpha() : DXcbWMSupport::instance()->hasComposite();
-}
-
-bool Utility::hasWindowAlpha()
-{
-    return DXcbWMSupport::instance()->hasWindowAlpha();
-}
-
-QString Utility::windowManagerName()
-{
-    return DXcbWMSupport::instance()->windowManagerName();
+    quint8 value = on;
+    setWindowProperty(WId, DXcbWMSupport::instance()->_deepin_no_titlebar, XCB_ATOM_CARDINAL, &value, 1, 8);
 }
 
 bool Utility::blurWindowBackground(const quint32 WId, const QVector<BlurArea> &areas)
 {
-    if (!hasBlurWindow())
+    if (!DXcbWMSupport::instance()->hasBlurWindow())
         return false;
 
     if (DXcbWMSupport::instance()->isDeepinWM()) {
