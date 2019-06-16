@@ -41,6 +41,10 @@ class DXcbWMSupport : public QObject
     Q_PROPERTY(bool hasComposite READ hasComposite NOTIFY hasCompositeChanged)
     // 属性值只有可能在窗管是否支持混成时发生改变
     Q_PROPERTY(bool hasWindowAlpha READ hasWindowAlpha FINAL)
+    // 支持隐藏窗口标题栏
+    Q_PROPERTY(bool hasNoTitlebar READ hasNoTitlebar NOTIFY hasNoTitlebarChanged)
+    // 支持窗口内容裁剪
+    Q_PROPERTY(bool hasScissorWindow READ hasScissorWindow NOTIFY hasScissorWindowChanged)
 
 public:
     enum {
@@ -71,9 +75,19 @@ public:
     };
 
     static DXcbWMSupport *instance();
+
+    struct Global {
+        static bool hasBlurWindow();
+        static bool hasComposite();
+        static bool hasNoTitlebar();
+        static bool hasWindowAlpha();
+        static QString windowManagerName();
+    };
+
     static bool connectWindowManagerChangedSignal(QObject *object, std::function<void()> slot);
     static bool connectHasBlurWindowChanged(QObject *object, std::function<void()> slot);
     static bool connectHasCompositeChanged(QObject *object, std::function<void()> slot);
+    static bool connectHasNoTitlebarChanged(QObject *object, std::function<void()> slot);
     static bool connectWindowListChanged(QObject *object, std::function<void()> slot);
     static bool connectWindowMotifWMHintsChanged(QObject *object, std::function<void(quint32 winId)> slot);
 
@@ -90,6 +104,8 @@ public:
     bool isContainsForRootWindow(xcb_atom_t atom) const;
     bool hasBlurWindow() const;
     bool hasComposite() const;
+    bool hasNoTitlebar() const;
+    bool hasScissorWindow() const;
     bool hasWindowAlpha() const;
 
     QString windowManagerName() const;
@@ -100,6 +116,8 @@ signals:
     void windowManagerChanged();
     void hasBlurWindowChanged(bool hasBlurWindow);
     void hasCompositeChanged(bool hasComposite);
+    void hasNoTitlebarChanged(bool hasNoTitlebar);
+    void hasScissorWindowChanged(bool hasScissorWindow);
     void windowListChanged();
     void windowMotifWMHintsChanged(quint32 winId);
 
@@ -112,6 +130,10 @@ private:
     void updateRootWindowProperties();
     void updateHasBlurWindow();
     void updateHasComposite();
+    void updateHasNoTitlebar();
+    void updateHasScissorWindow();
+
+    qint8 getHasWindowAlpha() const;
 
     static quint32 getRealWinId(quint32 winId);
 
@@ -119,13 +141,17 @@ private:
     bool m_isKwin = false;
     bool m_hasBlurWindow = false;
     bool m_hasComposite = false;
-    bool m_windowHasAlpha = true;
+    bool m_hasNoTitlebar = false;
+    bool m_hasScissorWindow = false;
+    qint8 m_windowHasAlpha = -1;
 
     QString m_wmName;
 
     xcb_atom_t _net_wm_deepin_blur_region_rounded_atom = 0;
     xcb_atom_t _kde_net_wm_blur_rehind_region_atom = 0;
     xcb_atom_t _net_wm_deepin_blur_region_mask = 0;
+    xcb_atom_t _deepin_no_titlebar = 0;
+    xcb_atom_t _deepin_scissor_window = 0;
 
     QVector<xcb_atom_t> net_wm_atoms;
     QVector<xcb_atom_t> root_window_properties;

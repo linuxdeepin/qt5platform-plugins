@@ -31,6 +31,7 @@
 #define DEFINE_CONST_CHAR(Name) const char Name[] = "_d_" #Name
 
 DEFINE_CONST_CHAR(useDxcb);
+DEFINE_CONST_CHAR(useNativeDxcb);
 DEFINE_CONST_CHAR(redirectContent);
 DEFINE_CONST_CHAR(netWmStates);
 DEFINE_CONST_CHAR(windowRadius);
@@ -53,6 +54,7 @@ DEFINE_CONST_CHAR(windowBlurPaths);
 DEFINE_CONST_CHAR(autoInputMaskByClipPath);
 DEFINE_CONST_CHAR(popupSystemWindowMenu);
 DEFINE_CONST_CHAR(groupLeader);
+DEFINE_CONST_CHAR(noTitlebar);
 
 // functions
 DEFINE_CONST_CHAR(setWmBlurWindowBackgroundArea);
@@ -60,11 +62,13 @@ DEFINE_CONST_CHAR(setWmBlurWindowBackgroundPathList);
 DEFINE_CONST_CHAR(setWmBlurWindowBackgroundMaskImage);
 DEFINE_CONST_CHAR(hasBlurWindow);
 DEFINE_CONST_CHAR(hasComposite);
+DEFINE_CONST_CHAR(hasNoTitlebar);
 DEFINE_CONST_CHAR(hasWindowAlpha);
 DEFINE_CONST_CHAR(windowManagerName);
 DEFINE_CONST_CHAR(connectWindowManagerChangedSignal);
 DEFINE_CONST_CHAR(connectHasBlurWindowChanged);
 DEFINE_CONST_CHAR(connectHasCompositeChanged);
+DEFINE_CONST_CHAR(connectHasNoTitlebarChanged);
 DEFINE_CONST_CHAR(getWindows);
 DEFINE_CONST_CHAR(getCurrentWorkspaceWindows);
 DEFINE_CONST_CHAR(connectWindowListChanged);
@@ -83,6 +87,8 @@ DEFINE_CONST_CHAR(setWindowGroup);
 DEFINE_CONST_CHAR(clientLeader);
 DEFINE_CONST_CHAR(enableDxcb);
 DEFINE_CONST_CHAR(isEnableDxcb);
+DEFINE_CONST_CHAR(setEnableNoTitlebar);
+DEFINE_CONST_CHAR(isEnableNoTitlebar);
 
 // others
 DEFINE_CONST_CHAR(WmWindowTypes);

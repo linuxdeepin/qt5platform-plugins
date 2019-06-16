@@ -44,8 +44,13 @@ public:
     DPlatformIntegration(const QStringList &parameters, int &argc, char **argv);
     ~DPlatformIntegration();
 
+    static void setWindowProperty(QWindow *window, const char *name, const QVariant &value);
+
     static bool enableDxcb(QWindow *window);
     static bool isEnableDxcb(const QWindow *window);
+
+    static bool setEnableNoTitlebar(QWindow *window, bool enable);
+    static bool isEnableNoTitlebar(const QWindow *window);
 
     QPlatformWindow *createPlatformWindow(QWindow *window) const Q_DECL_OVERRIDE;
     QPlatformBackingStore *createPlatformBackingStore(QWindow *window) const Q_DECL_OVERRIDE;
