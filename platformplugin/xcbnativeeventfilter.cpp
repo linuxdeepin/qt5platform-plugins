@@ -191,7 +191,7 @@ bool XcbNativeEventFilter::nativeEventFilter(const QByteArray &eventType, void *
                     return false;
                 }
 
-#if QT_VERSION < QT_VERSION_CHECK(5, 10, 0)
+#if QT_VERSION < QT_VERSION_CHECK(5, 10, 0) && false // XIQueryDevice 在某些情况(程序放置一夜)会有一定的概率卡住，因此先禁用此逻辑，但会导致鼠标自然滚动设置无法实时生效。
                 xXIDeviceChangedEvent *xiDCEvent = reinterpret_cast<xXIDeviceChangedEvent *>(xiEvent);
                 QHash<int, QXcbConnection::ScrollingDevice>::iterator device = xcb_connect->m_scrollingDevices.find(xiDCEvent->sourceid);
 
