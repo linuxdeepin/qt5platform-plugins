@@ -52,17 +52,25 @@ class DXcbXSettings
     Q_DECLARE_PRIVATE(DXcbXSettings)
 public:
     DXcbXSettings(QXcbVirtualDesktop *screen);
+    DXcbXSettings(QXcbVirtualDesktop *screen, xcb_window_t setting_window);
+    DXcbXSettings(xcb_window_t setting_window);
     ~DXcbXSettings();
     bool initialized() const;
+    bool isEmpty() const;
 
+    bool contains(const QByteArray &property) const;
     QVariant setting(const QByteArray &property) const;
+    void setSetting(const QByteArray &property, const QVariant &value);
 
     typedef void (*PropertyChangeFunc)(QXcbVirtualDesktop *screen, const QByteArray &name, const QVariant &property, void *handle);
+    void registerCallback(PropertyChangeFunc func, void *handle);
     void registerCallbackForProperty(const QByteArray &property, PropertyChangeFunc func, void *handle);
     void removeCallbackForHandle(const QByteArray &property, void *handle);
     void removeCallbackForHandle(void *handle);
 
-    void handlePropertyNotifyEvent(const xcb_property_notify_event_t *event);
+    static bool handlePropertyNotifyEvent(const xcb_property_notify_event_t *event);
+
+    static void clearSettings(xcb_window_t setting_window);
 private:
     DXcbXSettingsPrivate *d_ptr;
 };

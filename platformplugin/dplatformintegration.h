@@ -52,6 +52,9 @@ public:
     static bool setEnableNoTitlebar(QWindow *window, bool enable);
     static bool isEnableNoTitlebar(const QWindow *window);
 
+    static bool buildNativeSettings(QObject *object, quint32 settingWindow);
+    static void clearNativeSettings(quint32 settingWindow);
+
     QPlatformWindow *createPlatformWindow(QWindow *window) const Q_DECL_OVERRIDE;
     QPlatformBackingStore *createPlatformBackingStore(QWindow *window) const Q_DECL_OVERRIDE;
     QPlatformOpenGLContext *createPlatformOpenGLContext(QOpenGLContext *context) const Q_DECL_OVERRIDE;

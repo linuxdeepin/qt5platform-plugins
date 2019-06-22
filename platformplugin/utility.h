@@ -104,6 +104,8 @@ public:
         }
     };
 
+    // by kwin
+    static bool setEnableBlurWindow(const quint32 WId, bool enable);
     // by Deepin Window Manager
     static bool blurWindowBackground(const quint32 WId, const QVector<BlurArea> &areas);
     static bool blurWindowBackgroundByPaths(const quint32 WId, const QList<QPainterPath> &paths);

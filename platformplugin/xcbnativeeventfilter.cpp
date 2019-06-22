@@ -126,9 +126,7 @@ bool XcbNativeEventFilter::nativeEventFilter(const QByteArray &eventType, void *
         case XCB_PROPERTY_NOTIFY: {
             xcb_property_notify_event_t *pn = (xcb_property_notify_event_t *)event;
 
-            if (auto settings = DPlatformIntegration::instance()->xSettings(true)) {
-                settings->handlePropertyNotifyEvent(pn);
-            }
+            DXcbXSettings::handlePropertyNotifyEvent(pn);
 
             if (pn->atom == DPlatformIntegration::xcbConnection()->atom(QXcbAtom::_MOTIF_WM_HINTS)) {
                 emit DXcbWMSupport::instance()->windowMotifWMHintsChanged(pn->window);

@@ -455,6 +455,37 @@ void Utility::setNoTitlebar(quint32 WId, bool on)
 {
     quint8 value = on;
     setWindowProperty(WId, DXcbWMSupport::instance()->_deepin_no_titlebar, XCB_ATOM_CARDINAL, &value, 1, 8);
+
+    // 默认为使用noborder属性的窗口强制打开窗口标题栏
+    xcb_atom_t _deepin_force_decorate = internAtom("_DEEPIN_FORCE_DECORATE", false);
+    if (on) {
+        quint8 value = on;
+        setWindowProperty(WId, _deepin_force_decorate, XCB_ATOM_CARDINAL, &value, 1, 8);
+    } else {
+        clearWindowProperty(WId, _deepin_force_decorate);
+    }
+}
+
+bool Utility::setEnableBlurWindow(const quint32 WId, bool enable)
+{
+    if (!DXcbWMSupport::instance()->hasBlurWindow() || !DXcbWMSupport::instance()->isKwin())
+        return false;
+
+    xcb_atom_t atom = DXcbWMSupport::instance()->_kde_net_wm_blur_rehind_region_atom;
+
+    if (atom == XCB_NONE)
+        return false;
+
+    clearWindowProperty(WId, DXcbWMSupport::instance()->_net_wm_deepin_blur_region_mask);
+
+    if (enable) {
+        quint32 value = enable;
+        setWindowProperty(WId, atom, XCB_ATOM_CARDINAL, &value, 1, sizeof(quint32) * 8);
+    } else {
+        clearWindowProperty(WId, atom);
+    }
+
+    return true;
 }
 
 bool Utility::blurWindowBackground(const quint32 WId, const QVector<BlurArea> &areas)

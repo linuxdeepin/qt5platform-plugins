@@ -21,6 +21,7 @@
 #include "vtablehook.h"
 #include "dwmsupport.h"
 #include "dnotitlebarwindowhelper.h"
+#include "dnativesettings.h"
 
 #ifdef USE_NEW_IMPLEMENTING
 #include "dplatformwindowhelper.h"
@@ -199,6 +200,9 @@ bool DPlatformIntegration::isEnableDxcb(const QWindow *window)
 
 bool DPlatformIntegration::setEnableNoTitlebar(QWindow *window, bool enable)
 {
+    if (enable && DNoTitlebarWindowHelper::mapped.value(window))
+        return true;
+
     qDebug() << __FUNCTION__ << enable << window << window->type() << window->parent();
 
     if (enable) {
@@ -216,12 +220,9 @@ bool DPlatformIntegration::setEnableNoTitlebar(QWindow *window, bool enable)
             return true;
         }
 
-        if (DNoTitlebarWindowHelper::mapped.value(window))
-            return true;
-
         Utility::setNoTitlebar(xw->winId(), true);
         // 跟随窗口被销毁
-        Q_UNUSED(new DNoTitlebarWindowHelper(window))
+        Q_UNUSED(new DNoTitlebarWindowHelper(window, xw->winId()))
     } else {
         if (auto helper = DNoTitlebarWindowHelper::mapped.value(window)) {
             Utility::setNoTitlebar(window->winId(), false);
@@ -237,6 +238,26 @@ bool DPlatformIntegration::setEnableNoTitlebar(QWindow *window, bool enable)
 bool DPlatformIntegration::isEnableNoTitlebar(const QWindow *window)
 {
     return window->property(noTitlebar).toBool();
+}
+
+bool DPlatformIntegration::buildNativeSettings(QObject *object, quint32 settingWindow)
+{
+    // 跟随object销毁
+    DNativeSettings *settings = new DNativeSettings(object, settingWindow);
+
+    if (settings->isEmpty()) {
+        delete settings;
+        return false;
+    }
+
+    return true;
+}
+
+void DPlatformIntegration::clearNativeSettings(quint32 settingWindow)
+{
+#ifdef Q_OS_LINUX
+    DXcbXSettings::clearSettings(settingWindow);
+#endif
 }
 
 QPlatformWindow *DPlatformIntegration::createPlatformWindow(QWindow *window) const
@@ -259,11 +280,18 @@ QPlatformWindow *DPlatformIntegration::createPlatformWindow(QWindow *window) con
     bool isNoTitlebar = window->type() != Qt::Desktop && window->property(noTitlebar).toBool();
 
     if (isNoTitlebar && DWMSupport::instance()->hasNoTitlebar()) {
+        // 销毁旧的helper对象, 此处不用将mapped的值移除，后面会被覆盖
+        if (DNoTitlebarWindowHelper *helper = DNoTitlebarWindowHelper::mapped.value(window)) {
+            helper->deleteLater();
+        }
+
         QPlatformWindow *w = DPlatformIntegrationParent::createPlatformWindow(window);
         Utility::setNoTitlebar(w->winId(), true);
         // 跟随窗口被销毁
-        Q_UNUSED(new DNoTitlebarWindowHelper(window))
-
+        Q_UNUSED(new DNoTitlebarWindowHelper(window, w->winId()))
+#ifdef Q_OS_LINUX
+        Q_UNUSED(new WindowEventHook(static_cast<QNativeWindow*>(w), false))
+#endif
         return w;
     }
 
