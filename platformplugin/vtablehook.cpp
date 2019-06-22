@@ -192,6 +192,18 @@ bool VtableHook::ensureVtable(void *obj, std::function<void ()> destoryObjFun)
 }
 
 /*!
+ * \brief VtableHook::hasVtable 对象的虚表已经被覆盖时返回true，否则返回false
+ * \param obj
+ * \return
+ */
+bool VtableHook::hasVtable(void *obj)
+{
+    quintptr **_obj = (quintptr**)(obj);
+
+    return objToGhostVfptr.contains(_obj);
+}
+
+/*!
  * \brief 将偏移量为functionOffset的虚函数还原到原本的实现
  * \param obj
  * \param functionIndex

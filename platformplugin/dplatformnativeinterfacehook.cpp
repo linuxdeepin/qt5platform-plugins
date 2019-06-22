@@ -46,7 +46,7 @@ static DeviceType _inputEventSourceDevice(const QInputEvent *event)
 }
 #endif
 
-QFunctionPointer DPlatformNativeInterfaceHook::platformFunction(QPlatformNativeInterface *interface, const QByteArray &function)
+static QFunctionPointer getFunction(const QByteArray &function)
 {
     if (function == setWmBlurWindowBackgroundArea) {
         return reinterpret_cast<QFunctionPointer>(&Utility::blurWindowBackground);
@@ -112,6 +112,27 @@ QFunctionPointer DPlatformNativeInterfaceHook::platformFunction(QPlatformNativeI
         return reinterpret_cast<QFunctionPointer>(&DPlatformIntegration::setEnableNoTitlebar);
     } else if (function == isEnableNoTitlebar) {
         return reinterpret_cast<QFunctionPointer>(&DPlatformIntegration::isEnableNoTitlebar);
+    } else if (function == buildNativeSettings) {
+        return reinterpret_cast<QFunctionPointer>(&DPlatformIntegration::buildNativeSettings);
+    } else if (function == clearNativeSettings) {
+        return reinterpret_cast<QFunctionPointer>(&DPlatformIntegration::clearNativeSettings);
+    }
+
+    return nullptr;
+}
+
+thread_local QHash<QByteArray, QFunctionPointer> DPlatformNativeInterfaceHook::functionCache;
+QFunctionPointer DPlatformNativeInterfaceHook::platformFunction(QPlatformNativeInterface *interface, const QByteArray &function)
+{
+    if (QFunctionPointer f = functionCache.value(function)) {
+        return f;
+    }
+
+    QFunctionPointer f = getFunction(function);
+
+    if (f) {
+        functionCache.insert(function, f);
+        return f;
     }
 
 #if QT_VERSION >= QT_VERSION_CHECK(5, 4, 0)

@@ -21,47 +21,67 @@
 #include "dnotitlebarwindowhelper.h"
 #include "vtablehook.h"
 #include "utility.h"
-#ifdef Q_OS_LINUX
-#include "dxcbwmsupport.h"
-#endif
+#include "dwmsupport.h"
+#include "dnativesettings.h"
+#include "dplatformintegration.h"
 
 #define protected public
 #include <QWindow>
 #undef protected
 #include <QMouseEvent>
+#include <QTimer>
+#include <QMetaProperty>
+#include <qpa/qplatformwindow.h>
 
+#define _DEEPIN_SCISSOR_WINDOW "_DEEPIN_SCISSOR_WINDOW"
 Q_DECLARE_METATYPE(QPainterPath)
 
 DPP_BEGIN_NAMESPACE
 
 QHash<const QWindow*, DNoTitlebarWindowHelper*> DNoTitlebarWindowHelper::mapped;
 
-DNoTitlebarWindowHelper::DNoTitlebarWindowHelper(QWindow *window)
+DNoTitlebarWindowHelper::DNoTitlebarWindowHelper(QWindow *window, quint32 windowID)
     : QObject(window)
+    , m_window(window)
+    , m_windowID(windowID)
 {
+    // 不允许设置窗口为无边框的
+    if (window->flags().testFlag(Qt::FramelessWindowHint))
+        window->setFlags(window->flags() & ~Qt::FramelessWindowHint);
+
     mapped[window] = this;
+    m_nativeSettingsValid = DPlatformIntegration::buildNativeSettings(this, windowID);
+    Q_ASSERT(m_nativeSettingsValid);
 
-    updateClipPathFromProperty();
-    updateFrameMaskFromProperty();
-    updateWindowRadiusFromProperty();
-    updateBorderWidthFromProperty();
-    updateBorderColorFromProperty();
-    updateShadowRadiusFromProperty();
-    updateShadowOffsetFromProperty();
-    updateShadowColorFromProperty();
-    updateEnableSystemResizeFromProperty();
-    updateEnableSystemMoveFromProperty();
-    updateEnableBlurWindowFromProperty();
-    updateWindowBlurAreasFromProperty();
-    updateWindowBlurPathsFromProperty();
-    updateAutoInputMaskByClipPathFromProperty();
-
-    VtableHook::overrideVfptrFun(window, &QWindow::event, this, &DNoTitlebarWindowHelper::windowEvent);
+    // 本地设置无效时不可更新窗口属性，否则会导致setProperty函数被循环调用
+    if (m_nativeSettingsValid) {
+        updateClipPathFromProperty();
+        updateFrameMaskFromProperty();
+        updateWindowRadiusFromProperty();
+        updateBorderWidthFromProperty();
+        updateBorderColorFromProperty();
+        updateShadowRadiusFromProperty();
+        updateShadowOffsetFromProperty();
+        updateShadowColorFromProperty();
+        updateEnableSystemResizeFromProperty();
+        updateEnableSystemMoveFromProperty();
+        updateEnableBlurWindowFromProperty();
+        updateWindowBlurAreasFromProperty();
+        updateWindowBlurPathsFromProperty();
+        updateAutoInputMaskByClipPathFromProperty();
+    } else {
+        qWarning() << "native settings is invalid for window: 0x" << hex << windowID;
+    }
 }
 
 DNoTitlebarWindowHelper::~DNoTitlebarWindowHelper()
 {
     mapped.remove(qobject_cast<QWindow*>(parent()));
+
+    if (m_window->handle()) { // 当本地窗口还存在时，移除设置过的窗口属性
+        Utility::clearWindowProperty(m_windowID, Utility::internAtom(_DEEPIN_SCISSOR_WINDOW));
+        DPlatformIntegration::clearNativeSettings(m_windowID);
+    }
 }
 
 void DNoTitlebarWindowHelper::setWindowProperty(QWindow *window, const char *name, const QVariant &value)
@@ -83,6 +103,11 @@ void DNoTitlebarWindowHelper::setWindowProperty(QWindow *window, const char *nam
     window->setProperty(name, value);
 
     if (DNoTitlebarWindowHelper *self = mapped.value(window)) {
+        // 本地设置无效时不可更新窗口属性，否则会导致setProperty函数被循环调用
+        if (!self->m_nativeSettingsValid) {
+            return;
+        }
+
         QByteArray name_array(name);
 
         if (!name_array.startsWith("_d_"))
@@ -99,9 +124,151 @@ void DNoTitlebarWindowHelper::setWindowProperty(QWindow *window, const char *nam
     }
 }
 
+static QPair<qreal, qreal> takePair(const QVariant &value, const QPair<qreal, qreal> defaultValue)
+{
+    if (!value.isValid()) {
+        return defaultValue;
+    }
+
+    const QStringList &l = value.toStringList();
+
+    if (l.count() < 2) {
+        return defaultValue;
+    }
+
+    QPair<qreal, qreal> ret;
+
+    ret.first = l.first().toDouble();
+    ret.second = l.at(1).toDouble();
+
+    return ret;
+}
+
+static QMarginsF takeMargins(const QVariant &value, const QMarginsF &defaultValue)
+{
+    if (!value.isValid()) {
+        return defaultValue;
+    }
+
+    const QStringList &l = value.toStringList();
+
+    if (l.count() < 4) {
+        return defaultValue;
+    }
+
+    return QMarginsF(l.at(0).toDouble(), l.at(1).toDouble(),
+                     l.at(2).toDouble(), l.at(3).toDouble());
+}
+
+static inline QPointF toPos(const QPair<qreal, qreal> &pair)
+{
+    return QPointF(pair.first, pair.second);
+}
+
+QString DNoTitlebarWindowHelper::theme() const
+{
+    return property("theme").toString();
+}
+
+QPointF DNoTitlebarWindowHelper::windowRadius() const
+{
+    return toPos(takePair(property("windowRadius"), qMakePair(0.0, 0.0)));
+}
+
+qreal DNoTitlebarWindowHelper::borderWidth() const
+{
+    return property("borderWidth").toDouble();
+}
+
+QColor DNoTitlebarWindowHelper::borderColor() const
+{
+    return qvariant_cast<QColor>(property("borderColor"));
+}
+
+qreal DNoTitlebarWindowHelper::shadowRadius() const
+{
+    return property("shadowRadius").toDouble();
+}
+
+QPointF DNoTitlebarWindowHelper::shadowOffset() const
+{
+    return toPos(takePair(property("shadowOffect"), qMakePair(0.0, 0.0)));
+}
+
+QColor DNoTitlebarWindowHelper::shadowColor() const
+{
+    return qvariant_cast<QColor>(property("shadowColor"));
+}
+
+QMarginsF DNoTitlebarWindowHelper::mouseInputAreaMargins() const
+{
+    return takeMargins(property("mouseInputAreaMargins"), QMarginsF(0, 0, 0, 0));
+}
+
+void DNoTitlebarWindowHelper::resetProperty(const QByteArray &property)
+{
+    int index = metaObject()->indexOfProperty(property.constData());
+
+    if (index >= 0) {
+        metaObject()->property(index).reset(this);
+    }
+}
+
+void DNoTitlebarWindowHelper::setTheme(const QString &theme)
+{
+    setProperty("theme", theme);
+}
+
+void DNoTitlebarWindowHelper::setWindowRadius(const QPointF &windowRadius)
+{
+    setProperty("windowRadius", QString("%1,%2").arg(windowRadius.x()).arg(windowRadius.y()));
+}
+
+void DNoTitlebarWindowHelper::setBorderWidth(qreal borderWidth)
+{
+    setProperty("borderWidth", borderWidth);
+}
+
+void DNoTitlebarWindowHelper::setBorderColor(const QColor &borderColor)
+{
+    setProperty("borderColor", QVariant::fromValue(borderColor));
+}
+
+void DNoTitlebarWindowHelper::setShadowRadius(qreal shadowRadius)
+{
+    setProperty("shadowRadius", shadowRadius);
+}
+
+void DNoTitlebarWindowHelper::setShadowOffect(const QPointF &shadowOffect)
+{
+    setProperty("shadowOffect", QString("%1,%2").arg(shadowOffect.x()).arg(shadowOffect.y()));
+}
+
+void DNoTitlebarWindowHelper::setShadowColor(const QColor &shadowColor)
+{
+    setProperty("shadowColor", QVariant::fromValue(shadowColor));
+}
+
+void DNoTitlebarWindowHelper::setMouseInputAreaMargins(const QMarginsF &mouseInputAreaMargins)
+{
+    setProperty("mouseInputAreaMargins", QString("%1,%2,%3,%4").arg(mouseInputAreaMargins.left()).arg(mouseInputAreaMargins.top())
+                                                               .arg(mouseInputAreaMargins.right()).arg(mouseInputAreaMargins.bottom()));
+}
+
 void DNoTitlebarWindowHelper::updateClipPathFromProperty()
 {
-    // TODO
+    const QVariant &v = m_window->property(clipPath);
+    const QPainterPath &path = qvariant_cast<QPainterPath>(v);
+    static xcb_atom_t _deepin_scissor_window = Utility::internAtom(_DEEPIN_SCISSOR_WINDOW, false);
+
+    if (!path.isEmpty()) {
+        QByteArray data;
+        QDataStream ds(&data, QIODevice::WriteOnly);
+        ds << path * m_window->devicePixelRatio();
+        Utility::setWindowProperty(m_windowID, _deepin_scissor_window, _deepin_scissor_window, data.constData(), data.length(), 8);
+    } else {
+        Utility::clearWindowProperty(m_windowID, _deepin_scissor_window);
+    }
 }
 
 void DNoTitlebarWindowHelper::updateFrameMaskFromProperty()
@@ -111,57 +278,152 @@ void DNoTitlebarWindowHelper::updateFrameMaskFromProperty()
 
 void DNoTitlebarWindowHelper::updateWindowRadiusFromProperty()
 {
-    // TODO
+    const QVariant &v = m_window->property("_d_windowRadius");
+    bool ok;
+    int radius = v.toInt(&ok);
+
+    if (ok) {
+        setWindowRadius(QPointF(radius, radius));
+    } else {
+        resetProperty("windowRadius");
+    }
 }
 
 void DNoTitlebarWindowHelper::updateBorderWidthFromProperty()
 {
-    // TODO
+    const QVariant &v = m_window->property("_d_borderWidth");
+    bool ok;
+    int width = v.toInt(&ok);
+
+    if (ok) {
+        setBorderWidth(width);
+    } else {
+        resetProperty("borderWidth");
+    }
 }
 
 void DNoTitlebarWindowHelper::updateBorderColorFromProperty()
 {
-    // TODO
+    const QVariant &v = m_window->property("_d_borderColor");
+    const QColor &color = qvariant_cast<QColor>(v);
+
+    if (color.isValid()) {
+        setBorderColor(color);
+    } else {
+        resetProperty("borderColor");
+    }
 }
 
 void DNoTitlebarWindowHelper::updateShadowRadiusFromProperty()
 {
-    // TODO
+    const QVariant &v = m_window->property("_d_shadowRadius");
+    bool ok;
+    int radius = v.toInt(&ok);
+
+    if (ok) {
+        setShadowRadius(radius);
+    } else {
+        resetProperty("shadowRadius");
+    }
 }
 
 void DNoTitlebarWindowHelper::updateShadowOffsetFromProperty()
 {
-    // TODO
+    const QVariant &pos = m_window->property("_d_shadowOffset");
+
+    if (pos.isValid()) {
+        setShadowOffect(pos.toPoint());
+    } else {
+        resetProperty("shadowOffset");
+    }
 }
 
 void DNoTitlebarWindowHelper::updateShadowColorFromProperty()
 {
-    // TODO
+    const QVariant &v = m_window->property("_d_shadowColor");
+    const QColor &color = qvariant_cast<QColor>(v);
+
+    if (color.isValid()) {
+        setShadowColor(color);
+    } else {
+        resetProperty("shadowColor");
+    }
 }
 
 void DNoTitlebarWindowHelper::updateEnableSystemResizeFromProperty()
 {
-    // TODO
+    const QVariant &v = m_window->property(enableSystemResize);
+
+    if (v.isValid() && !v.toBool()) {
+        setMouseInputAreaMargins(QMarginsF(0, 0, 0, 0));
+    } else {
+        resetProperty("mouseInputAreaMargins");
+    }
 }
 
 void DNoTitlebarWindowHelper::updateEnableSystemMoveFromProperty()
 {
-    // TODO
+    const QVariant &v = m_window->property(enableSystemMove);
+
+    m_enableSystemMove = !v.isValid() || v.toBool();
+
+    if (m_enableSystemMove) {
+        VtableHook::overrideVfptrFun(m_window, &QWindow::event, this, &DNoTitlebarWindowHelper::windowEvent);
+    } else if (VtableHook::hasVtable(m_window)) {
+        VtableHook::resetVfptrFun(m_window, &QWindow::event);
+    }
 }
 
 void DNoTitlebarWindowHelper::updateEnableBlurWindowFromProperty()
 {
-    // TODO
+    const QVariant &v = m_window->property(enableBlurWindow);
+
+    if (!v.isValid()) {
+        m_window->setProperty(enableBlurWindow, m_enableBlurWindow);
+
+        return;
+    }
+
+    if (m_enableBlurWindow != v.toBool()) {
+        m_enableBlurWindow = v.toBool();
+
+        if (m_enableBlurWindow) {
+            connect(DWMSupport::instance(), &DWMSupport::windowManagerChanged,
+                    this, &DNoTitlebarWindowHelper::updateWindowBlurAreasForWM);
+        } else {
+            disconnect(DWMSupport::instance(), &DWMSupport::windowManagerChanged,
+                       this, &DNoTitlebarWindowHelper::updateWindowBlurAreasForWM);
+        }
+
+        updateWindowBlurAreasForWM();
+    }
 }
 
 void DNoTitlebarWindowHelper::updateWindowBlurAreasFromProperty()
 {
-    // TODO
+    const QVariant &v = m_window->property(windowBlurAreas);
+    const QVector<quint32> &tmpV = qvariant_cast<QVector<quint32>>(v);
+    const QVector<Utility::BlurArea> &a = *(reinterpret_cast<const QVector<Utility::BlurArea>*>(&tmpV));
+
+    if (a.isEmpty() && m_blurAreaList.isEmpty())
+        return;
+
+    m_blurAreaList = a;
+
+    updateWindowBlurAreasForWM();
 }
 
 void DNoTitlebarWindowHelper::updateWindowBlurPathsFromProperty()
 {
-    // TODO
+    const QVariant &v = m_window->property(windowBlurPaths);
+    const QList<QPainterPath> paths = qvariant_cast<QList<QPainterPath>>(v);
+
+    if (paths.isEmpty() && m_blurPathList.isEmpty())
+        return;
+
+    m_blurPathList = paths;
+
+    updateWindowBlurAreasForWM();
 }
 
 void DNoTitlebarWindowHelper::updateAutoInputMaskByClipPathFromProperty()
@@ -173,7 +435,7 @@ bool DNoTitlebarWindowHelper::windowEvent(QEvent *event)
 {
     QWindow *w = this->window();
     DNoTitlebarWindowHelper *self = mapped.value(w);
-    quint32 winId = w->winId();
+    quint32 winId = self->m_windowID;
     bool is_mouse_move = event->type() == QEvent::MouseMove && static_cast<QMouseEvent*>(event)->buttons() == Qt::LeftButton;
 
     if (event->type() == QEvent::MouseButtonRelease) {
@@ -210,6 +472,132 @@ bool DNoTitlebarWindowHelper::isEnableSystemMove(quint32 winId)
 #endif
 
     return true;
+}
+
+bool DNoTitlebarWindowHelper::updateWindowBlurAreasForWM()
+{
+    bool blurEnable = m_enableBlurWindow || !m_blurAreaList.isEmpty() || !m_blurPathList.isEmpty();
+    // NOTE(zccrs): 当窗口unmap时清理模糊区域的属性，否则可能会导致窗口已经隐藏，但模糊区域没有消失的问题。因为窗口管理器不是绝对根据窗口是否map来绘制
+    //              模糊背景，当窗口unmap但是窗口的WM State值为Normal时也会绘制模糊背景（这种情况可能出现在连续多次快速切换窗口管理器时）
+    if (!blurEnable || !DWMSupport::instance()->hasBlurWindow()) {
+        Utility::clearWindowBlur(m_windowID);
+
+        return true;
+    }
+
+    qreal device_pixel_ratio = m_window->devicePixelRatio();
+    const QRect &windowValidRect = QRect(QPoint(0, 0), m_window->size() * device_pixel_ratio);
+
+    if (windowValidRect.isEmpty())
+        return false;
+
+    quint32 top_level_w = Utility::getNativeTopLevelWindow(m_windowID);
+    QPoint offset = QPoint(0, 0);
+
+    if (top_level_w != m_windowID) {
+        offset += Utility::translateCoordinates(QPoint(0, 0), m_windowID, top_level_w);
+    }
+
+    QVector<Utility::BlurArea> newAreas;
+
+    if (m_enableBlurWindow) {
+        if (!Utility::setEnableBlurWindow(m_windowID, true)) {
+            Utility::BlurArea area;
+
+            area.x = windowValidRect.x() + offset.x();
+            area.y = windowValidRect.y() + offset.y();
+            area.width = windowValidRect.width();
+            area.height = windowValidRect.height();
+            area.xRadius = 0;
+            area.yRaduis = 0;
+
+            newAreas.append(std::move(area));
+
+            return Utility::blurWindowBackground(top_level_w, newAreas);
+        } else {
+            return true;
+        }
+    }
+
+    QPainterPath window_valid_path;
+
+    window_valid_path.addRect(QRect(offset, m_window->handle()->geometry().size()));
+
+    if (m_blurPathList.isEmpty()) {
+        if (m_blurAreaList.isEmpty())
+            return true;
+
+        newAreas.reserve(m_blurAreaList.size());
+
+        foreach (Utility::BlurArea area, m_blurAreaList) {
+            area *= device_pixel_ratio;
+
+            area.x += offset.x();
+            area.y += offset.y();
+
+            QPainterPath path;
+
+            path.addRoundedRect(area.x, area.y, area.width, area.height,
+                                area.xRadius, area.yRaduis);
+
+            if (!window_valid_path.contains(path)) {
+                const QPainterPath valid_blur_path = window_valid_path & path;
+                const QRectF valid_blur_rect = valid_blur_path.boundingRect();
+
+                if (path.boundingRect() != valid_blur_rect) {
+                    area.x = valid_blur_rect.x();
+                    area.y = valid_blur_rect.y();
+                    area.width = valid_blur_rect.width();
+                    area.height = valid_blur_rect.height();
+
+                    path = QPainterPath();
+                    path.addRoundedRect(valid_blur_rect.x(), valid_blur_rect.y(),
+                                        valid_blur_rect.width(), valid_blur_rect.height(),
+                                        area.xRadius, area.yRaduis);
+
+                    if (valid_blur_path != path) {
+                        break;
+                    }
+                } else if (valid_blur_path != path) {
+                    break;
+                }
+            }
+
+            newAreas.append(std::move(area));
+        }
+
+        if (newAreas.size() == m_blurAreaList.size())
+            return Utility::blurWindowBackground(top_level_w, newAreas);
+    }
+
+    QList<QPainterPath> newPathList;
+
+    newPathList.reserve(m_blurAreaList.size());
+
+    foreach (Utility::BlurArea area, m_blurAreaList) {
+        QPainterPath path;
+
+        area *= device_pixel_ratio;
+        path.addRoundedRect(area.x + offset.x(), area.y + offset.y(), area.width, area.height,
+                            area.xRadius, area.yRaduis);
+        path = path.intersected(window_valid_path);
+
+        if (!path.isEmpty())
+            newPathList << path;
+    }
+
+    if (!m_blurPathList.isEmpty()) {
+        newPathList.reserve(newPathList.size() + m_blurPathList.size());
+
+        foreach (const QPainterPath &path, m_blurPathList) {
+            newPathList << (path * device_pixel_ratio).translated(offset).intersected(window_valid_path);
+        }
+    }
+
+    if (newPathList.isEmpty())
+        return true;
+
+    return Utility::blurWindowBackgroundByPaths(top_level_w, newPathList);
 }
 
 void DNoTitlebarWindowHelper::startMoveWindow(quint32 winId)

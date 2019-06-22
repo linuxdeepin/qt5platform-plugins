@@ -89,6 +89,8 @@ DEFINE_CONST_CHAR(enableDxcb);
 DEFINE_CONST_CHAR(isEnableDxcb);
 DEFINE_CONST_CHAR(setEnableNoTitlebar);
 DEFINE_CONST_CHAR(isEnableNoTitlebar);
+DEFINE_CONST_CHAR(buildNativeSettings);
+DEFINE_CONST_CHAR(clearNativeSettings);
 
 // others
 DEFINE_CONST_CHAR(WmWindowTypes);

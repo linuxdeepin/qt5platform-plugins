@@ -38,6 +38,7 @@
 ****************************************************************************/
 
 #include "dxcbxsettings.h"
+#include "dplatformintegration.h"
 
 #include <QtCore/QByteArray>
 #include <QtCore/QtEndian>
@@ -84,14 +85,16 @@ public:
         : last_change_serial(-1)
     {}
 
-    void updateValue(QXcbVirtualDesktop *screen, const QByteArray &name, const QVariant &value, int last_change_serial)
+    bool updateValue(QXcbVirtualDesktop *screen, const QByteArray &name, const QVariant &value, int last_change_serial)
     {
-        if (last_change_serial <= this->last_change_serial && value == this->value)
-            return;
+        if (last_change_serial <= this->last_change_serial)
+            return false;
         this->value = value;
         this->last_change_serial = last_change_serial;
         for (const auto &callback : callback_links)
             callback.func(screen, name, value, callback.handle);
+
+        return true;
     }
 
     void addCallback(DXcbXSettings::PropertyChangeFunc func, void *handle)
@@ -101,9 +104,8 @@ public:
     }
 
     QVariant value;
-    int last_change_serial;
+    int last_change_serial = -1;
     std::vector<QXcbXSettingsCallback> callback_links;
-
 };
 
 class QXcbConnectionGrabber
@@ -143,6 +145,7 @@ public:
         : screen(screen)
         , initialized(false)
     {
+        _xsettings_atom = screen->connection()->atom(QXcbAtom::_XSETTINGS_SETTINGS);
     }
 
     QByteArray getSettings()
@@ -151,7 +154,6 @@ public:
 
         int offset = 0;
         QByteArray settings;
-        xcb_atom_t _xsettings_atom = screen->connection()->atom(QXcbAtom::_XSETTINGS_SETTINGS);
         while (1) {
             auto reply = Q_XCB_REPLY_UNCHECKED(xcb_get_property,
                                                screen->xcb_connection(),
@@ -175,6 +177,12 @@ public:
         }
 
         return settings;
+    }
+
+    void setSettings(const QByteArray &data)
+    {
+        QXcbConnectionGrabber connectionGrabber(screen->connection());
+        xcb_change_property(screen->xcb_connection(), XCB_PROP_MODE_REPLACE, x_settings_window, _xsettings_atom, _xsettings_atom, 8, data.size(), data.constData());
     }
 
     static int round_to_nearest_multiple_of_4(int value)
@@ -205,6 +213,7 @@ public:
             return;                                                     \
         }
 
+        serial = ADJUST_BO(byteOrder, qint32, xSettings.mid(4,4).constData());
         uint number_of_settings = ADJUST_BO(byteOrder, quint32, xSettings.mid(8,4).constData());
         const char *data = xSettings.constData() + 12;
         size_t offset = 0;
@@ -255,17 +264,118 @@ public:
                 value.setValue(color_value);
             }
             offset += local_offset;
-            settings[name].updateValue(screen,name,value,last_change_serial);
+
+            updateValue(settings[name], name,value,last_change_serial);
         }
 
     }
 
+    QByteArray depopulateSettings()
+    {
+        QByteArray xSettings;
+        uint number_of_settings = settings.size();
+        xSettings.reserve(12 + number_of_settings * 12);
+        char byteOrder = QSysInfo::ByteOrder == QSysInfo::LittleEndian ? XCB_IMAGE_ORDER_LSB_FIRST : XCB_IMAGE_ORDER_MSB_FIRST;
+
+        xSettings.append(byteOrder); //byte-order
+        xSettings.append(3, '\0'); //unused
+        xSettings.append((char*)&serial, sizeof(serial)); //SERIAL
+        xSettings.append((char*)&number_of_settings, sizeof(number_of_settings)); //N_SETTINGS
+        uint *number_of_settings_ptr = (uint*)(xSettings.data() + xSettings.size() - sizeof(number_of_settings));
+
+        for (auto i = settings.constBegin(); i != settings.constEnd(); ++i) {
+            const QXcbXSettingsPropertyValue &value = i.value();
+
+            if (!value.value.isValid()) {
+                --*number_of_settings_ptr;
+                continue;
+            }
+
+            char type = XSettingsTypeString;
+            const QByteArray &key = i.key();
+            quint16 key_size = key.size();
+
+            if (value.value.type() == QVariant::Color) {
+                type = XSettingsTypeColor;
+            } else if (value.value.type() == QVariant::Int) {
+                type = XSettingsTypeInteger;
+            }
+
+            xSettings.append(type); //type
+            xSettings.append('\0'); //unused
+            xSettings.append((char*)&key_size, 2); //name-len
+            xSettings.append(key.constData()); //name
+            xSettings.append(3 - (key_size + 3) % 4, '\0'); //4字节对齐
+            xSettings.append((char*)&value.last_change_serial, 4); //last-change-serial
+
+            QByteArray value_data;
+
+            if (type == XSettingsTypeInteger) {
+                qint32 int_value = value.value.toInt();
+                value_data.append((char*)&int_value, 4);
+            } else if (type == XSettingsTypeColor) {
+                const QColor &color = qvariant_cast<QColor>(value.value);
+                quint16 red = color.red();
+                quint16 green = color.green();
+                quint16 blue = color.blue();
+                quint16 alpha = color.alpha();
+
+                value_data.append((char*)&red, 2);
+                value_data.append((char*)&green, 2);
+                value_data.append((char*)&blue, 2);
+                value_data.append((char*)&alpha, 2);
+            } else {
+                const QByteArray &string_data = value.value.toByteArray();
+                quint32 data_size = string_data.size();
+                value_data.append((char*)&data_size, 4);
+                value_data.append(string_data);
+                value_data.append(3 - (string_data.size() + 3) % 4, '\0'); //4字节对齐
+            }
+
+            xSettings.append(value_data);
+        }
+
+        if (*number_of_settings_ptr == 0) {
+            return QByteArray();
+        }
+
+        return xSettings;
+    }
+
+    void init(xcb_window_t setting_window, DXcbXSettings *object)
+    {
+        x_settings_window = setting_window;
+
+        populateSettings(getSettings());
+        initialized = true;
+        mapped[x_settings_window] = object;
+    }
+
+    bool updateValue(QXcbXSettingsPropertyValue &xvalue, const QByteArray &name, const QVariant &value, int last_change_serial)
+    {
+        if (xvalue.updateValue(screen, name, value, last_change_serial)) {
+            for (const auto &callback : callback_links) {
+                callback.func(screen, name, value, callback.handle);
+            }
+
+            return true;
+        }
+
+        return false;
+    }
+
     QXcbVirtualDesktop *screen;
     xcb_window_t x_settings_window;
-    QMap<QByteArray, QXcbXSettingsPropertyValue> settings;
+    qint32 serial = -1;
+    QHash<QByteArray, QXcbXSettingsPropertyValue> settings;
+    std::vector<QXcbXSettingsCallback> callback_links;
     bool initialized;
+    static xcb_atom_t _xsettings_atom;
+    static QHash<xcb_window_t, DXcbXSettings*> mapped;
 };
 
+xcb_atom_t DXcbXSettingsPrivate::_xsettings_atom;
+QHash<xcb_window_t, DXcbXSettings*> DXcbXSettingsPrivate::mapped;
 
 DXcbXSettings::DXcbXSettings(QXcbVirtualDesktop *screen)
     : d_ptr(new DXcbXSettingsPrivate(screen))
@@ -287,20 +397,33 @@ DXcbXSettings::DXcbXSettings(QXcbVirtualDesktop *screen)
     if (!selection_result)
         return;
 
-    d_ptr->x_settings_window = selection_result->owner;
-    if (!d_ptr->x_settings_window)
+    if (!selection_result->owner)
         return;
 
     const uint32_t event = XCB_CW_EVENT_MASK;
     const uint32_t event_mask[] = { XCB_EVENT_MASK_STRUCTURE_NOTIFY|XCB_EVENT_MASK_PROPERTY_CHANGE };
-    xcb_change_window_attributes(screen->xcb_connection(),d_ptr->x_settings_window,event,event_mask);
+    xcb_change_window_attributes(screen->xcb_connection(), selection_result->owner, event, event_mask);
 
-    d_ptr->populateSettings(d_ptr->getSettings());
-    d_ptr->initialized = true;
+    d_ptr->init(selection_result->owner, this);
+}
+
+DXcbXSettings::DXcbXSettings(QXcbVirtualDesktop *screen, xcb_window_t setting_window)
+    : d_ptr(new DXcbXSettingsPrivate(screen))
+{
+    Q_ASSERT(setting_window);
+
+    d_ptr->init(setting_window, this);
+}
+
+DXcbXSettings::DXcbXSettings(xcb_window_t setting_window)
+    : DXcbXSettings(DPlatformIntegration::xcbConnection()->primaryVirtualDesktop(), setting_window)
+{
+
 }
 
 DXcbXSettings::~DXcbXSettings()
 {
+    DXcbXSettingsPrivate::mapped.remove(d_ptr->x_settings_window);
     delete d_ptr;
     d_ptr = 0;
 }
@@ -311,13 +434,39 @@ bool DXcbXSettings::initialized() const
     return d->initialized;
 }
 
-void DXcbXSettings::handlePropertyNotifyEvent(const xcb_property_notify_event_t *event)
+bool DXcbXSettings::isEmpty() const
 {
-    Q_D(DXcbXSettings);
-    if (event->window != d->x_settings_window)
-        return;
+    Q_D(const DXcbXSettings);
+    return d->settings.isEmpty();
+}
 
-    d->populateSettings(d->getSettings());
+bool DXcbXSettings::contains(const QByteArray &property) const
+{
+    Q_D(const DXcbXSettings);
+    return d->settings.contains(property);
+}
+
+bool DXcbXSettings::handlePropertyNotifyEvent(const xcb_property_notify_event_t *event)
+{
+    if (event->atom != DXcbXSettingsPrivate::_xsettings_atom)
+        return false;
+
+    if (DXcbXSettings *self = DXcbXSettingsPrivate::mapped.value(event->window)) {
+        self->d_ptr->populateSettings(self->d_ptr->getSettings());
+
+        return true;
+    }
+
+    return false;
+}
+
+void DXcbXSettings::clearSettings(xcb_window_t setting_window)
+{
+    if (DXcbXSettingsPrivate::_xsettings_atom == XCB_NONE) {
+        DXcbXSettingsPrivate::_xsettings_atom = DPlatformIntegration::xcbConnection()->atom(QXcbAtom::_XSETTINGS_SETTINGS);
+    }
+
+    xcb_delete_property(DPlatformIntegration::xcbConnection()->xcb_connection(), setting_window, DXcbXSettingsPrivate::_xsettings_atom);
 }
 
 void DXcbXSettings::registerCallbackForProperty(const QByteArray &property, DXcbXSettings::PropertyChangeFunc func, void *handle)
@@ -341,16 +490,42 @@ void DXcbXSettings::removeCallbackForHandle(const QByteArray &property, void *ha
 void DXcbXSettings::removeCallbackForHandle(void *handle)
 {
     Q_D(DXcbXSettings);
-    for (QMap<QByteArray, QXcbXSettingsPropertyValue>::const_iterator it = d->settings.cbegin();
+    for (QHash<QByteArray, QXcbXSettingsPropertyValue>::const_iterator it = d->settings.cbegin();
          it != d->settings.cend(); ++it) {
         removeCallbackForHandle(it.key(),handle);
     }
+
+    auto isCallbackForHandle = [handle](const QXcbXSettingsCallback &cb) { return cb.handle == handle; };
+    d->callback_links.erase(std::remove_if(d->callback_links.begin(), d->callback_links.end(), isCallbackForHandle));
 }
 
 QVariant DXcbXSettings::setting(const QByteArray &property) const
 {
     Q_D(const DXcbXSettings);
     return d->settings.value(property).value;
+}
+
+void DXcbXSettings::setSetting(const QByteArray &property, const QVariant &value)
+{
+    Q_D(DXcbXSettings);
+
+    QXcbXSettingsPropertyValue &xvalue = d->settings[property];
+
+    if (xvalue.value == value)
+        return;
+
+    d->updateValue(xvalue, property, value, xvalue.last_change_serial + 1);
+
+    ++d->serial;
+    // 更新属性
+    d->setSettings(d->depopulateSettings());
+}
+
+void DXcbXSettings::registerCallback(DXcbXSettings::PropertyChangeFunc func, void *handle)
+{
+    Q_D(DXcbXSettings);
+    QXcbXSettingsCallback callback = { func, handle };
+    d->callback_links.push_back(callback);
 }
 
 DPP_END_NAMESPACE

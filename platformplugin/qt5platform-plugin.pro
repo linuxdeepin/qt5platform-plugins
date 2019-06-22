@@ -44,6 +44,7 @@ SOURCES += \
     $$PWD/vtablehook.cpp \
     $$PWD/dplatformnativeinterfacehook.cpp \
     dhighdpi.cpp \
+    dnativesettings.cpp \
     dnotitlebarwindowhelper.cpp
 
 HEADERS += \
@@ -55,6 +56,7 @@ HEADERS += \
     $$PWD/dforeignplatformwindow.h \
     $$PWD/dwmsupport.h \
     dhighdpi.h \
+    dnativesettings.h \
     dnotitlebarwindowhelper.h
 
 DISTFILES += \
