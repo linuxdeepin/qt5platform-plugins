@@ -48,17 +48,17 @@
 
 #define Q_XCB_REPLY_CONNECTION_ARG(connection, ...) connection
 
-struct QStdFreeDeleter {
+struct DStdFreeDeleter {
     void operator()(void *p) const noexcept { return std::free(p); }
 };
 
 #define Q_XCB_REPLY(call, ...) \
-    std::unique_ptr<call##_reply_t, QStdFreeDeleter>( \
+    std::unique_ptr<call##_reply_t, DStdFreeDeleter>( \
         call##_reply(Q_XCB_REPLY_CONNECTION_ARG(__VA_ARGS__), call(__VA_ARGS__), nullptr) \
     )
 
 #define Q_XCB_REPLY_UNCHECKED(call, ...) \
-    std::unique_ptr<call##_reply_t, QStdFreeDeleter>( \
+    std::unique_ptr<call##_reply_t, DStdFreeDeleter>( \
         call##_reply(Q_XCB_REPLY_CONNECTION_ARG(__VA_ARGS__), call##_unchecked(__VA_ARGS__), nullptr) \
     )
 
