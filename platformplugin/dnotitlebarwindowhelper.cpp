@@ -72,6 +72,8 @@ DNoTitlebarWindowHelper::DNoTitlebarWindowHelper(QWindow *window, quint32 window
     } else {
         qWarning() << "native settings is invalid for window: 0x" << hex << windowID;
     }
+
+    connect(DWMSupport::instance(), &DXcbWMSupport::hasScissorWindowChanged, this, &DNoTitlebarWindowHelper::updateWindowShape);
 }
 
 DNoTitlebarWindowHelper::~DNoTitlebarWindowHelper()
@@ -262,13 +264,18 @@ void DNoTitlebarWindowHelper::updateClipPathFromProperty()
     static xcb_atom_t _deepin_scissor_window = Utility::internAtom(_DEEPIN_SCISSOR_WINDOW, false);
 
     if (!path.isEmpty()) {
+        m_clipPath = path * m_window->devicePixelRatio();
+
         QByteArray data;
         QDataStream ds(&data, QIODevice::WriteOnly);
-        ds << path * m_window->devicePixelRatio();
+        ds << m_clipPath;
         Utility::setWindowProperty(m_windowID, _deepin_scissor_window, _deepin_scissor_window, data.constData(), data.length(), 8);
     } else {
+        m_clipPath = QPainterPath();
         Utility::clearWindowProperty(m_windowID, _deepin_scissor_window);
     }
+
+    updateWindowShape();
 }
 
 void DNoTitlebarWindowHelper::updateFrameMaskFromProperty()
@@ -428,7 +435,14 @@ void DNoTitlebarWindowHelper::updateWindowBlurPathsFromProperty()
 
 void DNoTitlebarWindowHelper::updateAutoInputMaskByClipPathFromProperty()
 {
-    // TODO
+    bool auto_update_shape = m_window->property(autoInputMaskByClipPath).toBool();
+
+    if (auto_update_shape == m_autoInputMaskByClipPath)
+        return;
+
+    m_autoInputMaskByClipPath = auto_update_shape;
+
+    updateWindowShape();
 }
 
 bool DNoTitlebarWindowHelper::windowEvent(QEvent *event)
@@ -598,6 +612,19 @@ bool DNoTitlebarWindowHelper::updateWindowBlurAreasForWM()
         return true;
 
     return Utility::blurWindowBackgroundByPaths(top_level_w, newPathList);
+}
+
+void DNoTitlebarWindowHelper::updateWindowShape()
+{
+    if (m_clipPath.isEmpty()) {
+        return Utility::setShapePath(m_windowID, m_clipPath, false, false);
+    }
+
+    if (DWMSupport::instance()->hasScissorWindow()) {
+        Utility::setShapePath(m_windowID, m_clipPath, true, m_autoInputMaskByClipPath);
+    } else {
+        Utility::setShapePath(m_windowID, m_clipPath, false, false);
+    }
 }
 
 void DNoTitlebarWindowHelper::startMoveWindow(quint32 winId)

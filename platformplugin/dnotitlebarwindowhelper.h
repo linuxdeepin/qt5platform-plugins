@@ -107,6 +107,7 @@ private:
     bool windowEvent(QEvent *event);
     bool isEnableSystemMove(quint32 winId);
     bool updateWindowBlurAreasForWM();
+    void updateWindowShape();
 
     static void startMoveWindow(quint32 winId);
     static void updateMoveWindow(quint32 winId);
@@ -119,9 +120,12 @@ private:
     QVector<Utility::BlurArea> m_blurAreaList;
     QList<QPainterPath> m_blurPathList;
 
+    QPainterPath m_clipPath;
+
     // properties
     bool m_enableSystemMove = true;
     bool m_enableBlurWindow = false;
+    bool m_autoInputMaskByClipPath = false;
     DNativeSettings *m_settings;
 
     static QHash<const QWindow*, DNoTitlebarWindowHelper*> mapped;
