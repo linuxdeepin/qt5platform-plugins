@@ -49,7 +49,7 @@
 
 #define Q_XCB_REPLY_CONNECTION_ARG(connection, ...) connection
 
-struct DStdFreeDeleter {
+struct Q_DECL_HIDDEN DStdFreeDeleter {
     void operator()(void *p) const noexcept { return std::free(p); }
 };
 
@@ -72,16 +72,16 @@ enum XSettingsType {
     XSettingsTypeColor = 2
 };
 
-struct QXcbXSettingsCallback
+struct Q_DECL_HIDDEN DXcbXSettingsCallback
 {
     DXcbXSettings::PropertyChangeFunc func;
     void *handle;
 };
 
-class QXcbXSettingsPropertyValue
+class Q_DECL_HIDDEN DXcbXSettingsPropertyValue
 {
 public:
-    QXcbXSettingsPropertyValue()
+    DXcbXSettingsPropertyValue()
         : last_change_serial(-1)
     {}
 
@@ -99,38 +99,38 @@ public:
 
     void addCallback(DXcbXSettings::PropertyChangeFunc func, void *handle)
     {
-        QXcbXSettingsCallback callback = { func, handle };
+        DXcbXSettingsCallback callback = { func, handle };
         callback_links.push_back(callback);
     }
 
     QVariant value;
     int last_change_serial = -1;
-    std::vector<QXcbXSettingsCallback> callback_links;
+    std::vector<DXcbXSettingsCallback> callback_links;
 };
 
-class QXcbConnectionGrabber
+class Q_DECL_HIDDEN DXcbConnectionGrabber
 {
 public:
-    QXcbConnectionGrabber(QXcbConnection *connection);
-    ~QXcbConnectionGrabber();
+    DXcbConnectionGrabber(QXcbConnection *connection);
+    ~DXcbConnectionGrabber();
     void release();
 private:
     QXcbConnection *m_connection;
 };
 
-QXcbConnectionGrabber::QXcbConnectionGrabber(QXcbConnection *connection)
+DXcbConnectionGrabber::DXcbConnectionGrabber(QXcbConnection *connection)
     :m_connection(connection)
 {
     connection->grabServer();
 }
 
-QXcbConnectionGrabber::~QXcbConnectionGrabber()
+DXcbConnectionGrabber::~DXcbConnectionGrabber()
 {
     if (m_connection)
         m_connection->ungrabServer();
 }
 
-void QXcbConnectionGrabber::release()
+void DXcbConnectionGrabber::release()
 {
     if (m_connection) {
         m_connection->ungrabServer();
@@ -138,19 +138,51 @@ void QXcbConnectionGrabber::release()
     }
 }
 
-class DXcbXSettingsPrivate
+class Q_DECL_HIDDEN DXcbXSettingsPrivate
 {
 public:
     DXcbXSettingsPrivate(QXcbVirtualDesktop *screen)
         : screen(screen)
         , initialized(false)
     {
-        _xsettings_atom = screen->connection()->atom(QXcbAtom::_XSETTINGS_SETTINGS);
+        if (!_xsettings_atom)
+            _xsettings_atom = screen->connection()->atom(QXcbAtom::_XSETTINGS_SETTINGS);
+
+        if (!_xsettings_notify_atom)
+            _xsettings_notify_atom = screen->connection()->internAtom("_XSETTINGS_SETTINGS_NOTIFY");
+
+        // init xsettings owner
+        if (!_xsettings_owner) {
+            QByteArray settings_atom_for_screen("_XSETTINGS_S");
+            settings_atom_for_screen.append(QByteArray::number(screen->number()));
+            auto atom_reply = Q_XCB_REPLY(xcb_intern_atom,
+                                          screen->xcb_connection(),
+                                          true,
+                                          settings_atom_for_screen.length(),
+                                          settings_atom_for_screen.constData());
+            if (!atom_reply)
+                return;
+
+            xcb_atom_t selection_owner_atom = atom_reply->atom;
+
+            auto selection_result = Q_XCB_REPLY(xcb_get_selection_owner,
+                                                screen->xcb_connection(), selection_owner_atom);
+            if (!selection_result)
+                return;
+
+            _xsettings_owner = selection_result->owner;
+
+            if (_xsettings_owner) {
+                const uint32_t event = XCB_CW_EVENT_MASK;
+                const uint32_t event_mask[] = { XCB_EVENT_MASK_STRUCTURE_NOTIFY|XCB_EVENT_MASK_PROPERTY_CHANGE };
+                xcb_change_window_attributes(screen->xcb_connection(), selection_result->owner, event, event_mask);
+            }
+        }
     }
 
     QByteArray getSettings()
     {
-        QXcbConnectionGrabber connectionGrabber(screen->connection());
+        DXcbConnectionGrabber connectionGrabber(screen->connection());
 
         int offset = 0;
         QByteArray settings;
@@ -181,8 +213,34 @@ public:
 
     void setSettings(const QByteArray &data)
     {
-        QXcbConnectionGrabber connectionGrabber(screen->connection());
+        DXcbConnectionGrabber connectionGrabber(screen->connection());
+        Q_UNUSED(connectionGrabber)
         xcb_change_property(screen->xcb_connection(), XCB_PROP_MODE_REPLACE, x_settings_window, _xsettings_atom, _xsettings_atom, 8, data.size(), data.constData());
+
+        xcb_window_t xsettings_owner = _xsettings_owner;
+
+        // xsettings owner窗口，按照标准，其属性变化的事件就表示了通知
+        if (x_settings_window == xsettings_owner)
+            return;
+
+        // 对于非标准的窗口的xsettings，其窗口属性变化不是任何程序中都能默认收到，因此应该使用client message通知属性变化
+        // 且窗口的属性改变事件可能会被其它事件过滤器接收并处理(eg: KWin)
+        // 因此改用client message通知窗口级别的xsettings属性变化
+        // 此client message事件发送给xsettings owner，且在事件数据
+        // 中携带属性变化窗口的window id。
+        if (xsettings_owner) {
+            xcb_client_message_event_t notify_event;
+            memset(&notify_event, 0, sizeof(notify_event));
+
+            notify_event.response_type = XCB_CLIENT_MESSAGE;
+            notify_event.format = 32;
+            notify_event.sequence = 0;
+            notify_event.window = xsettings_owner;
+            notify_event.type = _xsettings_notify_atom;
+            notify_event.data.data32[0] = x_settings_window;
+
+            xcb_send_event(screen->xcb_connection(), false, xsettings_owner, XCB_EVENT_MASK_PROPERTY_CHANGE, (const char *)&notify_event);
+        }
     }
 
     static int round_to_nearest_multiple_of_4(int value)
@@ -284,7 +342,7 @@ public:
         uint *number_of_settings_ptr = (uint*)(xSettings.data() + xSettings.size() - sizeof(number_of_settings));
 
         for (auto i = settings.constBegin(); i != settings.constEnd(); ++i) {
-            const QXcbXSettingsPropertyValue &value = i.value();
+            const DXcbXSettingsPropertyValue &value = i.value();
 
             if (!value.value.isValid()) {
                 --*number_of_settings_ptr;
@@ -345,13 +403,13 @@ public:
     void init(xcb_window_t setting_window, DXcbXSettings *object)
     {
         x_settings_window = setting_window;
+        mapped.insertMulti(x_settings_window, object);
 
         populateSettings(getSettings());
         initialized = true;
-        mapped[x_settings_window] = object;
     }
 
-    bool updateValue(QXcbXSettingsPropertyValue &xvalue, const QByteArray &name, const QVariant &value, int last_change_serial)
+    bool updateValue(DXcbXSettingsPropertyValue &xvalue, const QByteArray &name, const QVariant &value, int last_change_serial)
     {
         if (xvalue.updateValue(screen, name, value, last_change_serial)) {
             for (const auto &callback : callback_links) {
@@ -367,44 +425,30 @@ public:
     QXcbVirtualDesktop *screen;
     xcb_window_t x_settings_window;
     qint32 serial = -1;
-    QHash<QByteArray, QXcbXSettingsPropertyValue> settings;
-    std::vector<QXcbXSettingsCallback> callback_links;
+    QHash<QByteArray, DXcbXSettingsPropertyValue> settings;
+    std::vector<DXcbXSettingsCallback> callback_links;
     bool initialized;
-    static xcb_atom_t _xsettings_atom;
-    static QHash<xcb_window_t, DXcbXSettings*> mapped;
+
+    static xcb_window_t _xsettings_owner;
+    static xcb_atom_t _xsettings_atom, _xsettings_notify_atom;
+    static QMultiHash<xcb_window_t, DXcbXSettings*> mapped;
 };
 
-xcb_atom_t DXcbXSettingsPrivate::_xsettings_atom;
-QHash<xcb_window_t, DXcbXSettings*> DXcbXSettingsPrivate::mapped;
+xcb_atom_t DXcbXSettingsPrivate::_xsettings_atom = 0;
+xcb_atom_t DXcbXSettingsPrivate::_xsettings_notify_atom = 0;
+xcb_window_t DXcbXSettingsPrivate::_xsettings_owner = 0;
+QMultiHash<xcb_window_t, DXcbXSettings*> DXcbXSettingsPrivate::mapped;
 
 DXcbXSettings::DXcbXSettings(QXcbVirtualDesktop *screen)
     : d_ptr(new DXcbXSettingsPrivate(screen))
 {
-    QByteArray settings_atom_for_screen("_XSETTINGS_S");
-    settings_atom_for_screen.append(QByteArray::number(screen->number()));
-    auto atom_reply = Q_XCB_REPLY(xcb_intern_atom,
-                                  screen->xcb_connection(),
-                                  true,
-                                  settings_atom_for_screen.length(),
-                                  settings_atom_for_screen.constData());
-    if (!atom_reply)
+    xcb_window_t xsettings_owner = d_ptr->_xsettings_owner;
+
+    if (!xsettings_owner) {
         return;
+    }
 
-    xcb_atom_t selection_owner_atom = atom_reply->atom;
-
-    auto selection_result = Q_XCB_REPLY(xcb_get_selection_owner,
-                                        screen->xcb_connection(), selection_owner_atom);
-    if (!selection_result)
-        return;
-
-    if (!selection_result->owner)
-        return;
-
-    const uint32_t event = XCB_CW_EVENT_MASK;
-    const uint32_t event_mask[] = { XCB_EVENT_MASK_STRUCTURE_NOTIFY|XCB_EVENT_MASK_PROPERTY_CHANGE };
-    xcb_change_window_attributes(screen->xcb_connection(), selection_result->owner, event, event_mask);
-
-    d_ptr->init(selection_result->owner, this);
+    d_ptr->init(xsettings_owner, this);
 }
 
 DXcbXSettings::DXcbXSettings(QXcbVirtualDesktop *screen, xcb_window_t setting_window)
@@ -451,13 +495,41 @@ bool DXcbXSettings::handlePropertyNotifyEvent(const xcb_property_notify_event_t 
     if (event->atom != DXcbXSettingsPrivate::_xsettings_atom)
         return false;
 
-    if (DXcbXSettings *self = DXcbXSettingsPrivate::mapped.value(event->window)) {
-        self->d_ptr->populateSettings(self->d_ptr->getSettings());
-
-        return true;
+    // 其它类型窗口的xsettings属性变化是通过client message通知的
+    if (event->window != DXcbXSettingsPrivate::_xsettings_owner) {
+        return false;
     }
 
-    return false;
+    auto self_list = DXcbXSettingsPrivate::mapped.values(event->window);
+
+    if (self_list.isEmpty())
+        return false;
+
+    for (DXcbXSettings *self : self_list) {
+        self->d_ptr->populateSettings(self->d_ptr->getSettings());
+    }
+
+    return true;
+}
+
+bool DXcbXSettings::handleClientMessageEvent(const xcb_client_message_event_t *event)
+{
+    if (event->type != DXcbXSettingsPrivate::_xsettings_notify_atom)
+        return false;
+
+    if (event->format != 32)
+        return false;
+
+    auto self_list = DXcbXSettingsPrivate::mapped.values(event->data.data32[0]);
+
+    if (self_list.isEmpty())
+        return false;
+
+    for (DXcbXSettings *self : self_list) {
+        self->d_ptr->populateSettings(self->d_ptr->getSettings());
+    }
+
+    return true;
 }
 
 void DXcbXSettings::clearSettings(xcb_window_t setting_window)
@@ -480,7 +552,7 @@ void DXcbXSettings::removeCallbackForHandle(const QByteArray &property, void *ha
     Q_D(DXcbXSettings);
     auto &callbacks = d->settings[property].callback_links;
 
-    auto isCallbackForHandle = [handle](const QXcbXSettingsCallback &cb) { return cb.handle == handle; };
+    auto isCallbackForHandle = [handle](const DXcbXSettingsCallback &cb) { return cb.handle == handle; };
 
     callbacks.erase(std::remove_if(callbacks.begin(), callbacks.end(),
                                    isCallbackForHandle),
@@ -490,12 +562,12 @@ void DXcbXSettings::removeCallbackForHandle(const QByteArray &property, void *ha
 void DXcbXSettings::removeCallbackForHandle(void *handle)
 {
     Q_D(DXcbXSettings);
-    for (QHash<QByteArray, QXcbXSettingsPropertyValue>::const_iterator it = d->settings.cbegin();
+    for (QHash<QByteArray, DXcbXSettingsPropertyValue>::const_iterator it = d->settings.cbegin();
          it != d->settings.cend(); ++it) {
         removeCallbackForHandle(it.key(),handle);
     }
 
-    auto isCallbackForHandle = [handle](const QXcbXSettingsCallback &cb) { return cb.handle == handle; };
+    auto isCallbackForHandle = [handle](const DXcbXSettingsCallback &cb) { return cb.handle == handle; };
     d->callback_links.erase(std::remove_if(d->callback_links.begin(), d->callback_links.end(), isCallbackForHandle));
 }
 
@@ -509,7 +581,7 @@ void DXcbXSettings::setSetting(const QByteArray &property, const QVariant &value
 {
     Q_D(DXcbXSettings);
 
-    QXcbXSettingsPropertyValue &xvalue = d->settings[property];
+    DXcbXSettingsPropertyValue &xvalue = d->settings[property];
 
     if (xvalue.value == value)
         return;
@@ -524,7 +596,7 @@ void DXcbXSettings::setSetting(const QByteArray &property, const QVariant &value
 void DXcbXSettings::registerCallback(DXcbXSettings::PropertyChangeFunc func, void *handle)
 {
     Q_D(DXcbXSettings);
-    QXcbXSettingsCallback callback = { func, handle };
+    DXcbXSettingsCallback callback = { func, handle };
     d->callback_links.push_back(callback);
 }
 

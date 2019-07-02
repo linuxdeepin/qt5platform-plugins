@@ -230,6 +230,14 @@ bool XcbNativeEventFilter::nativeEventFilter(const QByteArray &eventType, void *
             break;
         }
 #endif
+        case XCB_CLIENT_MESSAGE: {
+            xcb_client_message_event_t *ev = reinterpret_cast<xcb_client_message_event_t*>(event);
+
+            if (DXcbXSettings::handleClientMessageEvent(ev)) {
+                return true;
+            }
+            break;
+        }
         default:
             static auto updateScaleLogcailDpi = qApp->property("_d_updateScaleLogcailDpi").toULongLong();
 #if QT_VERSION < QT_VERSION_CHECK(5, 12, 0)

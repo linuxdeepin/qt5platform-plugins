@@ -52,6 +52,8 @@ public:
     static bool setEnableNoTitlebar(QWindow *window, bool enable);
     static bool isEnableNoTitlebar(const QWindow *window);
 
+    // Warning: 调用 buildNativeSettings，会导致object的QMetaObject对象被更改
+    // 无法使用QMetaObject::cast，不能使用QObject::findChild等接口查找子类，也不能使用qobject_cast转换对象指针类型
     static bool buildNativeSettings(QObject *object, quint32 settingWindow);
     static void clearNativeSettings(quint32 settingWindow);
 

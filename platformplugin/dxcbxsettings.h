@@ -69,6 +69,7 @@ public:
     void removeCallbackForHandle(void *handle);
 
     static bool handlePropertyNotifyEvent(const xcb_property_notify_event_t *event);
+    static bool handleClientMessageEvent(const xcb_client_message_event_t *event);
 
     static void clearSettings(xcb_window_t setting_window);
 private:

@@ -85,7 +85,7 @@ void DNativeSettings::init()
     QMetaObjectBuilder ob(m_base->metaObject());
 
     // 先删除所有的属性，等待重构
-    for (int i = 0; i < ob.propertyCount(); ++i) {
+    while (ob.propertyCount() > 0) {
         ob.removeProperty(0);
     }
 
@@ -103,10 +103,6 @@ void DNativeSettings::init()
             validProperties |= (1 << i);
         }
 
-        if (mp.hasNotifySignal()) {
-            m_settings->registerCallbackForProperty(mp.name(), reinterpret_cast<NativeSettings::PropertyChangeFunc>(onPropertyChanged), this);
-        }
-
         m_registerProperties.insert(mp.name());
 
         switch (mp.type()) {
@@ -115,6 +111,7 @@ void DNativeSettings::init()
         case QMetaType::QColor:
         case QMetaType::Int:
         case QMetaType::Double:
+        case QMetaType::Bool:
             ob.addProperty(mp);
             break;
         default:
@@ -134,6 +131,8 @@ void DNativeSettings::init()
     // 将属性状态设置给对象
     m_base->setProperty(VALID_PROPERTIES, validProperties);
     m_propertySignalIndex = m_base->metaObject()->indexOfSignal(QMetaObject::normalizedSignature("propertyChanged(const QByteArray&, const QVariant&)"));
+    // 监听native setting变化
+    m_settings->registerCallback(reinterpret_cast<NativeSettings::PropertyChangeFunc>(onPropertyChanged), this);
     // 支持在base对象中直接使用property/setProperty读写native属性
     m_metaObject = ob.toMetaObject();
     VtableHook::overrideVfptrFun(m_base, &QObject::metaObject, metaObject);
@@ -143,6 +142,10 @@ void DNativeSettings::init()
 void DNativeSettings::onPropertyChanged(void *screen, const QByteArray &name, const QVariant &property, DNativeSettings *handle)
 {
     Q_UNUSED(screen)
+
+    if (handle->m_propertySignalIndex >= 0) {
+        handle->m_base->metaObject()->method(handle->m_propertySignalIndex).invoke(handle->m_base, Q_ARG(QByteArray, name), Q_ARG(QVariant, property));
+    }
 
     int property_index = handle->m_base->metaObject()->indexOfProperty(name.constData()) - handle->m_base->metaObject()->superClass()->propertyCount();
 
@@ -159,10 +162,6 @@ void DNativeSettings::onPropertyChanged(void *screen, const QByteArray &name, co
             flags = property.isValid() ? flags | flag : flags & ~flag;
             handle->m_base->setProperty(VALID_PROPERTIES, flags);
         }
-    }
-
-    if (handle->m_propertySignalIndex >= 0) {
-        handle->m_base->metaObject()->method(handle->m_propertySignalIndex).invoke(handle->m_base, Q_ARG(QByteArray, name), Q_ARG(QVariant, property));
     }
 
     const QMetaProperty &p = handle->m_base->metaObject()->property(property_index);
