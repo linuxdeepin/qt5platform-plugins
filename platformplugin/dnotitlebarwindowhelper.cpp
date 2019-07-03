@@ -290,7 +290,7 @@ void DNoTitlebarWindowHelper::updateWindowRadiusFromProperty()
     int radius = v.toInt(&ok);
 
     if (ok) {
-        setWindowRadius(QPointF(radius, radius));
+        setWindowRadius(QPointF(radius, radius) * m_window->devicePixelRatio());
     } else {
         resetProperty("windowRadius");
     }
