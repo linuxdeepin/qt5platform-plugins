@@ -538,22 +538,26 @@ bool DPlatformWindowHelper::isAlertState() const
 
 bool DPlatformWindowHelper::windowRedirectContent(QWindow *window)
 {
+    // 环境变量的值最优先
+    static const QByteArray env = qgetenv("DXCB_REDIRECT_CONTENT");
+
+    if (env == "true") {
+        return true;
+    } else if (env == "false") {
+        return false;
+    }
+
+    // 判断在2D模式下是否允许重定向窗口绘制的内容，此环境变量默认不设置，因此默认需要禁用2D下的重定向
+    // 修复dde-dock在某些2D环境（如HW云桌面）中不显示窗口内容
+    if (!DXcbWMSupport::instance()->hasComposite()
+            && qEnvironmentVariableIsEmpty("DXCB_REDIRECT_CONTENT_WITH_NO_COMPOSITE")) {
+        return false;
+    }
+
     const QVariant &value = window->property(redirectContent);
 
     if (value.type() == QVariant::Bool)
         return value.toBool();
-
-    if (qEnvironmentVariableIsSet("DXCB_REDIRECT_CONTENT")) {
-        const QByteArray &value = qgetenv("DXCB_REDIRECT_CONTENT");
-
-        if (value == "true") {
-            window->setProperty(redirectContent, true);
-
-            return true;
-        } else if (value == "false") {
-            return false;
-        }
-    }
 
     return window->surfaceType() == QSurface::OpenGLSurface;
 }
