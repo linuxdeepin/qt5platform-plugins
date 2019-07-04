@@ -74,6 +74,12 @@ DNoTitlebarWindowHelper::DNoTitlebarWindowHelper(QWindow *window, quint32 window
     }
 
     connect(DWMSupport::instance(), &DXcbWMSupport::hasScissorWindowChanged, this, &DNoTitlebarWindowHelper::updateWindowShape);
+    connect(DWMSupport::instance(), &DXcbWMSupport::hasBlurWindowChanged, this, [this] (bool blur) {
+        // 检测到窗口管理器支持模糊时，应该重新更新模糊属性。否则可能会导致模糊失效，如kwin在某些情况下可能会删除窗口的模糊属性
+        if (blur) {
+            updateWindowBlurAreasForWM();
+        }
+    });
 }
 
 DNoTitlebarWindowHelper::~DNoTitlebarWindowHelper()
