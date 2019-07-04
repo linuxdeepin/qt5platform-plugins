@@ -326,8 +326,13 @@ QPlatformWindow *DPlatformIntegration::createPlatformWindow(QWindow *window) con
 
 #ifdef Q_OS_LINUX
     const DFrameWindow *frame_window = qobject_cast<DFrameWindow*>(window);
-    bool rc = frame_window ? DPlatformWindowHelper::windowRedirectContent(frame_window->m_contentWindow)
-                           : DPlatformWindowHelper::windowRedirectContent(window);
+    bool rc = false;
+
+    if (isUseDxcb) {
+        rc = frame_window ? DPlatformWindowHelper::windowRedirectContent(frame_window->m_contentWindow)
+                          : DPlatformWindowHelper::windowRedirectContent(window);
+    }
+
     Q_UNUSED(new WindowEventHook(xw, rc))
 #endif
 
