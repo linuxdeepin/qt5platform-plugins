@@ -532,7 +532,9 @@ bool Utility::blurWindowBackground(const quint32 WId, const QVector<BlurArea> &a
         }
 
         clearWindowProperty(WId, DXcbWMSupport::instance()->_net_wm_deepin_blur_region_mask);
-        setWindowProperty(WId, atom, XCB_ATOM_CARDINAL, rects.constData(), rects.size(), sizeof(quint32) * 8);
+
+        if (!areas.isEmpty())
+            setWindowProperty(WId, atom, XCB_ATOM_CARDINAL, rects.constData(), rects.size(), sizeof(quint32) * 8);
     }
 
     return true;
@@ -566,6 +568,11 @@ bool Utility::blurWindowBackgroundByPaths(const quint32 WId, const QList<QPainte
 
         if (atom == XCB_NONE)
             return false;
+
+        if (paths.isEmpty()) {
+            clearWindowProperty(WId, DXcbWMSupport::instance()->_net_wm_deepin_blur_region_mask);
+            return true;
+        }
 
         QVector<quint32> rects;
 
