@@ -213,10 +213,9 @@ bool DPlatformIntegration::setEnableNoTitlebar(QWindow *window, bool enable)
             return false;
 
         QNativeWindow *xw = static_cast<QNativeWindow*>(window->handle());
+        window->setProperty(noTitlebar, true);
 
         if (!xw) {
-            window->setProperty(noTitlebar, true);
-
             return true;
         }
 
