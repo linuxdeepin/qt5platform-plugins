@@ -80,6 +80,8 @@ DNoTitlebarWindowHelper::DNoTitlebarWindowHelper(QWindow *window, quint32 window
             updateWindowBlurAreasForWM();
         }
     });
+    connect(window, &QWindow::widthChanged, this, &DNoTitlebarWindowHelper::onWindowSizeChanged);
+    connect(window, &QWindow::heightChanged, this, &DNoTitlebarWindowHelper::onWindowSizeChanged);
 }
 
 DNoTitlebarWindowHelper::~DNoTitlebarWindowHelper()
@@ -506,22 +508,21 @@ bool DNoTitlebarWindowHelper::updateWindowBlurAreasForWM()
     }
 
     qreal device_pixel_ratio = m_window->devicePixelRatio();
-    const QRect &windowValidRect = QRect(QPoint(0, 0), m_window->size() * device_pixel_ratio);
-
-    if (windowValidRect.isEmpty())
-        return false;
-
     quint32 top_level_w = Utility::getNativeTopLevelWindow(m_windowID);
     QPoint offset = QPoint(0, 0);
+    const bool is_toplevel_window = (top_level_w == m_windowID);
 
-    if (top_level_w != m_windowID) {
+    if (!is_toplevel_window) {
         offset += Utility::translateCoordinates(QPoint(0, 0), m_windowID, top_level_w);
     }
 
     QVector<Utility::BlurArea> newAreas;
 
     if (m_enableBlurWindow) {
-        if (!Utility::setEnableBlurWindow(m_windowID, true)) {
+        m_needUpdateBlurAreaForWindowSizeChanged = !is_toplevel_window || !Utility::setEnableBlurWindow(m_windowID, true);
+
+        if (m_needUpdateBlurAreaForWindowSizeChanged) {
+            const QRect &windowValidRect = QRect(QPoint(0, 0), m_window->size() * device_pixel_ratio);
             Utility::BlurArea area;
 
             area.x = windowValidRect.x() + offset.x();
@@ -539,10 +540,6 @@ bool DNoTitlebarWindowHelper::updateWindowBlurAreasForWM()
         }
     }
 
-    QPainterPath window_valid_path;
-
-    window_valid_path.addRect(QRect(offset, m_window->handle()->geometry().size()));
-
     if (m_blurPathList.isEmpty()) {
         if (m_blurAreaList.isEmpty())
             return true;
@@ -554,34 +551,6 @@ bool DNoTitlebarWindowHelper::updateWindowBlurAreasForWM()
 
             area.x += offset.x();
             area.y += offset.y();
-
-            QPainterPath path;
-
-            path.addRoundedRect(area.x, area.y, area.width, area.height,
-                                area.xRadius, area.yRaduis);
-
-            if (!window_valid_path.contains(path)) {
-                const QPainterPath valid_blur_path = window_valid_path & path;
-                const QRectF valid_blur_rect = valid_blur_path.boundingRect();
-
-                if (path.boundingRect() != valid_blur_rect) {
-                    area.x = valid_blur_rect.x();
-                    area.y = valid_blur_rect.y();
-                    area.width = valid_blur_rect.width();
-                    area.height = valid_blur_rect.height();
-
-                    path = QPainterPath();
-                    path.addRoundedRect(valid_blur_rect.x(), valid_blur_rect.y(),
-                                        valid_blur_rect.width(), valid_blur_rect.height(),
-                                        area.xRadius, area.yRaduis);
-
-                    if (valid_blur_path != path) {
-                        break;
-                    }
-                } else if (valid_blur_path != path) {
-                    break;
-                }
-            }
 
             newAreas.append(std::move(area));
         }
@@ -600,7 +569,6 @@ bool DNoTitlebarWindowHelper::updateWindowBlurAreasForWM()
         area *= device_pixel_ratio;
         path.addRoundedRect(area.x + offset.x(), area.y + offset.y(), area.width, area.height,
                             area.xRadius, area.yRaduis);
-        path = path.intersected(window_valid_path);
 
         if (!path.isEmpty())
             newPathList << path;
@@ -610,7 +578,7 @@ bool DNoTitlebarWindowHelper::updateWindowBlurAreasForWM()
         newPathList.reserve(newPathList.size() + m_blurPathList.size());
 
         foreach (const QPainterPath &path, m_blurPathList) {
-            newPathList << (path * device_pixel_ratio).translated(offset).intersected(window_valid_path);
+            newPathList << (path * device_pixel_ratio).translated(offset);
         }
     }
 
@@ -630,6 +598,13 @@ void DNoTitlebarWindowHelper::updateWindowShape()
         Utility::setShapePath(m_windowID, m_clipPath, true, m_autoInputMaskByClipPath);
     } else {
         Utility::setShapePath(m_windowID, m_clipPath, false, false);
+    }
+}
+
+void DNoTitlebarWindowHelper::onWindowSizeChanged()
+{
+    if (m_needUpdateBlurAreaForWindowSizeChanged) {
+        updateWindowBlurAreasForWM();
     }
 }
 

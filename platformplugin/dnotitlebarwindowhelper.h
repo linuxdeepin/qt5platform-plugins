@@ -109,6 +109,8 @@ private:
     bool updateWindowBlurAreasForWM();
     void updateWindowShape();
 
+    void onWindowSizeChanged();
+
     static void startMoveWindow(quint32 winId);
     static void updateMoveWindow(quint32 winId);
 
@@ -119,6 +121,7 @@ private:
 
     QVector<Utility::BlurArea> m_blurAreaList;
     QList<QPainterPath> m_blurPathList;
+    bool m_needUpdateBlurAreaForWindowSizeChanged = false;
 
     QPainterPath m_clipPath;
 
