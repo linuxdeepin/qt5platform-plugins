@@ -23,12 +23,10 @@
 #include "dxcbxsettings.h"
 #endif
 #include "dplatformintegration.h"
-#include "vtablehook.h"
 
 #include <QDebug>
 #include <QMetaProperty>
 #include <QMetaMethod>
-#include <private/qmetaobjectbuilder_p.h>
 
 #define VALID_PROPERTIES "validProperties"
 
@@ -41,6 +39,7 @@ QHash<QObject*, DNativeSettings*> DNativeSettings::mapped;
  */
 DNativeSettings::DNativeSettings(QObject *base, quint32 settingsWindow)
     : m_base(base)
+    , m_objectBuilder(base->metaObject())
 {
     mapped[base] = this;
 
@@ -49,10 +48,6 @@ DNativeSettings::DNativeSettings(QObject *base, quint32 settingsWindow)
     } else {
         m_settings = DPlatformIntegration::instance()->xSettings();
     }
-
-    QObject::connect(m_base, &QObject::destroyed, [this] {
-        delete this;
-    });
 
     init();
 }
@@ -64,33 +59,27 @@ DNativeSettings::~DNativeSettings()
     }
 
     mapped.remove(m_base);
-
-    if (m_metaObject) {
-        delete m_metaObject;
-    }
-}
-
-bool DNativeSettings::isEmpty() const
-{
-    return m_registerProperties.isEmpty();
+    free(m_metaObject);
 }
 
 void DNativeSettings::init()
 {
-    int first_property = m_base->metaObject()->propertyOffset();
-    int count = m_base->metaObject()->propertyCount() - m_base->metaObject()->superClass()->propertyCount();
+    m_firstProperty = m_base->metaObject()->propertyOffset();
+    m_propertyCount = m_base->metaObject()->propertyCount() - m_base->metaObject()->superClass()->propertyCount();
     // 用于记录属性是否有效的属性, 属性类型为64位整数，最多可用于记录64个属性的状态
     m_flagPropertyIndex = m_base->metaObject()->indexOfProperty(VALID_PROPERTIES);
     qint64 validProperties = 0;
-    QMetaObjectBuilder ob(m_base->metaObject());
+
+    QMetaObjectBuilder &ob = m_objectBuilder;
+    ob.setFlags(ob.flags() | QMetaObjectBuilder::DynamicMetaObject);
 
     // 先删除所有的属性，等待重构
     while (ob.propertyCount() > 0) {
         ob.removeProperty(0);
     }
 
-    for (int i = 0; i < count; ++i) {
-        int index = i + first_property;
+    for (int i = 0; i < m_propertyCount; ++i) {
+        int index = i + m_firstProperty;
 
         const QMetaProperty &mp = m_base->metaObject()->property(index);
         // 跳过特殊属性
@@ -102,8 +91,6 @@ void DNativeSettings::init()
         if (m_settings->setting(mp.name()).isValid()) {
             validProperties |= (1 << i);
         }
-
-        m_registerProperties.insert(mp.name());
 
         switch (mp.type()) {
         case QMetaType::QByteArray:
@@ -124,19 +111,32 @@ void DNativeSettings::init()
         ob.property(i).setResettable(true);
     }
 
-    if (m_registerProperties.isEmpty()) {
-        return;
-    }
-
     // 将属性状态设置给对象
     m_base->setProperty(VALID_PROPERTIES, validProperties);
     m_propertySignalIndex = m_base->metaObject()->indexOfSignal(QMetaObject::normalizedSignature("propertyChanged(const QByteArray&, const QVariant&)"));
     // 监听native setting变化
     m_settings->registerCallback(reinterpret_cast<NativeSettings::PropertyChangeFunc>(onPropertyChanged), this);
     // 支持在base对象中直接使用property/setProperty读写native属性
+    QObjectPrivate *op = QObjectPrivate::get(m_base);
+    op->metaObject = this;
     m_metaObject = ob.toMetaObject();
-    VtableHook::overrideVfptrFun(m_base, &QObject::metaObject, metaObject);
-    VtableHook::overrideVfptrFun(m_base, &QObject::qt_metacall, qt_metacall);
+    *static_cast<QMetaObject *>(this) = *m_metaObject;
+}
+
+int DNativeSettings::createProperty(const char *name, const char *)
+{
+    // 清理旧数据
+    free(m_metaObject);
+
+    // 添加新属性
+    auto property = m_objectBuilder.addProperty(name, "QVariant");
+    property.setReadable(true);
+    property.setWritable(true);
+    property.setResettable(true);
+    m_metaObject = m_objectBuilder.toMetaObject();
+    *static_cast<QMetaObject *>(this) = *m_metaObject;
+
+    return m_firstProperty + property.index();
 }
 
 void DNativeSettings::onPropertyChanged(void *screen, const QByteArray &name, const QVariant &property, DNativeSettings *handle)
@@ -144,10 +144,11 @@ void DNativeSettings::onPropertyChanged(void *screen, const QByteArray &name, co
     Q_UNUSED(screen)
 
     if (handle->m_propertySignalIndex >= 0) {
-        handle->m_base->metaObject()->method(handle->m_propertySignalIndex).invoke(handle->m_base, Q_ARG(QByteArray, name), Q_ARG(QVariant, property));
+        handle->method(handle->m_propertySignalIndex).invoke(handle->m_base, Q_ARG(QByteArray, name), Q_ARG(QVariant, property));
     }
 
-    int property_index = handle->m_base->metaObject()->indexOfProperty(name.constData()) - handle->m_base->metaObject()->superClass()->propertyCount();
+    // 不要直接调用自己的indexOfProperty函数，属性不存在时会导致调用createProperty函数
+    int property_index = handle->m_objectBuilder.indexOfProperty(name.constData());
 
     if (Q_UNLIKELY(property_index < 0)) {
         return;
@@ -164,7 +165,7 @@ void DNativeSettings::onPropertyChanged(void *screen, const QByteArray &name, co
         }
     }
 
-    const QMetaProperty &p = handle->m_base->metaObject()->property(property_index);
+    const QMetaProperty &p = handle->property(handle->m_firstProperty + property_index);
 
     if (p.hasNotifySignal()) {
         // 通知属性改变
@@ -172,16 +173,7 @@ void DNativeSettings::onPropertyChanged(void *screen, const QByteArray &name, co
     }
 }
 
-const QMetaObject *DNativeSettings::metaObject(QObject *object)
-{
-    if (DNativeSettings *self = mapped.value(object)) {
-        return self->m_metaObject;
-    }
-
-    return VtableHook::callOriginalFun(object, &QObject::metaObject);
-}
-
-int DNativeSettings::qt_metacall(QObject *object, QMetaObject::Call _c, int _id, void ** _a)
+int DNativeSettings::metaCall(QMetaObject::Call _c, int _id, void ** _a)
 {
     enum CallFlag {
         ReadProperty = 1 << QMetaObject::ReadProperty,
@@ -191,20 +183,20 @@ int DNativeSettings::qt_metacall(QObject *object, QMetaObject::Call _c, int _id,
     };
 
     if (AllCall & (1 << _c)) {
-        DNativeSettings *self = mapped.value(object);
-        const QMetaProperty &p = object->metaObject()->property(_id);
+        const QMetaProperty &p = property(_id);
+        const int index = p.propertyIndex();
         // 对于本地属性，此处应该从m_settings中读写
-        if (self && self->m_registerProperties.contains(p.name())) {
+        if (Q_LIKELY(index != m_flagPropertyIndex && index >= m_firstProperty)) {
             switch (_c) {
             case QMetaObject::ReadProperty:
-                *reinterpret_cast<QVariant*>(_a[1]) = self->m_settings->setting(p.name());
+                *reinterpret_cast<QVariant*>(_a[1]) = m_settings->setting(p.name());
                 _a[0] = reinterpret_cast<QVariant*>(_a[1])->data();
                 break;
             case QMetaObject::WriteProperty:
-                self->m_settings->setSetting(p.name(), *reinterpret_cast<QVariant*>(_a[1]));
+                m_settings->setSetting(p.name(), *reinterpret_cast<QVariant*>(_a[1]));
                 break;
             case QMetaObject::ResetProperty:
-                self->m_settings->setSetting(p.name(), QVariant());
+                m_settings->setSetting(p.name(), QVariant());
                 break;
             default:
                 break;
@@ -214,7 +206,7 @@ int DNativeSettings::qt_metacall(QObject *object, QMetaObject::Call _c, int _id,
         }
     }
 
-    return VtableHook::callOriginalFun(object, &QObject::qt_metacall, _c, _id, _a);
+    return m_base->qt_metacall(_c, _id, _a);
 }
 
 DPP_END_NAMESPACE
