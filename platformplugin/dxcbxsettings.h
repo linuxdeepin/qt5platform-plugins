@@ -51,9 +51,9 @@ class DXcbXSettings
 {
     Q_DECLARE_PRIVATE(DXcbXSettings)
 public:
-    DXcbXSettings(QXcbVirtualDesktop *screen);
-    DXcbXSettings(QXcbVirtualDesktop *screen, xcb_window_t setting_window);
-    DXcbXSettings(xcb_window_t setting_window);
+    DXcbXSettings(QXcbVirtualDesktop *screen, const QByteArray &property = QByteArray());
+    DXcbXSettings(QXcbVirtualDesktop *screen, xcb_window_t setting_window, const QByteArray &property = QByteArray());
+    DXcbXSettings(xcb_window_t setting_window, const QByteArray &property = QByteArray());
     ~DXcbXSettings();
     bool initialized() const;
     bool isEmpty() const;
