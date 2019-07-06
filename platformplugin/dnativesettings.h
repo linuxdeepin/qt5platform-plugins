@@ -25,6 +25,8 @@
 
 #include <QObject>
 #include <QSet>
+#include <private/qobject_p.h>
+#include <private/qmetaobjectbuilder_p.h>
 
 DPP_BEGIN_NAMESPACE
 
@@ -33,24 +35,25 @@ class DXcbXSettings;
 typedef DXcbXSettings NativeSettings;
 #endif
 
-class DNativeSettings
+class DNativeSettings : public QAbstractDynamicMetaObject
 {
 public:
     explicit DNativeSettings(QObject *base, quint32 settingsWindow);
     ~DNativeSettings();
 
-    bool isEmpty() const;
-
 private:
     void init();
+
+    int createProperty(const char *, const char *) override;
+    int metaCall(QMetaObject::Call, int _id, void **) override;
+
     static void onPropertyChanged(void *screen, const QByteArray &name, const QVariant &property, DNativeSettings *handle);
 
-    static const QMetaObject *metaObject(QObject *object);
-    static int qt_metacall(QObject *object, QMetaObject::Call _c, int _id, void **_a);
-
     QObject *m_base;
-    QMetaObject *m_metaObject = nullptr;
-    QSet<QByteArray> m_registerProperties;
+    QMetaObject *m_metaObject;
+    QMetaObjectBuilder m_objectBuilder;
+    int m_firstProperty;
+    int m_propertyCount;
     int m_propertySignalIndex;
     int m_flagPropertyIndex;
     NativeSettings *m_settings = nullptr;

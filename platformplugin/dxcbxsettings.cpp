@@ -353,10 +353,16 @@ public:
             const QByteArray &key = i.key();
             quint16 key_size = key.size();
 
-            if (value.value.type() == QVariant::Color) {
+            switch (value.value.type()) {
+            case QMetaType::QColor:
                 type = XSettingsTypeColor;
-            } else if (value.value.type() == QVariant::Int) {
+                break;
+            case QMetaType::Int:
+            case QMetaType::Bool:
                 type = XSettingsTypeInteger;
+                break;
+            default:
+                break;
             }
 
             xSettings.append(type); //type
