@@ -43,8 +43,26 @@ DNativeSettings::DNativeSettings(QObject *base, quint32 settingsWindow)
 {
     mapped[base] = this;
 
-    if (settingsWindow) {
-        m_settings = new NativeSettings(settingsWindow);
+    QByteArray settings_property;
+
+    {
+        // 获取base对象是否指定了native settings的域
+        // 默认情况下，native settings的值保存在窗口的_XSETTINGS_SETTINGS属性上
+        // 指定域后，会将native settings的值保存到指定的窗口属性。
+        // 将域的值转换成窗口属性时，会把 "/" 替换为 "_"，如域："/xxx/xxx" 转成窗口属性为："_xxx_xxx"
+        // 且所有字母转换为大写
+        int index = base->metaObject()->indexOfClassInfo("Domain");
+
+        if (index >= 0) {
+            settings_property = QByteArray(base->metaObject()->classInfo(index).value());
+            settings_property = settings_property.toUpper();
+            settings_property.replace('/', '_');
+        }
+    }
+
+    // 当指定了窗口或窗口属性时，应当创建一个新的native settings
+    if (settingsWindow || !settings_property.isEmpty()) {
+        m_settings = new NativeSettings(settingsWindow, settings_property);
     } else {
         m_settings = DPlatformIntegration::instance()->xSettings();
     }
