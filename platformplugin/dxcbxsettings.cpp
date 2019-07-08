@@ -126,14 +126,19 @@ DXcbConnectionGrabber::DXcbConnectionGrabber(QXcbConnection *connection)
 
 DXcbConnectionGrabber::~DXcbConnectionGrabber()
 {
-    if (m_connection)
-        m_connection->ungrabServer();
+    release();
 }
 
 void DXcbConnectionGrabber::release()
 {
     if (m_connection) {
         m_connection->ungrabServer();
+        // 必须保证xserver立即处理此请求, 因为xcb是异步请求的
+        // 当前线程中可能还存在其它的xcb connection，如果在
+        // xcb_ungrab_server调用之后，且server收到请求之前
+        // 其它的connection请求并wait了xcb，将会导致当前进程阻塞
+        // 此xcb_ungrab_server的调用就无法到达xserver，于是就形成了死锁。
+        xcb_flush(m_connection->xcb_connection());
         m_connection = 0;
     }
 }
@@ -186,7 +191,7 @@ public:
     QByteArray getSettings()
     {
         DXcbConnectionGrabber connectionGrabber(screen->connection());
-
+        Q_UNUSED(connectionGrabber)
         int offset = 0;
         QByteArray settings;
         while (1) {
