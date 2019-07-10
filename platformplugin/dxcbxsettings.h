@@ -67,7 +67,12 @@ public:
     void registerCallbackForProperty(const QByteArray &property, PropertyChangeFunc func, void *handle);
     void removeCallbackForHandle(const QByteArray &property, void *handle);
     void removeCallbackForHandle(void *handle);
+    typedef void (*SignalFunc)(QXcbVirtualDesktop *screen, const QByteArray &signal, qint32 data1, qint32 data2, void *handle);
+    void registerSignalCallback(SignalFunc func, void *handle);
+    void removeSignalCallback(void *handle);
+    void emitSignal(const QByteArray &signal, qint32 data1, qint32 data2);
 
+    static void emitSignal(xcb_window_t window, xcb_atom_t type, const QByteArray &signal, qint32 data1, qint32 data2);
     static bool handlePropertyNotifyEvent(const xcb_property_notify_event_t *event);
     static bool handleClientMessageEvent(const xcb_client_message_event_t *event);
 

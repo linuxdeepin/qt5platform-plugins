@@ -23,9 +23,10 @@
 
 #include "global.h"
 
-#include <QObject>
 #include <QSet>
+#define protected public
 #include <private/qobject_p.h>
+#undef protected
 #include <private/qmetaobjectbuilder_p.h>
 
 DPP_BEGIN_NAMESPACE
@@ -41,21 +42,29 @@ public:
     explicit DNativeSettings(QObject *base, quint32 settingsWindow);
     ~DNativeSettings();
 
+    bool isValid() const;
+
 private:
     void init();
 
     int createProperty(const char *, const char *) override;
     int metaCall(QMetaObject::Call, int _id, void **) override;
+    bool isRelaySignal() const;
 
     static void onPropertyChanged(void *screen, const QByteArray &name, const QVariant &property, DNativeSettings *handle);
+    static void onSignal(void *screen, const QByteArray &signal, qint32 data1, qint32 data2, DNativeSettings *handle);
 
     QObject *m_base;
-    QMetaObject *m_metaObject;
+    QMetaObject *m_metaObject = nullptr;
     QMetaObjectBuilder m_objectBuilder;
     int m_firstProperty;
     int m_propertyCount;
+    // propertyChanged信号的index
     int m_propertySignalIndex;
+    // VALID_PROPERTIES属性的index
     int m_flagPropertyIndex;
+    // 用于转发base对象产生的信号的槽，使用native settings的接口将其发送出去. 值为0时表示不转发base对象的所有信号
+    int m_relaySlotIndex = 0;
     NativeSettings *m_settings = nullptr;
 
     static QHash<QObject*, DNativeSettings*> mapped;

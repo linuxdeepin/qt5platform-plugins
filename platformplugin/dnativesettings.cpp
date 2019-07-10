@@ -41,6 +41,11 @@ DNativeSettings::DNativeSettings(QObject *base, quint32 settingsWindow)
     : m_base(base)
     , m_objectBuilder(base->metaObject())
 {
+    if (mapped.value(base)) {
+        qCritical() << "DNativeSettings: Native settings are already initialized for object:" << base;
+        std::abort();
+    }
+
     mapped[base] = this;
 
     QByteArray settings_property;
@@ -67,7 +72,9 @@ DNativeSettings::DNativeSettings(QObject *base, quint32 settingsWindow)
         m_settings = DPlatformIntegration::instance()->xSettings();
     }
 
-    init();
+    if (m_settings->initialized()) {
+        init();
+    }
 }
 
 DNativeSettings::~DNativeSettings()
@@ -77,7 +84,15 @@ DNativeSettings::~DNativeSettings()
     }
 
     mapped.remove(m_base);
-    free(m_metaObject);
+
+    if (m_metaObject) {
+        free(m_metaObject);
+    }
+}
+
+bool DNativeSettings::isValid() const
+{
+    return m_settings->initialized();
 }
 
 void DNativeSettings::init()
@@ -96,10 +111,18 @@ void DNativeSettings::init()
         ob.removeProperty(0);
     }
 
+    QVector<int> propertySignalIndex;
+    propertySignalIndex.reserve(m_propertyCount);
+
     for (int i = 0; i < m_propertyCount; ++i) {
         int index = i + m_firstProperty;
 
         const QMetaProperty &mp = m_base->metaObject()->property(index);
+
+        if (mp.hasNotifySignal()) {
+            propertySignalIndex << mp.notifySignalIndex();
+        }
+
         // 跳过特殊属性
         if (index == m_flagPropertyIndex) {
             ob.addProperty(mp);
@@ -110,6 +133,8 @@ void DNativeSettings::init()
             validProperties |= (1 << i);
         }
 
+        QMetaPropertyBuilder op;
+
         switch (mp.type()) {
         case QMetaType::QByteArray:
         case QMetaType::QString:
@@ -117,28 +142,75 @@ void DNativeSettings::init()
         case QMetaType::Int:
         case QMetaType::Double:
         case QMetaType::Bool:
-            ob.addProperty(mp);
+            op = ob.addProperty(mp);
             break;
         default:
             // 重设属性的类型，只支持Int double color string bytearray
-            ob.addProperty(mp.name(), "QByteArray", mp.notifySignalIndex());
+            op = ob.addProperty(mp.name(), "QByteArray", mp.notifySignalIndex());
             break;
         }
 
-        // 声明支持属性reset
-        ob.property(i).setResettable(true);
+        if (op.isWritable()) {
+            // 声明支持属性reset
+            op.setResettable(true);
+        }
+    }
+
+    {
+        // 通过class info确定是否应该关联对象的信号
+        int index = m_base->metaObject()->indexOfClassInfo("SignalType");
+
+        if (index >= 0) {
+            const QByteArray signals_value(m_base->metaObject()->classInfo(index).value());
+
+            // 如果base对象声明为信号的生产者，则应该将其产生的信号转发到native settings
+            if (signals_value == "producer") {
+                // 创建一个槽用于接收所有信号
+                m_relaySlotIndex = ob.addMethod("relaySlot(QByteArray,qint32,qint32)").index() + m_base->metaObject()->methodOffset();
+            }
+        }
     }
 
     // 将属性状态设置给对象
     m_base->setProperty(VALID_PROPERTIES, validProperties);
-    m_propertySignalIndex = m_base->metaObject()->indexOfSignal(QMetaObject::normalizedSignature("propertyChanged(const QByteArray&, const QVariant&)"));
+    m_propertySignalIndex = m_base->metaObject()->indexOfMethod(QMetaObject::normalizedSignature("propertyChanged(const QByteArray&, const QVariant&)"));
     // 监听native setting变化
     m_settings->registerCallback(reinterpret_cast<NativeSettings::PropertyChangeFunc>(onPropertyChanged), this);
+    // 监听信号. 如果base对象声明了要转发其信号，则此对象不应该关心来自于native settings的信号
+    // 即信号的生产者和消费者只能选其一
+    if (!isRelaySignal()) {
+        m_settings->registerSignalCallback(reinterpret_cast<NativeSettings::SignalFunc>(onSignal), this);
+    }
     // 支持在base对象中直接使用property/setProperty读写native属性
     QObjectPrivate *op = QObjectPrivate::get(m_base);
     op->metaObject = this;
     m_metaObject = ob.toMetaObject();
     *static_cast<QMetaObject *>(this) = *m_metaObject;
+
+    if (isRelaySignal()) {
+        // 把 static_metacall 置为nullptr，迫使对base对象调用QMetaObject::invodeMethod时使用DNativeSettings::metaCall
+        d.static_metacall = nullptr;
+        // 链接 base 对象的所有信号
+        int first_method = methodOffset();
+        int method_count = methodCount();
+
+        for (int i = 0; i < method_count; ++i) {
+            int index = i + first_method;
+
+            // 排除属性对应的信号
+            if (propertySignalIndex.contains(index)) {
+                continue;
+            }
+
+            QMetaMethod method = this->method(index);
+
+            if (method.methodType() != QMetaMethod::Signal) {
+                continue;
+            }
+
+            QMetaObject::connect(m_base, index, m_base, m_relaySlotIndex, Qt::DirectConnection);
+        }
+    }
 }
 
 int DNativeSettings::createProperty(const char *name, const char *)
@@ -191,6 +263,32 @@ void DNativeSettings::onPropertyChanged(void *screen, const QByteArray &name, co
     }
 }
 
+// 处理native settings发过来的信号
+void DNativeSettings::onSignal(void *screen, const QByteArray &signal, qint32 data1, qint32 data2, DNativeSettings *handle)
+{
+    Q_UNUSED(screen)
+
+    // 根据不同的参数寻找对应的信号
+    static QByteArrayList signal_suffixs {
+        QByteArrayLiteral("()"),
+        QByteArrayLiteral("(qint32)"),
+        QByteArrayLiteral("(qint32,qint32)")
+    };
+
+    int signal_index = -1;
+
+    for (const QByteArray &suffix : signal_suffixs) {
+        signal_index = handle->indexOfMethod(signal + suffix);
+
+        if (signal_index >= 0)
+            break;
+    }
+
+    QMetaMethod signal_method = handle->method(signal_index);
+    // 调用base对象对应的信号
+    signal_method.invoke(handle->m_base, Qt::DirectConnection, Q_ARG(qint32, data1), Q_ARG(qint32, data2));
+}
+
 int DNativeSettings::metaCall(QMetaObject::Call _c, int _id, void ** _a)
 {
     enum CallFlag {
@@ -224,7 +322,51 @@ int DNativeSettings::metaCall(QMetaObject::Call _c, int _id, void ** _a)
         }
     }
 
+    do {
+        if (!isRelaySignal())
+            break;
+
+        if (Q_LIKELY(_c != QMetaObject::InvokeMetaMethod || _id != m_relaySlotIndex)) {
+            break;
+        }
+
+        int signal = m_base->senderSignalIndex();
+        QByteArray signal_name;
+        qint32 data1 = 0, data2 = 0;
+
+        // 不是通过信号触发的槽调用，可能是使用QMetaObject::invoke
+        if (signal < 0) {
+            signal_name = *reinterpret_cast<QByteArray*>(_a[1]);
+            data1 = *reinterpret_cast<qint32*>(_a[2]);
+            data2 = *reinterpret_cast<qint32*>(_a[3]);
+        } else {
+            const auto &signal_method = method(signal);
+            signal_name = signal_method.name();
+
+            // 0为return type, 因此参数值下标从1开始
+            if (signal_method.parameterCount() > 0) {
+                QVariant arg(signal_method.parameterType(0), _a[1]);
+                // 获取参数1，获取参数2
+                data1 = arg.toInt();
+            }
+
+            if (signal_method.parameterCount() > 1) {
+                QVariant arg(signal_method.parameterType(1), _a[2]);
+                data2 = arg.toInt();
+            }
+        }
+
+        m_settings->emitSignal(signal_name, data1, data2);
+
+        return -1;
+    } while (false);
+
     return m_base->qt_metacall(_c, _id, _a);
+}
+
+bool DNativeSettings::isRelaySignal() const
+{
+    return m_relaySlotIndex > 0;
 }
 
 DPP_END_NAMESPACE
