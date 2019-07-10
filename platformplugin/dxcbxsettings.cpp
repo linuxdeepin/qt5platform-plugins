@@ -78,6 +78,12 @@ struct Q_DECL_HIDDEN DXcbXSettingsCallback
     void *handle;
 };
 
+struct Q_DECL_HIDDEN DXcbXSettingsSignalCallback
+{
+    DXcbXSettings::SignalFunc func;
+    void *handle;
+};
+
 class Q_DECL_HIDDEN DXcbXSettingsPropertyValue
 {
 public:
@@ -156,8 +162,13 @@ public:
             x_settings_atom = screen->connection()->internAtom(property);
         }
 
-        if (!_xsettings_notify_atom)
+        if (!_xsettings_notify_atom) {
             _xsettings_notify_atom = screen->connection()->internAtom("_XSETTINGS_SETTINGS_NOTIFY");
+        }
+
+        if (!_xsettings_signal_atom) {
+            _xsettings_signal_atom = screen->connection()->internAtom("_XSETTINGS_SETTINGS_SIGNAL");
+        }
 
         // init xsettings owner
         if (!_xsettings_owner) {
@@ -195,22 +206,36 @@ public:
         int offset = 0;
         QByteArray settings;
         while (1) {
-            auto reply = Q_XCB_REPLY_UNCHECKED(xcb_get_property,
-                                               screen->xcb_connection(),
-                                               false,
-                                               x_settings_window,
-                                               x_settings_atom,
-                                               screen->connection()->atom(QXcbAtom::_XSETTINGS_SETTINGS),
-                                               offset/4,
-                                               8192);
+            xcb_get_property_cookie_t cookie = xcb_get_property(screen->xcb_connection(),
+                                                                false,
+                                                                x_settings_window,
+                                                                x_settings_atom,
+                                                                screen->connection()->atom(QXcbAtom::_XSETTINGS_SETTINGS),
+                                                                offset/4,
+                                                                8192);
+
+            xcb_generic_error_t *error = nullptr;
+            auto reply = xcb_get_property_reply(screen->xcb_connection(), cookie, &error);
+
+            enum ErrorCode {
+                BadWindow = 3
+            };
+
+            // 在窗口无效时，应当认为此native settings未初始化完成
+            if (error && error->error_code == ErrorCode::BadWindow) {
+                initialized = false;
+                return settings;
+            }
+
             bool more = false;
             if (!reply)
                 return settings;
 
-            const auto property_value_length = xcb_get_property_value_length(reply.get());
-            settings.append(static_cast<const char *>(xcb_get_property_value(reply.get())), property_value_length);
+            const auto property_value_length = xcb_get_property_value_length(reply);
+            settings.append(static_cast<const char *>(xcb_get_property_value(reply)), property_value_length);
             offset += property_value_length;
             more = reply->bytes_after != 0;
+            free(reply);
 
             if (!more)
                 break;
@@ -424,9 +449,9 @@ public:
     {
         x_settings_window = setting_window;
         mapped.insertMulti(x_settings_window, object);
+        initialized = true;
 
         populateSettings(getSettings());
-        initialized = true;
     }
 
     bool updateValue(DXcbXSettingsPropertyValue &xvalue, const QByteArray &name, const QVariant &value, int last_change_serial)
@@ -449,14 +474,19 @@ public:
     qint32 serial = -1;
     QHash<QByteArray, DXcbXSettingsPropertyValue> settings;
     std::vector<DXcbXSettingsCallback> callback_links;
+    std::vector<DXcbXSettingsSignalCallback> signal_callback_links;
     bool initialized;
 
     static xcb_window_t _xsettings_owner;
+    // 用于通知窗口native设置项发生改变
     static xcb_atom_t _xsettings_notify_atom;
+    // 用于实现信号通知
+    static xcb_atom_t _xsettings_signal_atom;
     static QMultiHash<xcb_window_t, DXcbXSettings*> mapped;
 };
 
 xcb_atom_t DXcbXSettingsPrivate::_xsettings_notify_atom = 0;
+xcb_atom_t DXcbXSettingsPrivate::_xsettings_signal_atom = 0;
 xcb_window_t DXcbXSettingsPrivate::_xsettings_owner = 0;
 QMultiHash<xcb_window_t, DXcbXSettings*> DXcbXSettingsPrivate::mapped;
 
@@ -530,25 +560,50 @@ bool DXcbXSettings::handlePropertyNotifyEvent(const xcb_property_notify_event_t 
 
 bool DXcbXSettings::handleClientMessageEvent(const xcb_client_message_event_t *event)
 {
-    if (event->type != DXcbXSettingsPrivate::_xsettings_notify_atom)
-        return false;
-
     if (event->format != 32)
         return false;
 
-    // data32[0]为属性变化的窗口
-    auto self_list = DXcbXSettingsPrivate::mapped.values(event->data.data32[0]);
+    if (event->type == DXcbXSettingsPrivate::_xsettings_notify_atom) {
+        // data32[0]为属性变化的窗口
+        auto self_list = DXcbXSettingsPrivate::mapped.values(event->data.data32[0]);
 
-    if (self_list.isEmpty())
-        return false;
+        if (self_list.isEmpty())
+            return false;
 
-    for (DXcbXSettings *self : self_list) {
-        // data32[1]为变化的属性类型
-        if (self->d_ptr->x_settings_atom == event->data.data32[1])
-            self->d_ptr->populateSettings(self->d_ptr->getSettings());
+        for (DXcbXSettings *self : self_list) {
+            // data32[1]为变化的属性类型
+            if (self->d_ptr->x_settings_atom == event->data.data32[1])
+                self->d_ptr->populateSettings(self->d_ptr->getSettings());
+        }
+
+        return true;
+    } else if ( event->type == DXcbXSettingsPrivate::_xsettings_signal_atom) {
+        // data32[0]为属性变化的窗口
+        xcb_window_t window = event->data.data32[0];
+        auto self_list = window ? DXcbXSettingsPrivate::mapped.values(window) : DXcbXSettingsPrivate::mapped.values();
+
+        if (self_list.isEmpty())
+            return false;
+
+        // data32[1]记录信号属于窗口的哪个属性, 为0表示任意属性
+        xcb_atom_t type = event->data.data32[1];
+
+        for (DXcbXSettings *self : self_list) {
+            if (type && type != self->d_ptr->x_settings_atom)
+                continue;
+
+            for (DXcbXSettingsSignalCallback cb : self->d_ptr->signal_callback_links) {
+                // data32[2]为signal id
+                xcb_atom_t signal = event->data.data32[2];
+                const QByteArray signal_string(DPlatformIntegration::xcbConnection()->atomName(signal));
+                cb.func(self->d_ptr->screen, signal_string, event->data.data32[3], event->data.data32[4], cb.handle);
+            }
+        }
+
+        return true;
     }
 
-    return true;
+    return false;
 }
 
 void DXcbXSettings::clearSettings(xcb_window_t setting_window)
@@ -586,6 +641,63 @@ void DXcbXSettings::removeCallbackForHandle(void *handle)
 
     auto isCallbackForHandle = [handle](const DXcbXSettingsCallback &cb) { return cb.handle == handle; };
     d->callback_links.erase(std::remove_if(d->callback_links.begin(), d->callback_links.end(), isCallbackForHandle));
+}
+
+void DXcbXSettings::registerSignalCallback(DXcbXSettings::SignalFunc func, void *handle)
+{
+    Q_D(DXcbXSettings);
+    DXcbXSettingsSignalCallback callback = { func, handle };
+    d->signal_callback_links.push_back(callback);
+}
+
+void DXcbXSettings::removeSignalCallback(void *handle)
+{
+    Q_D(DXcbXSettings);
+    auto isCallbackForHandle = [handle](const DXcbXSettingsSignalCallback &cb) { return cb.handle == handle; };
+    d->signal_callback_links.erase(std::remove_if(d->signal_callback_links.begin(), d->signal_callback_links.end(), isCallbackForHandle));
+}
+
+void DXcbXSettings::emitSignal(const QByteArray &signal, qint32 data1, qint32 data2)
+{
+    Q_D(const DXcbXSettings);
+    emitSignal(d->x_settings_window, d->x_settings_atom, signal, data1, data2);
+}
+
+void DXcbXSettings::emitSignal(xcb_window_t window, xcb_atom_t property, const QByteArray &signal, qint32 data1, qint32 data2)
+{
+    xcb_window_t xsettings_owner = DXcbXSettingsPrivate::_xsettings_owner;
+
+    if (!xsettings_owner) {
+        return;
+    }
+
+    xcb_atom_t signal_atom = DPlatformIntegration::xcbConnection()->internAtom(signal.constData());
+
+    // 使用client message事件模拟信号
+    xcb_client_message_event_t notify_event;
+
+    notify_event.response_type = XCB_CLIENT_MESSAGE;
+    notify_event.format = 32;
+    notify_event.sequence = 0;
+    notify_event.window = xsettings_owner;
+    // 标记为信号通知
+    notify_event.type = DXcbXSettingsPrivate::_xsettings_signal_atom;
+    // 信号附属的窗口
+    notify_event.data.data32[0] = window;
+    // 信号附属窗口的属性
+    notify_event.data.data32[1] = property;
+    // 信号id
+    notify_event.data.data32[2] = signal_atom;
+    // 信号携带的数据
+    notify_event.data.data32[3] = data1;
+    // 信号携带的数据
+    notify_event.data.data32[4] = data2;
+
+    xcb_send_event(DPlatformIntegration::xcbConnection()->xcb_connection(),
+                   false,
+                   xsettings_owner,
+                   XCB_EVENT_MASK_PROPERTY_CHANGE,
+                   (const char *)&notify_event);
 }
 
 QVariant DXcbXSettings::setting(const QByteArray &property) const
