@@ -359,6 +359,10 @@ void WindowEventHook::handleFocusInEvent(const xcb_focus_in_event_t *event)
     if (relayFocusToModalWindow(w, xcbWindow->connection()))
         return;
 
+#if QT_VERSION >= QT_VERSION_CHECK(5, 13, 0)
+    xcbWindow->connection()->focusInTimer().stop();
+#endif
+
 #if QT_VERSION >= QT_VERSION_CHECK(5, 9, 0)
     xcbWindow->connection()->setFocusWindow(w);
 #else
@@ -433,7 +437,11 @@ void WindowEventHook::handleFocusOutEvent(const xcb_focus_out_event_t *event)
     // Do not set the active window to 0 if there is a FocusIn coming.
     // There is however no equivalent for XPutBackEvent so register a
     // callback for QXcbConnection instead.
+#if QT_VERSION >= QT_VERSION_CHECK(5, 13, 0)
+    xcbWindow->connection()->focusInTimer().start(400);
+#else
     xcbWindow->connection()->addPeekFunc(focusInPeeker);
+#endif
 }
 
 void WindowEventHook::handlePropertyNotifyEvent(const xcb_property_notify_event_t *event)
