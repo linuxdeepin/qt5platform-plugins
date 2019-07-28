@@ -29,6 +29,7 @@
 #include <QMetaMethod>
 
 #define VALID_PROPERTIES "validProperties"
+#define ALL_KEYS "allKeys"
 
 DPP_BEGIN_NAMESPACE
 
@@ -102,6 +103,9 @@ void DNativeSettings::init()
     // 用于记录属性是否有效的属性, 属性类型为64位整数，最多可用于记录64个属性的状态
     m_flagPropertyIndex = m_base->metaObject()->indexOfProperty(VALID_PROPERTIES);
     qint64 validProperties = 0;
+    // 用于记录所有属性的key
+    m_allKeysPropertyIndex = m_base->metaObject()->indexOfProperty(ALL_KEYS);
+    int allKeyPropertyTyep = 0;
 
     QMetaObjectBuilder &ob = m_objectBuilder;
     ob.setFlags(ob.flags() | QMetaObjectBuilder::DynamicMetaObject);
@@ -126,6 +130,12 @@ void DNativeSettings::init()
         // 跳过特殊属性
         if (index == m_flagPropertyIndex) {
             ob.addProperty(mp);
+            continue;
+        }
+
+        if (index == m_allKeysPropertyIndex) {
+            ob.addProperty(mp);
+            allKeyPropertyTyep = mp.userType();
             continue;
         }
 
@@ -172,7 +182,18 @@ void DNativeSettings::init()
     }
 
     // 将属性状态设置给对象
-    m_base->setProperty(VALID_PROPERTIES, validProperties);
+    if (m_flagPropertyIndex >= 0) {
+        m_base->setProperty(VALID_PROPERTIES, validProperties);
+    }
+    // 将所有属性名称设置给对象
+    if (m_allKeysPropertyIndex >= 0) {
+        if (allKeyPropertyTyep == qMetaTypeId<QSet<QByteArray>>()) {
+            m_base->setProperty(ALL_KEYS, QVariant::fromValue(m_settings->settingKeys().toSet()));
+        } else {
+            m_base->setProperty(ALL_KEYS, QVariant::fromValue(m_settings->settingKeys()));
+        }
+    }
+
     m_propertySignalIndex = m_base->metaObject()->indexOfMethod(QMetaObject::normalizedSignature("propertyChanged(const QByteArray&, const QVariant&)"));
     // 监听native setting变化
     m_settings->registerCallback(reinterpret_cast<NativeSettings::PropertyChangeFunc>(onPropertyChanged), this);
@@ -235,6 +256,44 @@ void DNativeSettings::onPropertyChanged(void *screen, const QByteArray &name, co
 
     if (handle->m_propertySignalIndex >= 0) {
         handle->method(handle->m_propertySignalIndex).invoke(handle->m_base, Q_ARG(QByteArray, name), Q_ARG(QVariant, property));
+    }
+
+    // 重设对象的 ALL_KEYS 属性
+    if (handle->m_allKeysPropertyIndex >= 0) {
+        const QVariant &old_property = handle->m_base->property(ALL_KEYS);
+
+        if (old_property.canConvert<QSet<QByteArray>>()) {
+            QSet<QByteArray> keys = qvariant_cast<QSet<QByteArray>>(old_property);
+            int old_count = keys.count();
+
+            if (property.isValid()) {
+                keys << name;
+            } else if (keys.contains(name)) {
+                keys.remove(name);
+            }
+
+            // 数量无变化时说明值无变化
+            if (old_count != keys.count()) {
+                handle->m_base->setProperty(ALL_KEYS, QVariant::fromValue(keys));
+            }
+        } else {
+            bool changed = false;
+            QByteArrayList keys = qvariant_cast<QByteArrayList>(old_property);
+
+            if (property.isValid()) {
+                if (!keys.contains(name)) {
+                    keys << name;
+                    changed = true;
+                }
+            } else if (keys.contains(name)) {
+                keys.removeOne(name);
+                changed = true;
+            }
+
+            if (changed) {
+                handle->m_base->setProperty(ALL_KEYS, QVariant::fromValue(keys));
+            }
+        }
     }
 
     // 不要直接调用自己的indexOfProperty函数，属性不存在时会导致调用createProperty函数
@@ -302,7 +361,8 @@ int DNativeSettings::metaCall(QMetaObject::Call _c, int _id, void ** _a)
         const QMetaProperty &p = property(_id);
         const int index = p.propertyIndex();
         // 对于本地属性，此处应该从m_settings中读写
-        if (Q_LIKELY(index != m_flagPropertyIndex && index >= m_firstProperty)) {
+        if (Q_LIKELY(index != m_flagPropertyIndex && index != m_allKeysPropertyIndex
+                     && index >= m_firstProperty)) {
             switch (_c) {
             case QMetaObject::ReadProperty:
                 *reinterpret_cast<QVariant*>(_a[1]) = m_settings->setting(p.name());
