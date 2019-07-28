@@ -61,6 +61,7 @@ public:
     bool contains(const QByteArray &property) const;
     QVariant setting(const QByteArray &property) const;
     void setSetting(const QByteArray &property, const QVariant &value);
+    QByteArrayList settingKeys() const;
 
     typedef void (*PropertyChangeFunc)(QXcbVirtualDesktop *screen, const QByteArray &name, const QVariant &property, void *handle);
     void registerCallback(PropertyChangeFunc func, void *handle);
