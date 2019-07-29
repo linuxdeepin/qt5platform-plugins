@@ -182,16 +182,13 @@ void DNativeSettings::init()
     }
 
     // 将属性状态设置给对象
-    if (m_flagPropertyIndex >= 0) {
-        m_base->setProperty(VALID_PROPERTIES, validProperties);
-    }
+    m_base->setProperty(VALID_PROPERTIES, validProperties);
+
     // 将所有属性名称设置给对象
-    if (m_allKeysPropertyIndex >= 0) {
-        if (allKeyPropertyTyep == qMetaTypeId<QSet<QByteArray>>()) {
-            m_base->setProperty(ALL_KEYS, QVariant::fromValue(m_settings->settingKeys().toSet()));
-        } else {
-            m_base->setProperty(ALL_KEYS, QVariant::fromValue(m_settings->settingKeys()));
-        }
+    if (allKeyPropertyTyep == qMetaTypeId<QSet<QByteArray>>()) {
+        m_base->setProperty(ALL_KEYS, QVariant::fromValue(m_settings->settingKeys().toSet()));
+    } else {
+        m_base->setProperty(ALL_KEYS, QVariant::fromValue(m_settings->settingKeys()));
     }
 
     m_propertySignalIndex = m_base->metaObject()->indexOfMethod(QMetaObject::normalizedSignature("propertyChanged(const QByteArray&, const QVariant&)"));
@@ -236,6 +233,12 @@ void DNativeSettings::init()
 
 int DNativeSettings::createProperty(const char *name, const char *)
 {
+    // 不创建特殊属性
+    if (QByteArrayLiteral(VALID_PROPERTIES) == name
+            || QByteArrayLiteral(ALL_KEYS) == name) {
+        return -1;
+    }
+
     // 清理旧数据
     free(m_metaObject);
 
@@ -259,7 +262,7 @@ void DNativeSettings::onPropertyChanged(void *screen, const QByteArray &name, co
     }
 
     // 重设对象的 ALL_KEYS 属性
-    if (handle->m_allKeysPropertyIndex >= 0) {
+    {
         const QVariant &old_property = handle->m_base->property(ALL_KEYS);
 
         if (old_property.canConvert<QSet<QByteArray>>()) {
@@ -303,7 +306,7 @@ void DNativeSettings::onPropertyChanged(void *screen, const QByteArray &name, co
         return;
     }
 
-    if (handle->m_flagPropertyIndex >= 0) {
+    {
         bool ok = false;
         qint64 flags = handle->m_base->property(VALID_PROPERTIES).toLongLong(&ok);
         // 更新有效属性的标志位

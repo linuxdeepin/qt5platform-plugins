@@ -53,15 +53,19 @@ struct Q_DECL_HIDDEN DStdFreeDeleter {
     void operator()(void *p) const noexcept { return std::free(p); }
 };
 
+#ifndef Q_XCB_REPLY
 #define Q_XCB_REPLY(call, ...) \
     std::unique_ptr<call##_reply_t, DStdFreeDeleter>( \
         call##_reply(Q_XCB_REPLY_CONNECTION_ARG(__VA_ARGS__), call(__VA_ARGS__), nullptr) \
     )
+#endif
 
+#ifndef Q_XCB_REPLY_UNCHECKED
 #define Q_XCB_REPLY_UNCHECKED(call, ...) \
     std::unique_ptr<call##_reply_t, DStdFreeDeleter>( \
         call##_reply(Q_XCB_REPLY_CONNECTION_ARG(__VA_ARGS__), call##_unchecked(__VA_ARGS__), nullptr) \
     )
+#endif
 
 DPP_BEGIN_NAMESPACE
 /* Implementation of http://standards.freedesktop.org/xsettings-spec/xsettings-0.5.html */
