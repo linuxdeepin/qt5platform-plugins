@@ -233,9 +233,15 @@ void DNativeSettings::init()
 
 int DNativeSettings::createProperty(const char *name, const char *)
 {
-    // 不创建特殊属性
+    // 不处理空字符串
+    if (strlen(name) == 0) {
+        return -1;
+    }
+
+    // 不创建特殊属性(以'_'开头的属性认为是私有的，不自动关联到native Settings)
     if (QByteArrayLiteral(VALID_PROPERTIES) == name
-            || QByteArrayLiteral(ALL_KEYS) == name) {
+            || QByteArrayLiteral(ALL_KEYS) == name
+            || name[0] == '_') {
         return -1;
     }
 
