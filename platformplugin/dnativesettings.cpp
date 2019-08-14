@@ -82,6 +82,10 @@ DNativeSettings::~DNativeSettings()
 {
     if (m_settings != DPlatformIntegration::instance()->xSettings(true)) {
         delete m_settings;
+    } else if (m_settings->initialized()) {
+        // 移除注册的callback
+        m_settings->removeCallbackForHandle(this);
+        m_settings->removeSignalCallback(this);
     }
 
     mapped.remove(m_base);
