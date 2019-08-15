@@ -103,7 +103,7 @@ bool DNativeSettings::isValid() const
 void DNativeSettings::init()
 {
     m_firstProperty = m_base->metaObject()->propertyOffset();
-    m_propertyCount = m_base->metaObject()->propertyCount() - m_base->metaObject()->superClass()->propertyCount();
+    m_propertyCount = m_objectBuilder.propertyCount();
     // 用于记录属性是否有效的属性, 属性类型为64位整数，最多可用于记录64个属性的状态
     m_flagPropertyIndex = m_base->metaObject()->indexOfProperty(VALID_PROPERTIES);
     qint64 validProperties = 0;
@@ -121,6 +121,10 @@ void DNativeSettings::init()
 
     QVector<int> propertySignalIndex;
     propertySignalIndex.reserve(m_propertyCount);
+
+    // QMetaObjectBuilder对象中的属性、信号、方法均从0开始，但是m_base对象的QMetaObject则包含offset
+    // 因此往QMetaObjectBuilder对象中添加属性时要将其对应的信号的index减去偏移量
+    int signal_offset = m_base->metaObject()->methodOffset();
 
     for (int i = 0; i < m_propertyCount; ++i) {
         int index = i + m_firstProperty;
@@ -167,6 +171,11 @@ void DNativeSettings::init()
         if (op.isWritable()) {
             // 声明支持属性reset
             op.setResettable(true);
+        }
+
+        // 重置属性对应的信号
+        if (op.hasNotifySignal()) {
+            op.setNotifySignal(ob.method(op.notifySignal().index() - signal_offset));
         }
     }
 
