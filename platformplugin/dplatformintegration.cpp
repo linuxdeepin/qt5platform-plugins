@@ -124,6 +124,10 @@ DPlatformIntegration::~DPlatformIntegration()
 #ifdef USE_NEW_IMPLEMENTING
     delete m_storeHelper;
     delete m_contextHelper;
+
+    if (m_xsettings) {
+        delete m_xsettings;
+    }
 #endif
 }
 

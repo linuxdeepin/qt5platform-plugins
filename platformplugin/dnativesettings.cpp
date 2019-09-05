@@ -70,6 +70,7 @@ DNativeSettings::DNativeSettings(QObject *base, quint32 settingsWindow)
     if (settingsWindow || !settings_property.isEmpty()) {
         m_settings = new NativeSettings(settingsWindow, settings_property);
     } else {
+        m_isGlobalSettings = true;
         m_settings = DPlatformIntegration::instance()->xSettings();
     }
 
@@ -80,9 +81,9 @@ DNativeSettings::DNativeSettings(QObject *base, quint32 settingsWindow)
 
 DNativeSettings::~DNativeSettings()
 {
-    if (m_settings != DPlatformIntegration::instance()->xSettings(true)) {
+    if (!m_isGlobalSettings) {
         delete m_settings;
-    } else if (m_settings->initialized()) {
+    } else if (DPlatformIntegration::instance() && m_settings->initialized()) {
         // 移除注册的callback
         m_settings->removeCallbackForHandle(this);
         m_settings->removeSignalCallback(this);
