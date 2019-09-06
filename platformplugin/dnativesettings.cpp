@@ -40,7 +40,6 @@ QHash<QObject*, DNativeSettings*> DNativeSettings::mapped;
  */
 DNativeSettings::DNativeSettings(QObject *base, quint32 settingsWindow)
     : m_base(base)
-    , m_objectBuilder(base->metaObject())
 {
     if (mapped.value(base)) {
         qCritical() << "DNativeSettings: Native settings are already initialized for object:" << base;
@@ -48,6 +47,14 @@ DNativeSettings::DNativeSettings(QObject *base, quint32 settingsWindow)
     }
 
     mapped[base] = this;
+
+    const QMetaObject *meta_object;
+
+    if (qintptr ptr = qvariant_cast<qintptr>(m_base->property("_d_metaObject"))) {
+        meta_object = reinterpret_cast<const QMetaObject*>(ptr);
+    } else {
+        meta_object = m_base->metaObject();
+    }
 
     QByteArray settings_property;
 
@@ -57,10 +64,17 @@ DNativeSettings::DNativeSettings(QObject *base, quint32 settingsWindow)
         // 指定域后，会将native settings的值保存到指定的窗口属性。
         // 将域的值转换成窗口属性时，会把 "/" 替换为 "_"，如域："/xxx/xxx" 转成窗口属性为："_xxx_xxx"
         // 且所有字母转换为大写
-        int index = base->metaObject()->indexOfClassInfo("Domain");
+        settings_property = base->property("_d_domain").toByteArray();
 
-        if (index >= 0) {
-            settings_property = QByteArray(base->metaObject()->classInfo(index).value());
+        if (settings_property.isEmpty()) {
+            int index = meta_object->indexOfClassInfo("Domain");
+
+            if (index >= 0) {
+                settings_property = QByteArray(meta_object->classInfo(index).value());
+            }
+        }
+
+        if (!settings_property.isEmpty()) {
             settings_property = settings_property.toUpper();
             settings_property.replace('/', '_');
         }
@@ -75,7 +89,7 @@ DNativeSettings::DNativeSettings(QObject *base, quint32 settingsWindow)
     }
 
     if (m_settings->initialized()) {
-        init();
+        init(meta_object);
     }
 }
 
@@ -101,15 +115,16 @@ bool DNativeSettings::isValid() const
     return m_settings->initialized();
 }
 
-void DNativeSettings::init()
+void DNativeSettings::init(const QMetaObject *metaObject)
 {
-    m_firstProperty = m_base->metaObject()->propertyOffset();
+    m_objectBuilder.addMetaObject(metaObject);
+    m_firstProperty = metaObject->propertyOffset();
     m_propertyCount = m_objectBuilder.propertyCount();
     // 用于记录属性是否有效的属性, 属性类型为64位整数，最多可用于记录64个属性的状态
-    m_flagPropertyIndex = m_base->metaObject()->indexOfProperty(VALID_PROPERTIES);
+    m_flagPropertyIndex = metaObject->indexOfProperty(VALID_PROPERTIES);
     qint64 validProperties = 0;
     // 用于记录所有属性的key
-    m_allKeysPropertyIndex = m_base->metaObject()->indexOfProperty(ALL_KEYS);
+    m_allKeysPropertyIndex = metaObject->indexOfProperty(ALL_KEYS);
     int allKeyPropertyTyep = 0;
 
     QMetaObjectBuilder &ob = m_objectBuilder;
@@ -125,12 +140,12 @@ void DNativeSettings::init()
 
     // QMetaObjectBuilder对象中的属性、信号、方法均从0开始，但是m_base对象的QMetaObject则包含offset
     // 因此往QMetaObjectBuilder对象中添加属性时要将其对应的信号的index减去偏移量
-    int signal_offset = m_base->metaObject()->methodOffset();
+    int signal_offset = metaObject->methodOffset();
 
     for (int i = 0; i < m_propertyCount; ++i) {
         int index = i + m_firstProperty;
 
-        const QMetaProperty &mp = m_base->metaObject()->property(index);
+        const QMetaProperty &mp = metaObject->property(index);
 
         if (mp.hasNotifySignal()) {
             propertySignalIndex << mp.notifySignalIndex();
@@ -182,15 +197,15 @@ void DNativeSettings::init()
 
     {
         // 通过class info确定是否应该关联对象的信号
-        int index = m_base->metaObject()->indexOfClassInfo("SignalType");
+        int index = metaObject->indexOfClassInfo("SignalType");
 
         if (index >= 0) {
-            const QByteArray signals_value(m_base->metaObject()->classInfo(index).value());
+            const QByteArray signals_value(metaObject->classInfo(index).value());
 
             // 如果base对象声明为信号的生产者，则应该将其产生的信号转发到native settings
             if (signals_value == "producer") {
                 // 创建一个槽用于接收所有信号
-                m_relaySlotIndex = ob.addMethod("relaySlot(QByteArray,qint32,qint32)").index() + m_base->metaObject()->methodOffset();
+                m_relaySlotIndex = ob.addMethod("relaySlot(QByteArray,qint32,qint32)").index() + metaObject->methodOffset();
             }
         }
     }
@@ -205,7 +220,7 @@ void DNativeSettings::init()
         m_base->setProperty(ALL_KEYS, QVariant::fromValue(m_settings->settingKeys()));
     }
 
-    m_propertySignalIndex = m_base->metaObject()->indexOfMethod(QMetaObject::normalizedSignature("propertyChanged(const QByteArray&, const QVariant&)"));
+    m_propertySignalIndex = metaObject->indexOfMethod(QMetaObject::normalizedSignature("propertyChanged(const QByteArray&, const QVariant&)"));
     // 监听native setting变化
     m_settings->registerCallback(reinterpret_cast<NativeSettings::PropertyChangeFunc>(onPropertyChanged), this);
     // 监听信号. 如果base对象声明了要转发其信号，则此对象不应该关心来自于native settings的信号

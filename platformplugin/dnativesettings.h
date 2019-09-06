@@ -45,7 +45,7 @@ public:
     bool isValid() const;
 
 private:
-    void init();
+    void init(const QMetaObject *meta_object);
 
     int createProperty(const char *, const char *) override;
     int metaCall(QMetaObject::Call, int _id, void **) override;
