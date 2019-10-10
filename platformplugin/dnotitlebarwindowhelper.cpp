@@ -86,6 +86,10 @@ DNoTitlebarWindowHelper::DNoTitlebarWindowHelper(QWindow *window, quint32 window
 
 DNoTitlebarWindowHelper::~DNoTitlebarWindowHelper()
 {
+    if (VtableHook::hasVtable(m_window)) {
+        VtableHook::resetVfptrFun(m_window, &QWindow::event);
+    }
+
     mapped.remove(qobject_cast<QWindow*>(parent()));
 
     if (m_window->handle()) { // 当本地窗口还存在时，移除设置过的窗口属性
