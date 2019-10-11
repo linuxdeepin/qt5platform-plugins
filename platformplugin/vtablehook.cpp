@@ -151,8 +151,10 @@ void VtableHook::autoCleanVtable(void *obj)
     // call origin destruct function
     destruct(obj);
 
-    // clean
-    clearGhostVtable(obj);
+    if (hasVtable(obj)) {// 需要判断一下，有可能在执行析构函数时虚表已经被删除
+        // clean
+        clearGhostVtable(obj);
+    }
 }
 
 bool VtableHook::ensureVtable(void *obj, std::function<void ()> destoryObjFun)
@@ -201,6 +203,23 @@ bool VtableHook::hasVtable(void *obj)
     quintptr **_obj = (quintptr**)(obj);
 
     return objToGhostVfptr.contains(_obj);
+}
+
+void VtableHook::resetVtable(void *obj)
+{
+    quintptr **_obj = (quintptr**)obj;
+    int vtable_size = getVtableSize(_obj);
+    // 获取obj对象原本虚表的入口
+    quintptr *vfptr_t2 = (quintptr*)(*_obj)[vtable_size + 1];
+
+    if (!vfptr_t2)
+        return;
+
+    if (!clearGhostVtable(obj))
+        return;
+
+    // 还原虚表
+    *_obj = vfptr_t2;
 }
 
 /*!

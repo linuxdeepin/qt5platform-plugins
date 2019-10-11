@@ -87,7 +87,7 @@ DNoTitlebarWindowHelper::DNoTitlebarWindowHelper(QWindow *window, quint32 window
 DNoTitlebarWindowHelper::~DNoTitlebarWindowHelper()
 {
     if (VtableHook::hasVtable(m_window)) {
-        VtableHook::resetVfptrFun(m_window, &QWindow::event);
+        VtableHook::resetVtable(m_window);
     }
 
     mapped.remove(qobject_cast<QWindow*>(parent()));

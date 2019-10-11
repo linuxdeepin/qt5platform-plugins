@@ -49,6 +49,7 @@ public:
     static void autoCleanVtable(void *obj);
     static bool ensureVtable(void *obj, std::function<void(void)> destoryObjFun);
     static bool hasVtable(void *obj);
+    static void resetVtable(void *obj);
     static quintptr resetVfptrFun(void *obj, quintptr functionOffset);
     static quintptr originalFun(void *obj, quintptr functionOffset);
 
