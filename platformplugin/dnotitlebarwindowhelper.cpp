@@ -494,7 +494,7 @@ bool DNoTitlebarWindowHelper::isEnableSystemMove(quint32 winId)
 #ifdef Q_OS_LINUX
     quint32 hints = DXcbWMSupport::getMWMFunctions(Utility::getNativeTopLevelWindow(winId));
 
-    return (hints == DXcbWMSupport::MWM_FUNC_ALL || hints & DXcbWMSupport::MWM_FUNC_MOVE);
+    return ((hints & DXcbWMSupport::MWM_FUNC_ALL) || hints & DXcbWMSupport::MWM_FUNC_MOVE);
 #endif
 
     return true;
