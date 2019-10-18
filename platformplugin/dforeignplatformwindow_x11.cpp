@@ -19,6 +19,7 @@
 #include "dplatformintegration.h"
 #include "global.h"
 #include "utility.h"
+#include "dxcbwmsupport.h"
 
 #include "qxcbconnection.h"
 #include "qxcbscreen.h"
@@ -109,6 +110,31 @@ QRect DForeignPlatformWindow::geometry() const
     }
 
     return result;
+}
+
+// QXcbWindow::frameMargins会额外根据窗口的geometry来计算frame margins，在这里我们不希望使用这个fallback的逻辑
+QMargins DForeignPlatformWindow::frameMargins() const
+{
+    if (m_dirtyFrameMargins) {
+        if (DXcbWMSupport::instance()->isSupportedByWM(atom(QXcbAtom::_NET_FRAME_EXTENTS))) {
+            xcb_get_property_cookie_t cookie = xcb_get_property(xcb_connection(), false, m_window, atom(QXcbAtom::_NET_FRAME_EXTENTS), XCB_ATOM_CARDINAL, 0, 4);
+            xcb_get_property_reply_t *reply = xcb_get_property_reply(xcb_connection(), cookie, nullptr);
+
+            if (reply) {
+                if (reply->type == XCB_ATOM_CARDINAL && reply->format == 32 && reply->value_len == 4) {
+                    quint32 *data = (quint32 *)xcb_get_property_value(reply);
+                    // _NET_FRAME_EXTENTS format is left, right, top, bottom
+                    m_frameMargins = QMargins(data[0], data[2], data[1], data[3]);
+                }
+
+                free(reply);
+            }
+        }
+
+        m_dirtyFrameMargins = false;
+    }
+
+    return m_frameMargins;
 }
 
 #ifdef Q_OS_LINUX

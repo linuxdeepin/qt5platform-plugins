@@ -41,6 +41,7 @@ public:
     ~DForeignPlatformWindow();
 
     QRect geometry() const Q_DECL_OVERRIDE;
+    QMargins frameMargins() const override;
 
 #ifdef Q_OS_LINUX
     void handleConfigureNotifyEvent(const xcb_configure_notify_event_t *) override;
