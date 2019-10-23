@@ -474,6 +474,13 @@ bool DNoTitlebarWindowHelper::windowEvent(QEvent *event)
 
     bool ret = VtableHook::callOriginalFun(w, &QWindow::event, event);
 
+    // workaround for kwin: Qt receives no release event when kwin finishes MOVE operation, 
+    // which makes app hang in windowMoving state. when a press happens, there's no sense of
+    // keeping the moving state, we can just reset ti back to normal.
+    if (event->type() == QEvent::MouseButtonPress) {
+        self->m_windowMoving = false;
+    }
+
     if (is_mouse_move && !event->isAccepted()) {
         if (!self->m_windowMoving && self->isEnableSystemMove(winId)) {
             self->m_windowMoving = true;
