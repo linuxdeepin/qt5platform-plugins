@@ -532,7 +532,7 @@ DXcbXSettings::DXcbXSettings(xcb_window_t setting_window, const QByteArray &prop
 
 DXcbXSettings::~DXcbXSettings()
 {
-    DXcbXSettingsPrivate::mapped.remove(d_ptr->x_settings_window);
+    DXcbXSettingsPrivate::mapped.remove(d_ptr->x_settings_window, this);
     delete d_ptr;
     d_ptr = 0;
 }
