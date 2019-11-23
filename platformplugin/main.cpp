@@ -36,7 +36,7 @@ public:
 QPlatformIntegration* DPlatformIntegrationPlugin::create(const QString& system, const QStringList& parameters, int &argc, char **argv)
 {
 #ifdef Q_OS_LINUX
-    if (!system.compare(QLatin1String("dxcb"), Qt::CaseInsensitive))
+    if (system == "dxcb" || system == "xcb")
         return new DPlatformIntegration(parameters, argc, argv);
 #endif
 
