@@ -481,7 +481,8 @@ bool DNoTitlebarWindowHelper::windowEvent(QEvent *event)
         self->m_windowMoving = false;
     }
 
-    if (is_mouse_move && !event->isAccepted()) {
+    if (is_mouse_move && !event->isAccepted()
+            && w->geometry().contains(static_cast<QMouseEvent*>(event)->globalPos())) {
         if (!self->m_windowMoving && self->isEnableSystemMove(winId)) {
             self->m_windowMoving = true;
 
