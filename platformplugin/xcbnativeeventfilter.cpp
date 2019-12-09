@@ -143,6 +143,8 @@ bool XcbNativeEventFilter::nativeEventFilter(const QByteArray &eventType, void *
                     DXcbWMSupport::instance()->updateRootWindowProperties();
                 } else if (pn->atom == Utility::internAtom("_NET_CLIENT_LIST_STACKING")) {
                     emit DXcbWMSupport::instance()->windowListChanged();
+                } else if (pn->atom == Utility::internAtom("_NET_KDE_COMPOSITE_TOGGLING")) {
+                    DXcbWMSupport::instance()->updateWMName();
                 }
             }
             break;
