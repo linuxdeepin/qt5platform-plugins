@@ -19,11 +19,21 @@
 
 #include <algorithm>
 
+#ifdef Q_OS_LINUX
+#include <sys/mman.h>
+#include <unistd.h>
+
+QT_BEGIN_NAMESPACE
+QFunctionPointer qt_linux_find_symbol_sys(const char *symbol);
+QT_END_NAMESPACE
+
+#endif
+
 DPP_BEGIN_NAMESPACE
 
 QMap<quintptr**, quintptr*> VtableHook::objToOriginalVfptr;
-QMap<void*, quintptr*> VtableHook::objToGhostVfptr;
-QMap<void*, quintptr> VtableHook::objDestructFun;
+QMap<const void*, quintptr*> VtableHook::objToGhostVfptr;
+QMap<const void*, quintptr> VtableHook::objDestructFun;
 
 bool VtableHook::copyVtable(quintptr **obj)
 {
@@ -59,7 +69,7 @@ bool VtableHook::copyVtable(quintptr **obj)
     return true;
 }
 
-bool VtableHook::clearGhostVtable(void *obj)
+bool VtableHook::clearGhostVtable(const void *obj)
 {
     objToOriginalVfptr.remove((quintptr**)obj);
     objDestructFun.remove(obj);
@@ -139,14 +149,14 @@ int VtableHook::getDestructFunIndex(quintptr **obj, std::function<void(void)> de
     return index;
 }
 
-void VtableHook::autoCleanVtable(void *obj)
+void VtableHook::autoCleanVtable(const void *obj)
 {
     quintptr fun = objDestructFun.value(obj);
 
     if (!fun)
         return;
 
-    typedef void(*Destruct)(void*);
+    typedef void(*Destruct)(const void*);
     Destruct destruct = *reinterpret_cast<Destruct*>(&fun);
     // call origin destruct function
     destruct(obj);
@@ -157,7 +167,7 @@ void VtableHook::autoCleanVtable(void *obj)
     }
 }
 
-bool VtableHook::ensureVtable(void *obj, std::function<void ()> destoryObjFun)
+bool VtableHook::ensureVtable(const void *obj, std::function<void ()> destoryObjFun)
 {
     quintptr **_obj = (quintptr**)(obj);
 
@@ -198,14 +208,14 @@ bool VtableHook::ensureVtable(void *obj, std::function<void ()> destoryObjFun)
  * \param obj
  * \return
  */
-bool VtableHook::hasVtable(void *obj)
+bool VtableHook::hasVtable(const void *obj)
 {
     quintptr **_obj = (quintptr**)(obj);
 
     return objToGhostVfptr.contains(_obj);
 }
 
-void VtableHook::resetVtable(void *obj)
+void VtableHook::resetVtable(const void *obj)
 {
     quintptr **_obj = (quintptr**)obj;
     int vtable_size = getVtableSize(_obj);
@@ -228,7 +238,7 @@ void VtableHook::resetVtable(void *obj)
  * \param functionIndex
  * \return 如果成功, 返回还原之前obj对象虚表中存储的函数指针, 否则返回0
  */
-quintptr VtableHook::resetVfptrFun(void *obj, quintptr functionOffset)
+quintptr VtableHook::resetVfptrFun(const void *obj, quintptr functionOffset)
 {
     quintptr *vfptr_t1 = *(quintptr**)obj;
     quintptr current_fun = *(vfptr_t1 + functionOffset / sizeof(quintptr));
@@ -250,7 +260,7 @@ quintptr VtableHook::resetVfptrFun(void *obj, quintptr functionOffset)
  * \param functionOffset
  * \return 如果obj对象虚表没有被覆盖, 或者函数偏移量正确, 将返回0
  */
-quintptr VtableHook::originalFun(void *obj, quintptr functionOffset)
+quintptr VtableHook::originalFun(const void *obj, quintptr functionOffset)
 {
     quintptr **_obj = (quintptr**)obj;
     int vtable_size = getVtableSize(_obj);
@@ -270,6 +280,39 @@ quintptr VtableHook::originalFun(void *obj, quintptr functionOffset)
     }
 
     return *(vfptr_t2 + functionOffset / sizeof(quintptr));
+}
+
+bool VtableHook::forceWriteMemory(void *adr, const void *data, size_t length)
+{
+#ifdef Q_OS_LINUX
+    int page_size = sysconf(_SC_PAGESIZE);
+    quintptr x = reinterpret_cast<quintptr>(adr);
+    void *new_adr = reinterpret_cast<void*>((x - page_size - 1) & ~(page_size -1));
+    size_t override_data_length = length + x - reinterpret_cast<quintptr>(new_adr);
+
+    // 失败时直接放弃
+    if (mprotect(new_adr, override_data_length, PROT_READ | PROT_WRITE)) {
+        return false;
+    }
+#endif
+    // 复制数据
+    memcpy(adr, data, length);
+#ifdef Q_OS_LINUX
+    // 恢复内存标志位
+    mprotect(new_adr, override_data_length, PROT_READ);
+#endif
+
+    return true;
+}
+
+QFunctionPointer VtableHook::resolve(const char *symbol)
+{
+#ifdef Q_OS_LINUX
+    return QT_PREPEND_NAMESPACE(qt_linux_find_symbol_sys)(symbol);
+#else
+    // TODO
+    return nullptr;
+#endif
 }
 
 DPP_END_NAMESPACE
