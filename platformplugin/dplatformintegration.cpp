@@ -475,6 +475,13 @@ QVariant DPlatformIntegration::styleHint(QPlatformIntegration::StyleHint hint) c
     case MouseDoubleClickInterval:
         GET_VALID_XSETTINGS(XSETTINGS_DOUBLE_CLICK_TIME);
         break;
+    // QComboBox控件会根据此参数判断是应当在鼠标press还是release时弹出下拉列表
+    // 此值默认为false，QFontComboBox在第一次弹出时有些卡顿，然而，ComboBox本身
+    // 又会在收到Release事件时认为是对下拉列表进行了选中操作，卡顿会导致Release事件
+    // 传递给了下拉列表，因此会出现第一次弹出列表后又立即隐藏的行为。将触发列表弹出的
+    // 动作改为release则可避免此问题
+    case SetFocusOnTouchRelease:
+        return true;
     default:
         break;
     }
