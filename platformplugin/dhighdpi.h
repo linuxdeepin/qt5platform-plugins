@@ -21,16 +21,39 @@
 #ifndef DHIGHDPI_H
 #define DHIGHDPI_H
 
+#include "global.h"
+
 #include <QPointF>
+#include <qpa/qplatformscreen.h>
 
 QT_BEGIN_NAMESPACE
 class QWindow;
+class QXcbScreen;
+class QXcbVirtualDesktop;
+class QPlatformWindow;
 QT_END_NAMESPACE
+
+DPP_BEGIN_NAMESPACE
 
 class DHighDpi
 {
 public:
     static QPointF fromNativePixels(const QPointF &pixelPoint, const QWindow *window);
+
+    static void init();
+    static bool isActive();
+    static QDpi logicalDpi(QXcbScreen *s);
+    static qreal pixelDensity(QXcbScreen *s);
+    static qreal devicePixelRatio(QPlatformWindow *w);
+
+    static void onDPIChanged(QXcbVirtualDesktop *screen, const QByteArray &name, const QVariant &property, void *handle);
+
+private:
+
+    static bool active;
+    static QHash<QPlatformScreen*, qreal> screenFactorMap;
 };
+
+DPP_END_NAMESPACE
 
 #endif // DHIGHDPI_H

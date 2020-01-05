@@ -25,6 +25,7 @@
 #ifdef Q_OS_LINUX
 #include "qxcbintegration.h"
 typedef QXcbIntegration DPlatformIntegrationParent;
+class QXcbVirtualDesktop;
 #elif defined(Q_OS_WIN)
 #include "qwindowsgdiintegration.h"
 typedef QWindowsGdiIntegration DPlatformIntegrationParent;
@@ -87,10 +88,11 @@ private:
 
     bool enableCursorBlink() const;
     DXcbXSettings *xSettings(bool onlyExists = false) const;
+    static DXcbXSettings *xSettings(QXcbVirtualDesktop *desktop);
 
 private:
     XcbNativeEventFilter *m_eventFilter = Q_NULLPTR;
-    DXcbXSettings *m_xsettings = nullptr;
+    static DXcbXSettings *m_xsettings;
 #endif
 private:
     // handle the DFrameWindow modal blocked state

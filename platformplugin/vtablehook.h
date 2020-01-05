@@ -145,8 +145,9 @@ public:
         typedef QtPrivate::FunctionPointer<Fun1> FunInfo1;
         quintptr *vfptr_t1 = getVtableOfClass<typename FunInfo1::Object>();
 
-        if (!vfptr_t1)
-            return false;
+        if (!vfptr_t1) {
+            abort();
+        }
 
         quintptr *vfptr_t2 = getVtableOfObject(t2);
 
@@ -213,16 +214,23 @@ public:
         return true;
     }
 
+    template<typename Class, typename Fun1, typename Fun2>
+    static bool overrideVfptrFun(Fun1 fun1, Fun2 fun2)
+    {
+        quintptr *vfptr_t1 = getVtableOfClass<Class>();
+
+        if (!vfptr_t1) {
+            abort();
+        }
+
+        return overrideVfptrFun(vfptr_t1, fun1, fun2, true);
+    }
+
     template<typename Fun1, typename Fun2>
     static bool overrideVfptrFun(Fun1 fun1, Fun2 fun2)
     {
         typedef QtPrivate::FunctionPointer<Fun1> FunInfo1;
-        quintptr *vfptr_t1 = getVtableOfClass<typename FunInfo1::Object>();
-
-        if (!vfptr_t1)
-            return false;
-
-        return overrideVfptrFun(vfptr_t1, fun1, fun2, true);
+        return overrideVfptrFun<typename FunInfo1::Object>(fun1, fun2);
     }
 
     template<typename Fun1>

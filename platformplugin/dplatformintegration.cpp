@@ -43,6 +43,7 @@
 #include "xcbnativeeventfilter.h"
 #include "dplatformnativeinterfacehook.h"
 #include "dxcbxsettings.h"
+#include "dhighdpi.h"
 
 #include "qxcbscreen.h"
 #include "qxcbbackingstore.h"
@@ -93,6 +94,7 @@ DPlatformIntegration *DPlatformIntegration::m_instance = Q_NULLPTR;
 #endif
 #endif
 
+DXcbXSettings *DPlatformIntegration::m_xsettings = nullptr;
 DPlatformIntegration::DPlatformIntegration(const QStringList &parameters, int &argc, char **argv)
     : DPlatformIntegrationParent(parameters, argc, argv)
 #ifdef USE_NEW_IMPLEMENTING
@@ -295,6 +297,11 @@ QPlatformWindow *DPlatformIntegration::createPlatformWindow(QWindow *window) con
 #ifdef Q_OS_LINUX
         Q_UNUSED(new WindowEventHook(static_cast<QNativeWindow*>(w), false))
 #endif
+        // for hi dpi
+        if (DHighDpi::isActive()) {
+//            VtableHook::overrideVfptrFun(w, &QPlatformWindow::devicePixelRatio, &DHighDpi::devicePixelRatio);
+        }
+
         return w;
     }
 
@@ -906,6 +913,11 @@ static void hookScreenGetWindow(QScreen *screen)
         VtableHook::overrideVfptrFun(screen->handle(), &QPlatformScreen::topLevelAt, &overrideTopLevelAt);
 }
 
+static void watchScreenDPIChange(QScreen *screen)
+{
+    DPlatformIntegration::instance()->xSettings()->registerCallbackForProperty("Qt/DPI/" + screen->name().toLocal8Bit(), &DHighDpi::onDPIChanged, screen);
+}
+
 static void startDrag(QXcbDrag *drag)
 {
     VtableHook::callOriginalFun(drag, &QXcbDrag::startDrag);
@@ -989,9 +1001,19 @@ void DPlatformIntegration::initialize()
 
     for (QScreen *s : qApp->screens()) {
         hookScreenGetWindow(s);
+
+        if (DHighDpi::isActive()) {
+            // 监听屏幕dpi变化
+            watchScreenDPIChange(s);
+        }
     }
 
     QObject::connect(qApp, &QGuiApplication::screenAdded, qApp, &hookScreenGetWindow);
+
+    if (DHighDpi::isActive()) {
+        // 监听屏幕dpi变化
+        QObject::connect(qApp, &QGuiApplication::screenAdded, qApp, &watchScreenDPIChange);
+    }
 }
 
 #ifdef Q_OS_LINUX
@@ -1022,9 +1044,14 @@ DXcbXSettings *DPlatformIntegration::xSettings(bool onlyExists) const
     if (onlyExists)
         return m_xsettings;
 
+    return xSettings(xcbConnection()->primaryVirtualDesktop());
+}
+
+DXcbXSettings *DPlatformIntegration::xSettings(QXcbVirtualDesktop *desktop)
+{
     if (!m_xsettings) {
-        auto xsettings = new DXcbXSettings(xcbConnection()->primaryVirtualDesktop());
-        const_cast<DPlatformIntegration*>(this)->m_xsettings = xsettings;
+        auto xsettings = new DXcbXSettings(desktop);
+        m_xsettings = xsettings;
 
         // 注册回调，用于通知 QStyleHints 属性改变
         xsettings->registerCallbackForProperty(XSETTINGS_CURSOR_BLINK_TIME,
@@ -1033,6 +1060,11 @@ DXcbXSettings *DPlatformIntegration::xSettings(bool onlyExists) const
         xsettings->registerCallbackForProperty(XSETTINGS_CURSOR_BLINK,
                                                onXSettingsChanged,
                                                reinterpret_cast<void*>(CursorFlashTime));
+
+        if (DHighDpi::isActive()) {
+            // 监听XSettings的dpi设置变化
+            xsettings->registerCallbackForProperty("Xft/DPI", &DHighDpi::onDPIChanged, nullptr);
+        }
     }
 
     return m_xsettings;
