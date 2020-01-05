@@ -458,7 +458,8 @@ QStringList DPlatformIntegration::themeNames() const
 {
     QStringList list = DPlatformIntegrationParent::themeNames();
 
-    list.prepend("deepin");
+    if (qgetenv("DESKTOP_SESSION") == "deepin")
+        list.prepend("deepin");
 
     return list;
 }
