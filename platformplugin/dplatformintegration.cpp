@@ -457,8 +457,10 @@ QPaintEngine *DPlatformIntegration::createImagePaintEngine(QPaintDevice *paintDe
 QStringList DPlatformIntegration::themeNames() const
 {
     QStringList list = DPlatformIntegrationParent::themeNames();
+    const QByteArray desktop_session = qgetenv("DESKTOP_SESSION");
 
-    if (qgetenv("DESKTOP_SESSION") == "deepin")
+    // 在lightdm环境中，无此环境变量
+    if (desktop_session.isEmpty() || desktop_session == "deepin")
         list.prepend("deepin");
 
     return list;
