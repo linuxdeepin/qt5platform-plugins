@@ -36,8 +36,15 @@ public:
 QPlatformIntegration* DPlatformIntegrationPlugin::create(const QString& system, const QStringList& parameters, int &argc, char **argv)
 {
 #ifdef Q_OS_LINUX
-    if (system == "dxcb" || system == "xcb")
+    if (system == "dxcb" || system == "xcb") {
+        if (QByteArrayLiteral("wayland") == qgetenv("XDG_SESSION_TYPE")
+                && !qEnvironmentVariableIsEmpty("WAYLAND_DISPLAY")) {
+            // for xwayland
+            return new DPlatformIntegrationParent(parameters, argc, argv);
+        }
+
         return new DPlatformIntegration(parameters, argc, argv);
+    }
 #endif
 
     return 0;
