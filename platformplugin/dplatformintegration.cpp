@@ -144,6 +144,14 @@ void DPlatformIntegration::setWindowProperty(QWindow *window, const char *name, 
 
 bool DPlatformIntegration::enableDxcb(QWindow *window)
 {
+    static bool xwayland = QByteArrayLiteral("wayland") == qgetenv("XDG_SESSION_TYPE")
+            && !qEnvironmentVariableIsEmpty("WAYLAND_DISPLAY");
+
+    if (xwayland) {
+        // for xwayland
+        return false;
+    }
+
     qDebug() << __FUNCTION__ << window << window->type() << window->parent();
 
     if (window->type() == Qt::Desktop)
@@ -205,7 +213,7 @@ bool DPlatformIntegration::isEnableDxcb(const QWindow *window)
 }
 
 bool DPlatformIntegration::setEnableNoTitlebar(QWindow *window, bool enable)
-{
+{return false;
     if (enable && DNoTitlebarWindowHelper::mapped.value(window))
         return true;
 
