@@ -213,7 +213,7 @@ bool DPlatformIntegration::isEnableDxcb(const QWindow *window)
 }
 
 bool DPlatformIntegration::setEnableNoTitlebar(QWindow *window, bool enable)
-{return false;
+{
     if (enable && DNoTitlebarWindowHelper::mapped.value(window))
         return true;
 
