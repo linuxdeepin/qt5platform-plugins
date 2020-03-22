@@ -21,7 +21,9 @@
 #include "dframewindow.h"
 
 #include "qxcbconnection.h"
+#define private public
 #include "qxcbscreen.h"
+#undef private
 #include "qxcbwindow.h"
 
 DPP_BEGIN_NAMESPACE
@@ -192,6 +194,10 @@ void DXcbWMSupport::updateHasComposite()
         hasComposite = value == 1;
         free(reply);
 
+        // 及时更新Qt中记录的值，KWin在关闭窗口合成的一段时间内（2S）并未释放相关的selection owner
+        // 因此会导致Qt中的值在某个阶段与真实状态不匹配，用到QX11Info::isCompositingManagerRunning()
+        // 的地方会出现问题，如drag窗口
+        DPlatformIntegration::xcbConnection()->primaryVirtualDesktop()->m_compositingActive = hasComposite;
     } else {
         //stage2: fallback to check selection owner
         xcb_get_selection_owner_cookie_t cookit = xcb_get_selection_owner(xcb_connection, DPlatformIntegration::xcbConnection()->atom(QXcbAtom::_NET_WM_CM_S0));
