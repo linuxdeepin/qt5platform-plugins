@@ -25,16 +25,19 @@
 
 #include <QPointF>
 #include <qpa/qplatformscreen.h>
+#include <qpa/qplatformbackingstore.h>
 
 QT_BEGIN_NAMESPACE
 class QWindow;
 class QXcbScreen;
 class QXcbVirtualDesktop;
 class QPlatformWindow;
+class QXcbBackingStore;
 QT_END_NAMESPACE
 
 DPP_BEGIN_NAMESPACE
 
+class HighDpiImage;
 class DHighDpi
 {
 public:
@@ -42,9 +45,51 @@ public:
 
     static void init();
     static bool isActive();
+    static bool overrideBackingStore();
     static QDpi logicalDpi(QXcbScreen *s);
     static qreal pixelDensity(QXcbScreen *s);
     static qreal devicePixelRatio(QPlatformWindow *w);
+    // for backingstore
+    class BackingStore : public QPlatformBackingStore
+    {
+    public:
+        BackingStore(QPlatformBackingStore *proxy);
+        ~BackingStore() override;
+
+        QPaintDevice *paintDevice() override;
+
+        void flush(QWindow *window, const QRegion &region, const QPoint &offset) override;
+#ifndef QT_NO_OPENGL
+#if QT_VERSION < QT_VERSION_CHECK(5, 4, 0)
+        void composeAndFlush(QWindow *window, const QRegion &region, const QPoint &offset,
+                             QPlatformTextureList *textures, QOpenGLContext *context) override;
+#elif QT_VERSION < QT_VERSION_CHECK(5, 10, 0)
+        void composeAndFlush(QWindow *window, const QRegion &region, const QPoint &offset,
+                             QPlatformTextureList *textures, QOpenGLContext *context,
+                             bool translucentBackground) override;
+#else
+        void composeAndFlush(QWindow *window, const QRegion &region, const QPoint &offset,
+                             QPlatformTextureList *textures,
+                             bool translucentBackground) override;
+#endif
+        GLuint toTexture(const QRegion &dirtyRegion, QSize *textureSize, TextureFlags *flags) const override;
+#endif
+        QImage toImage() const override;
+        QPlatformGraphicsBuffer *graphicsBuffer() const override;
+
+        void resize(const QSize &size, const QRegion &staticContents) override;
+
+        bool scroll(const QRegion &area, int dx, int dy) override;
+
+        void beginPaint(const QRegion &region) override;
+        void endPaint() override;
+
+    private:
+        QPlatformBackingStore *m_proxy = nullptr;
+        QImage m_image;
+        QRectF m_dirtyWindowRect;
+        QRect m_dirtyRect;
+    };
 
     static void onDPIChanged(QXcbVirtualDesktop *screen, const QByteArray &name, const QVariant &property, void *handle);
 

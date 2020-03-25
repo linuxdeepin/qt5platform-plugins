@@ -306,8 +306,8 @@ QPlatformWindow *DPlatformIntegration::createPlatformWindow(QWindow *window) con
         Q_UNUSED(new WindowEventHook(static_cast<QNativeWindow*>(w), false))
 #endif
         // for hi dpi
-        if (DHighDpi::isActive()) {
-//            VtableHook::overrideVfptrFun(w, &QPlatformWindow::devicePixelRatio, &DHighDpi::devicePixelRatio);
+        if (DHighDpi::overrideBackingStore()) {
+            VtableHook::overrideVfptrFun(w, &QPlatformWindow::devicePixelRatio, &DHighDpi::devicePixelRatio);
         }
 
         return w;
@@ -374,6 +374,13 @@ QPlatformWindow *DPlatformIntegration::createPlatformWindow(QWindow *window) con
 #endif
     }
 
+    if (window->type() != Qt::Desktop) {
+        // for hi dpi
+        if (DHighDpi::overrideBackingStore()) {
+            VtableHook::overrideVfptrFun(w, &QPlatformWindow::devicePixelRatio, &DHighDpi::devicePixelRatio);
+        }
+    }
+
     return xw;
 }
 
@@ -382,6 +389,11 @@ QPlatformBackingStore *DPlatformIntegration::createPlatformBackingStore(QWindow 
     qDebug() << __FUNCTION__ << window << window->type() << window->parent();
 
     QPlatformBackingStore *store = DPlatformIntegrationParent::createPlatformBackingStore(window);
+
+    if (DHighDpi::overrideBackingStore()) {
+        // delegate of BackingStore for hidpi
+        store = new DHighDpi::BackingStore(store);
+    }
 
     if (window->type() == Qt::Desktop)
         return store;
@@ -860,7 +872,7 @@ static void overrideChangeCursor(QPlatformCursor *cursorHandle, QCursor * cursor
     static bool xcursrSizeIsSet = qEnvironmentVariableIsSet("XCURSOR_SIZE");
 
     if (!xcursrSizeIsSet)
-        qputenv("XCURSOR_SIZE", QByteArray::number(24 * widget->devicePixelRatio()));
+        qputenv("XCURSOR_SIZE", QByteArray::number(24 * qApp->devicePixelRatio()));
 
     QXcbCursor *xcb_cursor = static_cast<QXcbCursor*>(cursorHandle);
 
