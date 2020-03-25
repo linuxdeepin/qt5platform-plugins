@@ -49,10 +49,10 @@ static void init()
 void DHighDpi::init()
 {
     if (QGuiApplication::testAttribute(Qt::AA_DisableHighDpiScaling)
-            // 默认不开启
-            || qEnvironmentVariableIsEmpty("D_DXCB_OVERRIDE_HIDPI")
             // 可以禁用此行为
-            || qEnvironmentVariableIsSet("D_DXCB_DISABLE_OVERRIDE_HIDPI")) {
+            || qEnvironmentVariableIsSet("D_DXCB_DISABLE_OVERRIDE_HIDPI")
+            // 无有效的xsettings时禁用
+            || !DXcbXSettings::getOwner()) {
         return;
     }
 

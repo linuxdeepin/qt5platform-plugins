@@ -55,6 +55,8 @@ public:
     DXcbXSettings(QXcbVirtualDesktop *screen, xcb_window_t setting_window, const QByteArray &property = QByteArray());
     DXcbXSettings(xcb_window_t setting_window, const QByteArray &property = QByteArray());
     ~DXcbXSettings();
+
+    static xcb_window_t getOwner(xcb_connection_t *conn = nullptr, int screenNumber = 0);
     bool initialized() const;
     bool isEmpty() const;
 

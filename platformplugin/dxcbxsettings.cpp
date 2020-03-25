@@ -176,29 +176,12 @@ public:
 
         // init xsettings owner
         if (!_xsettings_owner) {
-            QByteArray settings_atom_for_screen("_XSETTINGS_S");
-            settings_atom_for_screen.append(QByteArray::number(screen->number()));
-            auto atom_reply = Q_XCB_REPLY(xcb_intern_atom,
-                                          screen->xcb_connection(),
-                                          true,
-                                          settings_atom_for_screen.length(),
-                                          settings_atom_for_screen.constData());
-            if (!atom_reply)
-                return;
-
-            xcb_atom_t selection_owner_atom = atom_reply->atom;
-
-            auto selection_result = Q_XCB_REPLY(xcb_get_selection_owner,
-                                                screen->xcb_connection(), selection_owner_atom);
-            if (!selection_result)
-                return;
-
-            _xsettings_owner = selection_result->owner;
+            _xsettings_owner = DXcbXSettings::getOwner(screen->xcb_connection(), screen->number());
 
             if (_xsettings_owner) {
                 const uint32_t event = XCB_CW_EVENT_MASK;
                 const uint32_t event_mask[] = { XCB_EVENT_MASK_STRUCTURE_NOTIFY|XCB_EVENT_MASK_PROPERTY_CHANGE };
-                xcb_change_window_attributes(screen->xcb_connection(), selection_result->owner, event, event_mask);
+                xcb_change_window_attributes(screen->xcb_connection(), _xsettings_owner, event, event_mask);
             }
         }
     }
@@ -535,6 +518,47 @@ DXcbXSettings::~DXcbXSettings()
     DXcbXSettingsPrivate::mapped.remove(d_ptr->x_settings_window, this);
     delete d_ptr;
     d_ptr = 0;
+}
+
+xcb_window_t DXcbXSettings::getOwner(xcb_connection_t *conn, int screenNumber)
+{
+    struct XcbConnectionDeleter
+    {
+        static inline void cleanup(xcb_connection_t *conn)
+        {
+            xcb_disconnect(conn);
+        }
+    };
+
+    QScopedPointer<xcb_connection_t, XcbConnectionDeleter> tmp_conn;
+
+    if (!conn) {
+        conn = xcb_connect(qgetenv("DISPLAY"), &screenNumber);
+
+        if (!conn)
+            return XCB_NONE;
+
+        tmp_conn.reset(conn);
+    }
+
+    QByteArray settings_atom_for_screen("_XSETTINGS_S");
+    settings_atom_for_screen.append(QByteArray::number(screenNumber));
+    auto atom_reply = Q_XCB_REPLY(xcb_intern_atom,
+                                  conn,
+                                  true,
+                                  settings_atom_for_screen.length(),
+                                  settings_atom_for_screen.constData());
+    if (!atom_reply)
+        return XCB_NONE;
+
+    xcb_atom_t selection_owner_atom = atom_reply->atom;
+
+    auto selection_result = Q_XCB_REPLY(xcb_get_selection_owner,
+                                        conn, selection_owner_atom);
+    if (!selection_result)
+        return XCB_NONE;
+
+    return selection_result->owner;
 }
 
 bool DXcbXSettings::initialized() const
