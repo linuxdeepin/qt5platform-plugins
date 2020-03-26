@@ -307,7 +307,11 @@ QPlatformWindow *DPlatformIntegration::createPlatformWindow(QWindow *window) con
 #endif
         // for hi dpi
         if (DHighDpi::overrideBackingStore()) {
-            VtableHook::overrideVfptrFun(w, &QPlatformWindow::devicePixelRatio, &DHighDpi::devicePixelRatio);
+            bool ok = VtableHook::overrideVfptrFun(w, &QPlatformWindow::devicePixelRatio, &DHighDpi::devicePixelRatio);
+
+            if (ok) {
+                window->setProperty("_d_dxcb_overrideBackingStore", true);
+            }
         }
 
         return w;
@@ -372,12 +376,13 @@ QPlatformWindow *DPlatformIntegration::createPlatformWindow(QWindow *window) con
             Utility::setWindowGroup(w->winId(), xcbConnection()->clientLeader());
         }
 #endif
-    }
-
-    if (window->type() != Qt::Desktop) {
         // for hi dpi
-        if (DHighDpi::overrideBackingStore()) {
-            VtableHook::overrideVfptrFun(w, &QPlatformWindow::devicePixelRatio, &DHighDpi::devicePixelRatio);
+        if (!isUseDxcb && DHighDpi::overrideBackingStore()) {
+            bool ok = VtableHook::overrideVfptrFun(w, &QPlatformWindow::devicePixelRatio, &DHighDpi::devicePixelRatio);
+
+            if (ok) {
+                window->setProperty("_d_dxcb_overrideBackingStore", true);
+            }
         }
     }
 
@@ -390,9 +395,10 @@ QPlatformBackingStore *DPlatformIntegration::createPlatformBackingStore(QWindow 
 
     QPlatformBackingStore *store = DPlatformIntegrationParent::createPlatformBackingStore(window);
 
-    if (DHighDpi::overrideBackingStore()) {
+    if (window->property("_d_dxcb_overrideBackingStore").toBool()) {
         // delegate of BackingStore for hidpi
         store = new DHighDpi::BackingStore(store);
+        qInfo() << __FUNCTION__ << "enabled override backing store for:" << window;
     }
 
     if (window->type() == Qt::Desktop)

@@ -31,6 +31,7 @@
 #include <QMouseEvent>
 #include <QTimer>
 #include <QMetaProperty>
+#include <QScreen>
 #include <qpa/qplatformwindow.h>
 
 #define _DEEPIN_SCISSOR_WINDOW "_DEEPIN_SCISSOR_WINDOW"
@@ -276,7 +277,7 @@ void DNoTitlebarWindowHelper::updateClipPathFromProperty()
     static xcb_atom_t _deepin_scissor_window = Utility::internAtom(_DEEPIN_SCISSOR_WINDOW, false);
 
     if (!path.isEmpty()) {
-        m_clipPath = path * m_window->devicePixelRatio();
+        m_clipPath = path * m_window->screen()->devicePixelRatio();
 
         QByteArray data;
         QDataStream ds(&data, QIODevice::WriteOnly);
@@ -302,7 +303,7 @@ void DNoTitlebarWindowHelper::updateWindowRadiusFromProperty()
     int radius = v.toInt(&ok);
 
     if (ok) {
-        setWindowRadius(QPointF(radius, radius) * m_window->devicePixelRatio());
+        setWindowRadius(QPointF(radius, radius) * m_window->screen()->devicePixelRatio());
     } else {
         resetProperty("windowRadius");
     }
@@ -519,7 +520,7 @@ bool DNoTitlebarWindowHelper::updateWindowBlurAreasForWM()
         return true;
     }
 
-    qreal device_pixel_ratio = m_window->devicePixelRatio();
+    qreal device_pixel_ratio = m_window->screen()->devicePixelRatio();
     quint32 top_level_w = Utility::getNativeTopLevelWindow(m_windowID);
     QPoint offset = QPoint(0, 0);
     const bool is_toplevel_window = (top_level_w == m_windowID);

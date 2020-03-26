@@ -247,8 +247,8 @@ void DPlatformWindowHook::propagateSizeHints()
     const QSize &marginSize = QSize(windowMargins.left() + windowMargins.right(),
                                     windowMargins.top() + windowMargins.bottom());
 
-    winp->minimumSize += marginSize / win->devicePixelRatio();
-    winp->maximumSize += marginSize / win->devicePixelRatio();
+    winp->minimumSize += marginSize / win->screen()->devicePixelRatio();
+    winp->maximumSize += marginSize / win->screen()->devicePixelRatio();
     winp->maximumSize.setWidth(qMin(QWINDOWSIZE_MAX, winp->maximumSize.width()));
     winp->maximumSize.setHeight(qMin(QWINDOWSIZE_MAX, winp->maximumSize.height()));
 

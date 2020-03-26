@@ -450,12 +450,16 @@ bool DXcbWMSupport::hasComposite() const
 
 bool DXcbWMSupport::hasNoTitlebar() const
 {
-    return m_hasNoTitlebar;
+    static bool disable = qEnvironmentVariableIsSet("D_DXCB_DISABLE_NO_TITLEBAR");
+
+    return !disable && m_hasNoTitlebar;
 }
 
 bool DXcbWMSupport::hasScissorWindow() const
 {
-    return m_hasScissorWindow;
+    static bool disable = qEnvironmentVariableIsSet("D_DXCB_DISABLE_SCISSOR_WINDOW");
+
+    return !disable && m_hasScissorWindow;
 }
 
 bool DXcbWMSupport::hasWindowAlpha() const
