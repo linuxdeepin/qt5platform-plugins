@@ -304,7 +304,8 @@ void DHighDpi::BackingStore::beginPaint(const QRegion &region)
 void DHighDpi::BackingStore::endPaint()
 {
     QPainter pa(m_proxy->paintDevice());
-    pa.setRenderHint(QPainter::SmoothPixmapTransform);
+    pa.setRenderHints(QPainter::SmoothPixmapTransform);
+    pa.setCompositionMode(QPainter::CompositionMode_Source);
     pa.drawImage(m_dirtyWindowRect, m_image, m_dirtyRect);
     pa.end();
 
