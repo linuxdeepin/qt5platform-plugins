@@ -376,8 +376,13 @@ QPlatformWindow *DPlatformIntegration::createPlatformWindow(QWindow *window) con
             Utility::setWindowGroup(w->winId(), xcbConnection()->clientLeader());
         }
 #endif
+
         // for hi dpi
-        if (!isUseDxcb && DHighDpi::overrideBackingStore()) {
+        if (!isUseDxcb && DHighDpi::overrideBackingStore()
+                && (window->surfaceType() == QWindow::RasterSurface
+                    || dynamic_cast<QPaintDevice*>(window)
+                    || window->inherits("QWidgetWindow"))
+                && !window->property("_d_dxcb_BackingStore").isValid()) {
             bool ok = VtableHook::overrideVfptrFun(w, &QPlatformWindow::devicePixelRatio, &DHighDpi::devicePixelRatio);
 
             if (ok) {
