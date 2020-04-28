@@ -35,7 +35,9 @@
 DPP_BEGIN_NAMESPACE
 
 bool DHighDpi::active = false;
+#if QT_VERSION < QT_VERSION_CHECK(5, 14, 0)
 QHash<QPlatformScreen*, qreal> DHighDpi::screenFactorMap;
+#endif
 QPointF DHighDpi::fromNativePixels(const QPointF &pixelPoint, const QWindow *window)
 {
     return QHighDpi::fromNativePixels(pixelPoint, window);
@@ -52,23 +54,40 @@ void DHighDpi::init()
             // 可以禁用此行为
             || qEnvironmentVariableIsSet("D_DXCB_DISABLE_OVERRIDE_HIDPI")
             // 无有效的xsettings时禁用
-            || !DXcbXSettings::getOwner()) {
+            || !DXcbXSettings::getOwner()
+            || (qEnvironmentVariableIsSet("QT_SCALE_FACTOR_ROUNDING_POLICY")
+                && qgetenv("QT_SCALE_FACTOR_ROUNDING_POLICY") != "PassThrough")) {
         return;
     }
 
     // 禁用platform theme中的缩放机制
     qputenv("D_DISABLE_RT_SCREEN_SCALE", "1");
+    // 设置为完全控制缩放比例，避免被Qt“4舍5入”了缩放比
+    qputenv("QT_SCALE_FACTOR_ROUNDING_POLICY", "PassThrough");
+
+    // 强制开启使用DXCB的缩放机制，此时移除会影响此功能的所有Qt环境变量
+    if (qEnvironmentVariableIsSet("D_DXCB_FORCE_OVERRIDE_HIDPI")) {
+        qunsetenv("QT_AUTO_SCREEN_SCALE_FACTOR");
+        qunsetenv("QT_SCALE_FACTOR");
+        qunsetenv("QT_SCREEN_SCALE_FACTORS");
+        qunsetenv("QT_ENABLE_HIGHDPI_SCALING");
+        qunsetenv("QT_USE_PHYSICAL_DPI");
+    }
 
     if (!QGuiApplication::testAttribute(Qt::AA_EnableHighDpiScaling)) {
         QGuiApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
         QHighDpiScaling::initHighDpiScaling();
     }
 
+#if QT_VERSION < QT_VERSION_CHECK(5, 14, 0)
     active = VtableHook::overrideVfptrFun(&QXcbScreen::pixelDensity, pixelDensity);
 
     if (active) {
         VtableHook::overrideVfptrFun(&QXcbScreen::logicalDpi, logicalDpi);
     }
+#else
+    active = VtableHook::overrideVfptrFun(&QXcbScreen::logicalDpi, logicalDpi);
+#endif
 }
 
 bool DHighDpi::isActive()
@@ -113,6 +132,7 @@ QDpi DHighDpi::logicalDpi(QXcbScreen *s)
     return QDpi(d, d);
 }
 
+#if QT_VERSION < QT_VERSION_CHECK(5, 14, 0)
 qreal DHighDpi::pixelDensity(QXcbScreen *s)
 {
     qreal scale = screenFactorMap.value(s, 0);
@@ -124,6 +144,7 @@ qreal DHighDpi::pixelDensity(QXcbScreen *s)
 
     return scale;
 }
+#endif
 
 qreal DHighDpi::devicePixelRatio(QPlatformWindow *w)
 {
@@ -148,11 +169,14 @@ void DHighDpi::onDPIChanged(QXcbVirtualDesktop *screen, const QByteArray &name, 
     qInfo() << Q_FUNC_INFO << name << property;
 
     // 清理过期的屏幕缩放值
+#if QT_VERSION < QT_VERSION_CHECK(5, 14, 0)
     if (QScreen *screen = reinterpret_cast<QScreen*>(handle)) {
         screenFactorMap.remove(screen->handle());
     } else {
         screenFactorMap.clear();
-
+#else
+    {
+#endif
         // 刷新所有窗口
         for (QWindow *window : qGuiApp->allWindows()) {
             if (window->type() == Qt::Desktop)

@@ -47,7 +47,9 @@ public:
     static bool isActive();
     static bool overrideBackingStore();
     static QDpi logicalDpi(QXcbScreen *s);
+#if QT_VERSION < QT_VERSION_CHECK(5, 14, 0)
     static qreal pixelDensity(QXcbScreen *s);
+#endif
     static qreal devicePixelRatio(QPlatformWindow *w);
     // for backingstore
     class BackingStore : public QPlatformBackingStore
