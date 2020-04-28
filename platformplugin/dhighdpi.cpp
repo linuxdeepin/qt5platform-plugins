@@ -98,7 +98,7 @@ bool DHighDpi::isActive()
 bool DHighDpi::overrideBackingStore()
 {
     // 默认不开启，会降低绘图效率
-    static bool enabled = qEnvironmentVariableIsSet("D_DXCB_HIDPI_BACKINGSTOR");
+    static bool enabled = qEnvironmentVariableIsSet("D_DXCB_HIDPI_BACKINGSTORE");
     return enabled;
 }
 
