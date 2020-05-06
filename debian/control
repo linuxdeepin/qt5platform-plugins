@@ -1,4 +1,4 @@
-Source: qt5dxcb-plugin
+Source: dde-qt5platform-plugins
 Section: devel
 Priority: optional
 Maintainer: Deepin Packages Builder <packages@deepin.com>
@@ -11,11 +11,17 @@ Build-Depends: debhelper (>=9), qtbase5-dev, qtbase5-private-dev,
  libxcb-composite0-dev, libcairo2-dev
 Standards-Version: 3.9.8
 
-Package: qt5dxcb-plugin
+Package: dde-qt5xcb-plugin
 Architecture: any
 Provides: libqt5dxcb-plugin
 Conflicts: libqt5dxcb-plugin
 Breaks:dde-qt5integration (<< 0.2.8.1)
 Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: Qt platform plugins
+ Qt platform plugins for DDE.
+
+Package: qt5dxcb-plugin
+Architecture: any
+Depends: dde-qt5xcb-plugin
 Description: Qt platform plugins
  Qt platform plugins for DDE.

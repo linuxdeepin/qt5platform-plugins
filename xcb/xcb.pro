@@ -41,7 +41,7 @@ CONFIG += plugin c++11
 SOURCES += \
     $$PWD/main.cpp \
     $$PWD/dplatformintegration.cpp \
-    $$PWD/vtablehook.cpp \
+    $$PWD/../src/vtablehook.cpp \
     $$PWD/dplatformnativeinterfacehook.cpp \
     dhighdpi.cpp \
     dnativesettings.cpp \
@@ -58,6 +58,8 @@ HEADERS += \
     dhighdpi.h \
     dnativesettings.h \
     dnotitlebarwindowhelper.h
+
+INCLUDEPATH += $$PWD/../src
 
 DISTFILES += \
     $$PWD/dpp.json
