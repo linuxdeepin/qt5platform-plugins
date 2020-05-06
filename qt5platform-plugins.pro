@@ -1,3 +1,4 @@
 TEMPLATE = subdirs
 SUBDIRS += \
-    xcb/xcb.pro
+    xcb/xcb.pro \
+    wayland/wayland.pro

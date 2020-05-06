@@ -8,7 +8,8 @@ Build-Depends: debhelper (>=9), qtbase5-dev, qtbase5-private-dev,
  libmtdev-dev, libxkbcommon-x11-dev, libdbus-1-dev, libqt5opengl5-dev, 
  libudev-dev, libxrender-dev,libxi-dev, libsm-dev, libxcb-xinerama0-dev,
  libfontconfig1-dev, libfreetype6-dev, libglib2.0-dev, libxcb-damage0-dev,
- libxcb-composite0-dev, libcairo2-dev
+ libxcb-composite0-dev, libcairo2-dev, libqt5waylandclient5-dev, libkf5wayland-dev,
+ libwayland-dev
 Standards-Version: 3.9.8
 
 Package: dde-qt5xcb-plugin
@@ -24,5 +25,11 @@ Description: Qt platform plugins
 Package: qt5dxcb-plugin
 Architecture: any
 Depends: dde-qt5xcb-plugin
+Description: Qt platform plugins
+ Qt platform plugins for DDE.
+
+Package: qt5dwayland-plugin
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
 Description: Qt platform plugins
  Qt platform plugins for DDE.
