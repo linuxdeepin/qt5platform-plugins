@@ -710,7 +710,7 @@ quint32 Utility::getNativeTopLevelWindow(quint32 WId)
 
     do {
         xcb_query_tree_cookie_t cookie = xcb_query_tree_unchecked(xcb_connection, WId);
-        xcb_query_tree_reply_t *reply = xcb_query_tree_reply(xcb_connection, cookie, NULL);
+        QScopedPointer<xcb_query_tree_reply_t, QScopedPointerPodDeleter> reply(xcb_query_tree_reply(xcb_connection, cookie, NULL));
 
         if (reply) {
             if (reply->parent == reply->root)
@@ -727,7 +727,6 @@ quint32 Utility::getNativeTopLevelWindow(quint32 WId)
                 break;
 
             WId = reply->parent;
-            free(reply);
         } else {
             break;
         }
