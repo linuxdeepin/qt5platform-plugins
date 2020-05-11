@@ -303,7 +303,7 @@ QPlatformWindow *DPlatformIntegration::createPlatformWindow(QWindow *window) con
         // 跟随窗口被销毁
         Q_UNUSED(new DNoTitlebarWindowHelper(window, w->winId()))
 #ifdef Q_OS_LINUX
-        Q_UNUSED(new WindowEventHook(static_cast<QNativeWindow*>(w), false))
+        WindowEventHook::init(static_cast<QNativeWindow*>(w), false);
 #endif
         // for hi dpi
         if (DHighDpi::overrideBackingStore()) {
@@ -355,7 +355,7 @@ QPlatformWindow *DPlatformIntegration::createPlatformWindow(QWindow *window) con
                           : DPlatformWindowHelper::windowRedirectContent(window);
     }
 
-    Q_UNUSED(new WindowEventHook(xw, rc))
+    WindowEventHook::init(xw, rc);
 #endif
 
 //    QWindow *tp_for_window = window->transientParent();

@@ -27,25 +27,22 @@ DPP_BEGIN_NAMESPACE
 class WindowEventHook
 {
 public:
-    WindowEventHook(QXcbWindow *window, bool redirectContent);
+    static void init(QXcbWindow *window, bool redirectContent);
 
-    QXcbWindow *window() const
-    { return static_cast<QXcbWindow*>(reinterpret_cast<QXcbWindowEventListener*>(const_cast<WindowEventHook*>(this)));}
+    static void handleConfigureNotifyEvent(QXcbWindowEventListener *el, const xcb_configure_notify_event_t *);
+    static void handleMapNotifyEvent(QXcbWindowEventListener *el, const xcb_map_notify_event_t *);
 
-    void handleConfigureNotifyEvent(const xcb_configure_notify_event_t *);
-    void handleMapNotifyEvent(const xcb_map_notify_event_t *);
-
-    void handleClientMessageEvent(const xcb_client_message_event_t *event);
-    void handleFocusInEvent(const xcb_focus_in_event_t *event);
-    void handleFocusOutEvent(const xcb_focus_out_event_t *event);
-    void handlePropertyNotifyEvent(const xcb_property_notify_event_t *event);
+    static void handleClientMessageEvent(QXcbWindowEventListener *el, const xcb_client_message_event_t *event);
+    static void handleFocusInEvent(QXcbWindowEventListener *el, const xcb_focus_in_event_t *event);
+    static void handleFocusOutEvent(QXcbWindowEventListener *el, const xcb_focus_out_event_t *event);
+    static void handlePropertyNotifyEvent(QXcbWindowEventListener *el, const xcb_property_notify_event_t *event);
 #ifdef XCB_USE_XINPUT22
-    void handleXIEnterLeave(xcb_ge_event_t *event);
+    static void handleXIEnterLeave(QXcbWindowEventListener *el, xcb_ge_event_t *event);
 #endif
 #if QT_VERSION < QT_VERSION_CHECK(5, 12, 0)
-    void windowEvent(QEvent *event);
+    static void windowEvent(QPlatformWindow *window, QEvent *event);
 #else
-    bool windowEvent(QEvent *event);
+    static bool windowEvent(QPlatformWindow *window, QEvent *event);
 #endif
 
 private:
