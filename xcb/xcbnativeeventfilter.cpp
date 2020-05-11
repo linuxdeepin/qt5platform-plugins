@@ -321,6 +321,8 @@ void XcbNativeEventFilter::updateXIDeviceInfoMap()
 
             XFree(name);
         }
+
+        XFree(props);
     }
 
     XIFreeDeviceInfo(devices);
