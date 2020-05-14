@@ -10,6 +10,7 @@
 #include <KWayland/Client/plasmashell.h>
 
 #include "vtablehook.h"
+#include "dplatformnativeinterfacehook.h"
 #include <private/qguiapplication_p.h>
 #include <qpa/qplatformnativeinterface.h>
 #include <QGuiApplication>
@@ -117,6 +118,7 @@ QWaylandShellIntegration *QKWaylandShellIntegrationPlugin::create(const QString 
     auto wayland_integration = static_cast<QWaylandIntegration *>(QGuiApplicationPrivate::platformIntegration());
     auto shell = wayland_integration->createShellIntegration("xdg-shell-v6");
 
+    VtableHook::overrideVfptrFun(wayland_integration->nativeInterface(), &QPlatformNativeInterface::platformFunction, &DPlatformNativeInterfaceHook::platformFunction);
     VtableHook::overrideVfptrFun(shell, &QWaylandShellIntegration::createShellSurface, createShellSurface);
 
     KWayland::Client::Registry *registry = new KWayland::Client::Registry();
