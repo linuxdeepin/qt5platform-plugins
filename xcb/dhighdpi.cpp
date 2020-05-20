@@ -111,14 +111,14 @@ QDpi DHighDpi::logicalDpi(QXcbScreen *s)
     }
 
     int dpi = 0;
-    QVariant value = DPlatformIntegration::xSettings(s->virtualDesktop())->setting("Qt/DPI/" + s->name().toLocal8Bit());
+    QVariant value = DPlatformIntegration::xSettings(s->connection())->setting("Qt/DPI/" + s->name().toLocal8Bit());
     bool ok = false;
 
     dpi = value.toInt(&ok);
 
     // fallback
     if (!ok) {
-        value = DPlatformIntegration::xSettings(s->virtualDesktop())->setting("Xft/DPI");
+        value = DPlatformIntegration::xSettings(s->connection())->setting("Xft/DPI");
         dpi = value.toInt(&ok);
     }
 

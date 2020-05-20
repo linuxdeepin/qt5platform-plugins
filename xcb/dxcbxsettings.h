@@ -51,8 +51,8 @@ class DXcbXSettings
 {
     Q_DECLARE_PRIVATE(DXcbXSettings)
 public:
-    DXcbXSettings(QXcbVirtualDesktop *screen, const QByteArray &property = QByteArray());
-    DXcbXSettings(QXcbVirtualDesktop *screen, xcb_window_t setting_window, const QByteArray &property = QByteArray());
+    DXcbXSettings(QXcbConnection *connection, const QByteArray &property = QByteArray());
+    DXcbXSettings(QXcbConnection *connection, xcb_window_t setting_window, const QByteArray &property = QByteArray());
     DXcbXSettings(xcb_window_t setting_window, const QByteArray &property = QByteArray());
     ~DXcbXSettings();
 

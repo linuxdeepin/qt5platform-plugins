@@ -17,10 +17,13 @@
 
 #include "dplatformnativeinterfacehook.h"
 #include "global.h"
+#include "dxcbxsettings.h"
+#include "dnativesettings.h"
 
 #include <QInputEvent>
 #include <QStringLiteral>
 #include <QString>
+#include <QHash>
 
 #ifdef Q_OS_LINUX
 #elif defined(Q_OS_WIN)
@@ -29,11 +32,6 @@ typedef QWindowsGdiNativeInterface DPlatformNativeInterface;
 #endif
 
 DPP_BEGIN_NAMESPACE
-
-static QString version()
-{
-    return QStringLiteral(WAYLAND_VERSION);
-}
 
 static QFunctionPointer getFunction(const QByteArray &function)
 {
@@ -66,15 +64,21 @@ QFunctionPointer DPlatformNativeInterfaceHook::platformFunction(QPlatformNativeI
 
 bool DPlatformNativeInterfaceHook::buildNativeSettings(QObject *object, quint32 settingWindow)
 {
-    Q_UNUSED(object);
-    Q_UNUSED(settingWindow);
+    // 跟随object销毁
+    auto settings = new DNativeSettings(object, settingWindow);
+
+    if (!settings->isValid()) {
+        delete settings;
+        return false;
+    }
+
     return true;
 }
 
 void DPlatformNativeInterfaceHook::clearNativeSettings(quint32 settingWindow)
 {
 #ifdef Q_OS_LINUX
-    Q_UNUSED(settingWindow);
+    DXcbXSettings::clearSettings(settingWindow);
 #endif
 }
 

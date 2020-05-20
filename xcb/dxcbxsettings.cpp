@@ -156,53 +156,53 @@ void DXcbConnectionGrabber::release()
 class Q_DECL_HIDDEN DXcbXSettingsPrivate
 {
 public:
-    DXcbXSettingsPrivate(QXcbVirtualDesktop *screen, const QByteArray &property)
-        : screen(screen)
+    DXcbXSettingsPrivate(QXcbConnection *connection, const QByteArray &property)
+        : connection(connection)
         , initialized(false)
     {
         if (property.isEmpty()) {
-            x_settings_atom = screen->connection()->atom(QXcbAtom::_XSETTINGS_SETTINGS);
+            x_settings_atom = connection->atom(QXcbAtom::_XSETTINGS_SETTINGS);
         } else {
-            x_settings_atom = screen->connection()->internAtom(property);
+            x_settings_atom = connection->internAtom(property);
         }
 
         if (!_xsettings_notify_atom) {
-            _xsettings_notify_atom = screen->connection()->internAtom("_XSETTINGS_SETTINGS_NOTIFY");
+            _xsettings_notify_atom = connection->internAtom("_XSETTINGS_SETTINGS_NOTIFY");
         }
 
         if (!_xsettings_signal_atom) {
-            _xsettings_signal_atom = screen->connection()->internAtom("_XSETTINGS_SETTINGS_SIGNAL");
+            _xsettings_signal_atom = connection->internAtom("_XSETTINGS_SETTINGS_SIGNAL");
         }
 
         // init xsettings owner
         if (!_xsettings_owner) {
-            _xsettings_owner = DXcbXSettings::getOwner(screen->xcb_connection(), screen->number());
+            _xsettings_owner = DXcbXSettings::getOwner(connection->primaryVirtualDesktop()->xcb_connection(), connection->primaryScreenNumber());
 
             if (_xsettings_owner) {
                 const uint32_t event = XCB_CW_EVENT_MASK;
                 const uint32_t event_mask[] = { XCB_EVENT_MASK_STRUCTURE_NOTIFY|XCB_EVENT_MASK_PROPERTY_CHANGE };
-                xcb_change_window_attributes(screen->xcb_connection(), _xsettings_owner, event, event_mask);
+                xcb_change_window_attributes(connection->primaryVirtualDesktop()->xcb_connection(), _xsettings_owner, event, event_mask);
             }
         }
     }
 
     QByteArray getSettings()
     {
-        DXcbConnectionGrabber connectionGrabber(screen->connection());
+        DXcbConnectionGrabber connectionGrabber(connection);
         Q_UNUSED(connectionGrabber)
         int offset = 0;
         QByteArray settings;
         while (1) {
-            xcb_get_property_cookie_t cookie = xcb_get_property(screen->xcb_connection(),
+            xcb_get_property_cookie_t cookie = xcb_get_property(connection->primaryVirtualDesktop()->xcb_connection(),
                                                                 false,
                                                                 x_settings_window,
                                                                 x_settings_atom,
-                                                                screen->connection()->atom(QXcbAtom::_XSETTINGS_SETTINGS),
+                                                                connection->atom(QXcbAtom::_XSETTINGS_SETTINGS),
                                                                 offset/4,
                                                                 8192);
 
             xcb_generic_error_t *error = nullptr;
-            auto reply = xcb_get_property_reply(screen->xcb_connection(), cookie, &error);
+            auto reply = xcb_get_property_reply(connection->primaryVirtualDesktop()->xcb_connection(), cookie, &error);
 
             enum ErrorCode {
                 BadWindow = 3
@@ -233,13 +233,13 @@ public:
 
     void setSettings(const QByteArray &data)
     {
-        DXcbConnectionGrabber connectionGrabber(screen->connection());
+        DXcbConnectionGrabber connectionGrabber(connection);
         Q_UNUSED(connectionGrabber)
-        xcb_change_property(screen->xcb_connection(),
+        xcb_change_property(connection->primaryVirtualDesktop()->xcb_connection(),
                             XCB_PROP_MODE_REPLACE,
                             x_settings_window,
                             x_settings_atom,
-                            screen->connection()->atom(QXcbAtom::_XSETTINGS_SETTINGS),
+                            connection->atom(QXcbAtom::_XSETTINGS_SETTINGS),
                             8, data.size(), data.constData());
 
         xcb_window_t xsettings_owner = _xsettings_owner;
@@ -265,7 +265,7 @@ public:
             notify_event.data.data32[0] = x_settings_window;
             notify_event.data.data32[1] = x_settings_atom;
 
-            xcb_send_event(screen->xcb_connection(), false, xsettings_owner, XCB_EVENT_MASK_PROPERTY_CHANGE, (const char *)&notify_event);
+            xcb_send_event(connection->primaryVirtualDesktop()->xcb_connection(), false, xsettings_owner, XCB_EVENT_MASK_PROPERTY_CHANGE, (const char *)&notify_event);
         }
     }
 
@@ -457,9 +457,9 @@ public:
 
     bool updateValue(DXcbXSettingsPropertyValue &xvalue, const QByteArray &name, const QVariant &value, int last_change_serial)
     {
-        if (xvalue.updateValue(screen, name, value, last_change_serial)) {
+        if (xvalue.updateValue(connection->primaryVirtualDesktop(), name, value, last_change_serial)) {
             for (const auto &callback : callback_links) {
-                callback.func(screen, name, value, callback.handle);
+                callback.func(connection->primaryVirtualDesktop(), name, value, callback.handle);
             }
 
             return true;
@@ -468,7 +468,7 @@ public:
         return false;
     }
 
-    QXcbVirtualDesktop *screen;
+    QXcbConnection *connection;
     xcb_window_t x_settings_window;
     // 保存xsetting值的窗口属性
     xcb_atom_t x_settings_atom;
@@ -491,14 +491,14 @@ xcb_atom_t DXcbXSettingsPrivate::_xsettings_signal_atom = 0;
 xcb_window_t DXcbXSettingsPrivate::_xsettings_owner = 0;
 QMultiHash<xcb_window_t, DXcbXSettings*> DXcbXSettingsPrivate::mapped;
 
-DXcbXSettings::DXcbXSettings(QXcbVirtualDesktop *screen, const QByteArray &property)
-    : DXcbXSettings(screen, 0, property)
+DXcbXSettings::DXcbXSettings(QXcbConnection *connection, const QByteArray &property)
+    : DXcbXSettings(connection, 0, property)
 {
 
 }
 
-DXcbXSettings::DXcbXSettings(QXcbVirtualDesktop *screen, xcb_window_t setting_window, const QByteArray &property)
-    : d_ptr(new DXcbXSettingsPrivate(screen, property))
+DXcbXSettings::DXcbXSettings(QXcbConnection *connection, xcb_window_t setting_window, const QByteArray &property)
+    : d_ptr(new DXcbXSettingsPrivate(connection, property))
 {
     if (!setting_window) {
         setting_window = d_ptr->_xsettings_owner;
@@ -508,7 +508,7 @@ DXcbXSettings::DXcbXSettings(QXcbVirtualDesktop *screen, xcb_window_t setting_wi
 }
 
 DXcbXSettings::DXcbXSettings(xcb_window_t setting_window, const QByteArray &property)
-    : DXcbXSettings(DPlatformIntegration::xcbConnection()->primaryVirtualDesktop(), setting_window, property)
+    : DXcbXSettings(DPlatformIntegration::xcbConnection(), setting_window, property)
 {
 
 }
@@ -638,7 +638,7 @@ bool DXcbXSettings::handleClientMessageEvent(const xcb_client_message_event_t *e
                 // data32[2]为signal id
                 xcb_atom_t signal = event->data.data32[2];
                 const QByteArray signal_string(DPlatformIntegration::xcbConnection()->atomName(signal));
-                cb.func(self->d_ptr->screen, signal_string, event->data.data32[3], event->data.data32[4], cb.handle);
+                cb.func(self->d_ptr->connection->primaryVirtualDesktop(), signal_string, event->data.data32[3], event->data.data32[4], cb.handle);
             }
         }
 

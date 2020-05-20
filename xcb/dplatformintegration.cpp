@@ -1078,13 +1078,13 @@ DXcbXSettings *DPlatformIntegration::xSettings(bool onlyExists) const
     if (onlyExists)
         return m_xsettings;
 
-    return xSettings(xcbConnection()->primaryVirtualDesktop());
+    return xSettings(xcbConnection());
 }
 
-DXcbXSettings *DPlatformIntegration::xSettings(QXcbVirtualDesktop *desktop)
+DXcbXSettings *DPlatformIntegration::xSettings(QXcbConnection *connection)
 {
     if (!m_xsettings) {
-        auto xsettings = new DXcbXSettings(desktop);
+        auto xsettings = new DXcbXSettings(connection);
         m_xsettings = xsettings;
 
         // 注册回调，用于通知 QStyleHints 属性改变

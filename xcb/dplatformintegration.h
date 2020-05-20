@@ -88,7 +88,7 @@ private:
 
     bool enableCursorBlink() const;
     DXcbXSettings *xSettings(bool onlyExists = false) const;
-    static DXcbXSettings *xSettings(QXcbVirtualDesktop *desktop);
+    static DXcbXSettings *xSettings(QXcbConnection *connection);
 
 private:
     XcbNativeEventFilter *m_eventFilter = Q_NULLPTR;

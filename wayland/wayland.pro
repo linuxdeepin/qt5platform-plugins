@@ -50,7 +50,9 @@ HEADERS += \
         $$PWD/qt5dwayland-plugin_global.h
 
 INCLUDEPATH += $$PWD/qtwayland-dev \
-               $$PWD/../src
+               $$PWD/../src \
+               $$PWD/../xcb \
+               $$PWD/../xcb/libqt5xcbqpa-dev/5.11.3 \
 
 OTHER_FILES += \
     kwayland-shell.json
