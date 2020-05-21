@@ -29,6 +29,8 @@
 #undef protected
 #include <private/qmetaobjectbuilder_p.h>
 
+class QXcbConnection;
+
 DPP_BEGIN_NAMESPACE
 
 #ifdef Q_OS_LINUX
@@ -39,7 +41,7 @@ typedef DXcbXSettings NativeSettings;
 class DNativeSettings : public QAbstractDynamicMetaObject
 {
 public:
-    explicit DNativeSettings(QObject *base, quint32 settingsWindow);
+    explicit DNativeSettings(QObject *base, quint32 settingsWindow, QXcbConnection *connection);
     ~DNativeSettings();
 
     bool isValid() const;

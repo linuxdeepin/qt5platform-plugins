@@ -118,6 +118,7 @@ QWaylandShellIntegration *QKWaylandShellIntegrationPlugin::create(const QString 
     auto wayland_integration = static_cast<QWaylandIntegration *>(QGuiApplicationPrivate::platformIntegration());
     auto shell = wayland_integration->createShellIntegration("xdg-shell-v6");
 
+    DPlatformNativeInterfaceHook::init(wayland_integration->nativeInterface());
     VtableHook::overrideVfptrFun(wayland_integration->nativeInterface(), &QPlatformNativeInterface::platformFunction, &DPlatformNativeInterfaceHook::platformFunction);
     VtableHook::overrideVfptrFun(shell, &QWaylandShellIntegration::createShellSurface, createShellSurface);
 

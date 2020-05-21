@@ -256,7 +256,7 @@ bool DPlatformIntegration::isEnableNoTitlebar(const QWindow *window)
 bool DPlatformIntegration::buildNativeSettings(QObject *object, quint32 settingWindow)
 {
     // 跟随object销毁
-    auto settings = new DNativeSettings(object, settingWindow);
+    auto settings = new DNativeSettings(object, settingWindow, DPlatformIntegration::xcbConnection());
 
     if (!settings->isValid()) {
         delete settings;

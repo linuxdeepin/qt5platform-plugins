@@ -23,6 +23,7 @@
 #include "dxcbxsettings.h"
 #endif
 #include "dplatformintegration.h"
+#include "qxcbconnection.h"
 
 #include <QDebug>
 #include <QMetaProperty>
@@ -38,7 +39,7 @@ QHash<QObject*, DNativeSettings*> DNativeSettings::mapped;
  * 通过覆盖QObject的qt_metacall虚函数，检测base object中自定义的属性列表，将xwindow对应的设置和object对象中的属性绑定到一起使用
  * 将对象通过property/setProperty调用对属性的读写操作转为对xsetting的属性设 置
  */
-DNativeSettings::DNativeSettings(QObject *base, quint32 settingsWindow)
+DNativeSettings::DNativeSettings(QObject *base, quint32 settingsWindow, QXcbConnection *connection)
     : m_base(base)
 {
     if (mapped.value(base)) {
@@ -82,7 +83,7 @@ DNativeSettings::DNativeSettings(QObject *base, quint32 settingsWindow)
 
     // 当指定了窗口或窗口属性时，应当创建一个新的native settings
     if (settingsWindow || !settings_property.isEmpty()) {
-        m_settings = new NativeSettings(settingsWindow, settings_property);
+        m_settings = new NativeSettings(connection, settingsWindow, settings_property);
     } else {
         m_isGlobalSettings = true;
         m_settings = DPlatformIntegration::instance()->xSettings();
