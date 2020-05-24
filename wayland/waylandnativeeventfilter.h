@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 ~ 2020 Deepin Technology Co., Ltd.
+ * Copyright (C) 2017 ~ 2018 Deepin Technology Co., Ltd.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,36 +15,34 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef DPLATFORMNATIVEINTERFACE_H
-#define DPLATFORMNATIVEINTERFACE_H
-
-#include <QtGlobal>
-#include <QObject>
+#ifndef WAYLANDNATIVEEVENTFILTER_H
+#define WAYLANDNATIVEEVENTFILTER_H
 
 #include "global.h"
 
+#include <QAbstractNativeEventFilter>
+#include <QClipboard>
+#include <QHash>
+
+#include <xcb/xproto.h>
+
 QT_BEGIN_NAMESPACE
-class QPlatformNativeInterface;
-class QWaylandIntegration;
 class QXcbConnection;
+class QInputEvent;
 QT_END_NAMESPACE
 
 DPP_BEGIN_NAMESPACE
 
-class DPlatformNativeInterfaceHook
+class WaylandNativeEventFilter : public QAbstractNativeEventFilter
 {
 public:
-    static void setXcbConnectioin(QXcbConnection *connection);
-    static QFunctionPointer platformFunction(QPlatformNativeInterface *interface, const QByteArray &function);
-    static thread_local QHash<QByteArray, QFunctionPointer> functionCache;
-
-    static bool buildNativeSettings(QObject *object, quint32 settingWindow);
-    static void clearNativeSettings(quint32 settingWindow);
+    WaylandNativeEventFilter(QXcbConnection *connection);
+    bool nativeEventFilter(const QByteArray &eventType, void *message, long *result) Q_DECL_OVERRIDE;
 
 private:
-    static QXcbConnection *xcb_connection;
+    QXcbConnection *m_connection;
 };
 
 DPP_END_NAMESPACE
 
-#endif // DPLATFORMNATIVEINTERFACE_H
+#endif // WAYLANDNATIVEEVENTFILTER_H

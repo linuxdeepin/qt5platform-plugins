@@ -19,7 +19,6 @@
 #include "global.h"
 #include "qxcbconnection.h"
 #include "dxcbxsettings.h"
-#include "xcbnativeeventfilter.h"
 #include "dnativesettings.h"
 
 #include <QInputEvent>
@@ -49,10 +48,11 @@ static QFunctionPointer getFunction(const QByteArray &function)
 }
 
 thread_local QHash<QByteArray, QFunctionPointer> DPlatformNativeInterfaceHook::functionCache;
-QXcbConnection* DPlatformNativeInterfaceHook::xcb_connection;
+QXcbConnection *DPlatformNativeInterfaceHook::xcb_connection;
 QFunctionPointer DPlatformNativeInterfaceHook::platformFunction(QPlatformNativeInterface *interface, const QByteArray &function)
 {
     Q_UNUSED(interface);
+    qDebug() << "############################################################" << function;
     if (QFunctionPointer f = functionCache.value(function)) {
         return f;
     }
@@ -67,24 +67,16 @@ QFunctionPointer DPlatformNativeInterfaceHook::platformFunction(QPlatformNativeI
     return nullptr;
 }
 
-void DPlatformNativeInterfaceHook::init(QPlatformNativeInterface *interface)
+void DPlatformNativeInterfaceHook::setXcbConnectioin(QXcbConnection *connection)
 {
-    bool can_grab = true;
-    static bool can_not_grab_env = qEnvironmentVariableIsSet("QT_XCB_NO_GRAB_SERVER");
-    if(can_not_grab_env) {
-        can_grab = false;
-    }
-
-    xcb_connection = new QXcbConnection((QXcbNativeInterface*)interface, can_grab, UINT_MAX, nullptr);
-
-    auto m_eventFilter = new XcbNativeEventFilter(xcb_connection);
-    QCoreApplication::instance()->installNativeEventFilter(m_eventFilter);
+    xcb_connection = connection;
 }
 
 bool DPlatformNativeInterfaceHook::buildNativeSettings(QObject *object, quint32 settingWindow)
 {
-    auto settings = new DNativeSettings(object, settingWindow, xcb_connection);
 
+    qDebug() << "################################################" << settingWindow <<xcb_connection;
+    auto settings = new DNativeSettings(object, settingWindow, xcb_connection);
     if (!settings->isValid()) {
         delete settings;
         return false;
