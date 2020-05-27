@@ -259,7 +259,7 @@ bool DPlatformIntegration::buildNativeSettings(QObject *object, quint32 settingW
     DXcbXSettings *settings = nullptr;
     bool global_settings = false;
     if (settingWindow || !settings_property.isEmpty()) {
-        settings = new DXcbXSettings(DPlatformIntegration::xcbConnection(), settingWindow, settings_property);
+        settings = new DXcbXSettings(DPlatformIntegration::xcbConnection()->xcb_connection(), settingWindow, settings_property);
     } else {
         global_settings = true;
         settings = DPlatformIntegration::instance()->xSettings();
@@ -1061,9 +1061,9 @@ void DPlatformIntegration::initialize()
 }
 
 #ifdef Q_OS_LINUX
-static void onXSettingsChanged(QXcbVirtualDesktop *screen, const QByteArray &name, const QVariant &property, void *handle)
+static void onXSettingsChanged(xcb_connection_t *connection, const QByteArray &name, const QVariant &property, void *handle)
 {
-    Q_UNUSED(screen)
+    Q_UNUSED(connection)
     Q_UNUSED(property)
     Q_UNUSED(name)
 
@@ -1094,7 +1094,7 @@ DXcbXSettings *DPlatformIntegration::xSettings(bool onlyExists) const
 DXcbXSettings *DPlatformIntegration::xSettings(QXcbConnection *connection)
 {
     if (!m_xsettings) {
-        auto xsettings = new DXcbXSettings(connection);
+        auto xsettings = new DXcbXSettings(connection->xcb_connection());
         m_xsettings = xsettings;
 
         // 注册回调，用于通知 QStyleHints 属性改变

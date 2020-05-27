@@ -143,13 +143,13 @@ QImage Utility::borderImage(const QPixmap &px, const QMargins &borders,
     return image;
 }
 
-xcb_atom_t Utility::internAtom(const char *name, bool only_if_exists)
+xcb_atom_t Utility::internAtom(xcb_connection_t *connection, const char *name, bool only_if_exists)
 {
     if (!name || *name == 0)
         return XCB_NONE;
 
-    xcb_intern_atom_cookie_t cookie = xcb_intern_atom(QX11Info::connection(), only_if_exists, strlen(name), name);
-    xcb_intern_atom_reply_t *reply = xcb_intern_atom_reply(QX11Info::connection(), cookie, 0);
+    xcb_intern_atom_cookie_t cookie = xcb_intern_atom(connection, only_if_exists, strlen(name), name);
+    xcb_intern_atom_reply_t *reply = xcb_intern_atom_reply(connection, cookie, 0);
 
     if (!reply)
         return XCB_NONE;
@@ -158,6 +158,11 @@ xcb_atom_t Utility::internAtom(const char *name, bool only_if_exists)
     free(reply);
 
     return atom;
+}
+
+xcb_atom_t Utility::internAtom(const char *name, bool only_if_exists)
+{
+    return internAtom(QX11Info::connection(), name, only_if_exists);
 }
 
 void Utility::startWindowSystemMove(quint32 WId)

@@ -28,6 +28,7 @@ class QXcbWindow;
 QT_END_NAMESPACE
 
 typedef uint32_t xcb_atom_t;
+typedef struct xcb_connection_t xcb_connection_t;
 
 DPP_BEGIN_NAMESPACE
 
@@ -52,6 +53,7 @@ public:
     static QList<QRect> sudokuByRect(const QRect &rect, QMargins borders);
 
     static xcb_atom_t internAtom(const char *name, bool only_if_exists = true);
+    static xcb_atom_t internAtom(xcb_connection_t *connection, const char *name, bool only_if_exists = true);
     static void startWindowSystemMove(quint32 WId);
     static void cancelWindowMoveResize(quint32 WId);
 

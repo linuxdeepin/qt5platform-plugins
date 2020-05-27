@@ -35,6 +35,8 @@ class QPlatformWindow;
 class QXcbBackingStore;
 QT_END_NAMESPACE
 
+typedef struct xcb_connection_t xcb_connection_t;
+
 DPP_BEGIN_NAMESPACE
 
 class HighDpiImage;
@@ -93,7 +95,7 @@ public:
         QRect m_dirtyRect;
     };
 
-    static void onDPIChanged(QXcbVirtualDesktop *screen, const QByteArray &name, const QVariant &property, void *handle);
+    static void onDPIChanged(xcb_connection_t *screen, const QByteArray &name, const QVariant &property, void *handle);
 
 private:
 

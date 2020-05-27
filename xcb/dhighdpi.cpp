@@ -152,14 +152,14 @@ qreal DHighDpi::devicePixelRatio(QPlatformWindow *w)
     return qCeil(base_factor) / base_factor;
 }
 
-void DHighDpi::onDPIChanged(QXcbVirtualDesktop *screen, const QByteArray &name, const QVariant &property, void *handle)
+void DHighDpi::onDPIChanged(xcb_connection_t *connection, const QByteArray &name, const QVariant &property, void *handle)
 {
     static bool dynamic_dpi = qEnvironmentVariableIsSet("D_DXCB_RT_HIDPI");
 
     if (!dynamic_dpi)
         return;
 
-    Q_UNUSED(screen)
+    Q_UNUSED(connection)
     Q_UNUSED(name)
 
     // 判断值是否有效

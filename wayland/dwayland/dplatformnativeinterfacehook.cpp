@@ -46,7 +46,7 @@ static QFunctionPointer getFunction(const QByteArray &function)
 }
 
 thread_local QHash<QByteArray, QFunctionPointer> DPlatformNativeInterfaceHook::functionCache;
-QXcbConnection *DPlatformNativeInterfaceHook::xcb_connection = nullptr;
+xcb_connection_t *DPlatformNativeInterfaceHook::xcb_connection = nullptr;
 DXcbXSettings *DPlatformNativeInterfaceHook::m_xsettings = nullptr;
 QFunctionPointer DPlatformNativeInterfaceHook::platformFunction(QPlatformNativeInterface *interface, const QByteArray &function)
 {
@@ -68,16 +68,17 @@ QFunctionPointer DPlatformNativeInterfaceHook::platformFunction(QPlatformNativeI
     return nullptr;
 }
 
-void DPlatformNativeInterfaceHook::init(QXcbNativeInterface *interface)
+void DPlatformNativeInterfaceHook::init()
 {
     bool can_grab = true;
     static bool can_not_grab_env = qEnvironmentVariableIsSet("QT_XCB_NO_GRAB_SERVER");
     if(can_not_grab_env) can_grab = false;
 
-    xcb_connection = new QXcbConnection(interface, can_grab, UINT_MAX, nullptr);
+    int primary_screen_number = 0;
+    xcb_connection = xcb_connect(qgetenv("DISPLAY").isEmpty() ? ":0" : qgetenv("DISPLAY"), &primary_screen_number);
 
-    auto m_eventfilter = new WaylandNativeEventFilter(xcb_connection);
-    qApp->installNativeEventFilter(m_eventfilter);
+//    auto m_eventfilter = new WaylandNativeEventFilter(xcb_connection);
+//    qApp->installNativeEventFilter(m_eventfilter);
 }
 
 bool DPlatformNativeInterfaceHook::buildNativeSettings(QObject *object, quint32 settingWindow)
@@ -89,7 +90,7 @@ bool DPlatformNativeInterfaceHook::buildNativeSettings(QObject *object, quint32 
         settings = new DXcbXSettings(xcb_connection, settingWindow, settings_property);
     } else {
         global_settings = true;
-        settings = DPlatformNativeInterfaceHook::xSettings(xcb_connection);
+        settings = !m_xsettings ? new DXcbXSettings(xcb_connection) : m_xsettings;
     }
 
     // 跟随object销毁
@@ -108,15 +109,6 @@ void DPlatformNativeInterfaceHook::clearNativeSettings(quint32 settingWindow)
 #ifdef Q_OS_LINUX
     DXcbXSettings::clearSettings(settingWindow);
 #endif
-}
-
-DXcbXSettings *DPlatformNativeInterfaceHook::xSettings(QXcbConnection *connection)
-{
-    if (!m_xsettings) {
-        m_xsettings = new DXcbXSettings(connection);
-    }
-
-    return m_xsettings;
 }
 
 DPP_END_NAMESPACE

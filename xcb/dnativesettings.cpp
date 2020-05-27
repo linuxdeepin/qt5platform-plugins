@@ -23,7 +23,6 @@
 #include "dxcbxsettings.h"
 #endif
 #include "dplatformintegration.h"
-#include "qxcbconnection.h"
 
 #include <QDebug>
 #include <QMetaProperty>

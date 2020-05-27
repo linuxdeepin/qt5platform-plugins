@@ -11,9 +11,6 @@ CONFIG += link_pkgconfig plugin
 greaterThan(QT_MINOR_VERSION, 7): QT += gui-private
 else: QT += platformsupport-private
 
-# Qt >= 5.10
-greaterThan(QT_MINOR_VERSION, 9): QT += edid_support-private
-
 TARGET = kwayland-shell
 TEMPLATE = lib
 

@@ -51,8 +51,8 @@ class DXcbXSettings
 {
     Q_DECLARE_PRIVATE(DXcbXSettings)
 public:
-    DXcbXSettings(QXcbConnection *connection, const QByteArray &property = QByteArray());
-    DXcbXSettings(QXcbConnection *connection, xcb_window_t setting_window, const QByteArray &property = QByteArray());
+    DXcbXSettings(xcb_connection_t *connection, const QByteArray &property = QByteArray());
+    DXcbXSettings(xcb_connection_t *connection, xcb_window_t setting_window, const QByteArray &property = QByteArray());
     DXcbXSettings(xcb_window_t setting_window, const QByteArray &property = QByteArray());
     ~DXcbXSettings();
 
@@ -65,12 +65,12 @@ public:
     void setSetting(const QByteArray &property, const QVariant &value);
     QByteArrayList settingKeys() const;
 
-    typedef void (*PropertyChangeFunc)(QXcbVirtualDesktop *screen, const QByteArray &name, const QVariant &property, void *handle);
+    typedef void (*PropertyChangeFunc)(xcb_connection_t *connection, const QByteArray &name, const QVariant &property, void *handle);
     void registerCallback(PropertyChangeFunc func, void *handle);
     void registerCallbackForProperty(const QByteArray &property, PropertyChangeFunc func, void *handle);
     void removeCallbackForHandle(const QByteArray &property, void *handle);
     void removeCallbackForHandle(void *handle);
-    typedef void (*SignalFunc)(QXcbVirtualDesktop *screen, const QByteArray &signal, qint32 data1, qint32 data2, void *handle);
+    typedef void (*SignalFunc)(xcb_connection_t *connection, const QByteArray &signal, qint32 data1, qint32 data2, void *handle);
     void registerSignalCallback(SignalFunc func, void *handle);
     void removeSignalCallback(void *handle);
     void emitSignal(const QByteArray &signal, qint32 data1, qint32 data2);

@@ -29,8 +29,6 @@
 #undef protected
 #include <private/qmetaobjectbuilder_p.h>
 
-class QXcbConnection;
-
 DPP_BEGIN_NAMESPACE
 
 #ifdef Q_OS_LINUX
