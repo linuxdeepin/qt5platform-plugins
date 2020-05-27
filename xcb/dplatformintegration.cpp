@@ -255,11 +255,21 @@ bool DPlatformIntegration::isEnableNoTitlebar(const QWindow *window)
 
 bool DPlatformIntegration::buildNativeSettings(QObject *object, quint32 settingWindow)
 {
-    // 跟随object销毁
-    auto settings = new DNativeSettings(object, settingWindow, DPlatformIntegration::xcbConnection());
+    QByteArray settings_property = DNativeSettings::getSettingsProperty(object);
+    DXcbXSettings *settings = nullptr;
+    bool global_settings = false;
+    if (settingWindow || !settings_property.isEmpty()) {
+        settings = new DXcbXSettings(DPlatformIntegration::xcbConnection(), settingWindow, settings_property);
+    } else {
+        global_settings = true;
+        settings = DPlatformIntegration::instance()->xSettings();
+    }
 
-    if (!settings->isValid()) {
-        delete settings;
+    // 跟随object销毁
+    auto native_settings = new DNativeSettings(object, settings, global_settings);
+
+    if (!native_settings->isValid()) {
+        delete native_settings;
         return false;
     }
 

@@ -6,11 +6,7 @@
 
 QT       += KWaylandClient
 CONFIG += link_pkgconfig plugin
-PKGCONFIG += Qt5WaylandClient x11-xcb xi xcb-renderutil sm ice xcb-render \
-             dbus-1 xcb xcb-image xcb-icccm xcb-sync xcb-xfixes xcb-shm xcb-randr \
-             xcb-shape xcb-keysyms xcb-xkb xcb-composite xkbcommon-x11 \
-             xcb-damage mtdev egl cairo
-LIBS += /lib/aarch64-linux-gnu/libQt5XcbQpa.so
+PKGCONFIG += Qt5WaylandClient cairo
 
 # Qt >= 5.8
 greaterThan(QT_MINOR_VERSION, 7): QT += gui-private
@@ -18,6 +14,8 @@ else: QT += platformsupport-private
 
 # Qt >= 5.10
 greaterThan(QT_MINOR_VERSION, 9): QT += edid_support-private
+
+greaterThan(QT_MINOR_VERSION, 4): LIBS += -lQt5XcbQpa
 
 TARGET = kwayland-shell
 TEMPLATE = lib

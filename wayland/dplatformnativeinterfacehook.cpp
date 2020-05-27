@@ -14,25 +14,23 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+#define private public
+#include "QtWaylandClient/private/qwaylandnativeinterface_p.h"
+#undef private
 
 #include "dplatformnativeinterfacehook.h"
-#include "global.h"
-#include "qxcbconnection.h"
 #include "dxcbxsettings.h"
 #include "dnativesettings.h"
+#include "waylandnativeeventfilter.h"
 
+#include <qxcbconnection.h>
+#include <qpa/qplatformnativeinterface.h>
 #include <QInputEvent>
 #include <QStringLiteral>
 #include <QCoreApplication>
 #include <QString>
 #include <QHash>
 #include <QtGlobal>
-
-#ifdef Q_OS_LINUX
-#elif defined(Q_OS_WIN)
-#include "qwindowsgdinativeinterface.h"
-typedef QWindowsGdiNativeInterface DPlatformNativeInterface;
-#endif
 
 DPP_BEGIN_NAMESPACE
 
@@ -48,11 +46,10 @@ static QFunctionPointer getFunction(const QByteArray &function)
 }
 
 thread_local QHash<QByteArray, QFunctionPointer> DPlatformNativeInterfaceHook::functionCache;
-QXcbConnection *DPlatformNativeInterfaceHook::xcb_connection;
+QXcbConnection *DPlatformNativeInterfaceHook::xcb_connection = nullptr;
+DXcbXSettings *DPlatformNativeInterfaceHook::m_xsettings = nullptr;
 QFunctionPointer DPlatformNativeInterfaceHook::platformFunction(QPlatformNativeInterface *interface, const QByteArray &function)
 {
-    Q_UNUSED(interface);
-    qDebug() << "############################################################" << function;
     if (QFunctionPointer f = functionCache.value(function)) {
         return f;
     }
@@ -64,21 +61,42 @@ QFunctionPointer DPlatformNativeInterfaceHook::platformFunction(QPlatformNativeI
         return f;
     }
 
+#if QT_VERSION >= QT_VERSION_CHECK(5, 4, 0)
+    return static_cast<QtWaylandClient::QWaylandNativeInterface*>(interface)->QtWaylandClient::QWaylandNativeInterface::platformFunction(function);
+#endif
+
     return nullptr;
 }
 
-void DPlatformNativeInterfaceHook::setXcbConnectioin(QXcbConnection *connection)
+void DPlatformNativeInterfaceHook::init(QXcbNativeInterface *interface)
 {
-    xcb_connection = connection;
+    bool can_grab = true;
+    static bool can_not_grab_env = qEnvironmentVariableIsSet("QT_XCB_NO_GRAB_SERVER");
+    if(can_not_grab_env) can_grab = false;
+
+    xcb_connection = new QXcbConnection(interface, can_grab, UINT_MAX, nullptr);
+
+    auto m_eventfilter = new WaylandNativeEventFilter(xcb_connection);
+    qApp->installNativeEventFilter(m_eventfilter);
 }
 
 bool DPlatformNativeInterfaceHook::buildNativeSettings(QObject *object, quint32 settingWindow)
 {
+    QByteArray settings_property = DNativeSettings::getSettingsProperty(object);
+    DXcbXSettings *settings = nullptr;
+    bool global_settings = false;
+    if (settingWindow || !settings_property.isEmpty()) {
+        settings = new DXcbXSettings(xcb_connection, settingWindow, settings_property);
+    } else {
+        global_settings = true;
+        settings = DPlatformNativeInterfaceHook::xSettings(xcb_connection);
+    }
 
-    qDebug() << "################################################" << settingWindow <<xcb_connection;
-    auto settings = new DNativeSettings(object, settingWindow, xcb_connection);
-    if (!settings->isValid()) {
-        delete settings;
+    // 跟随object销毁
+    auto native_settings = new DNativeSettings(object, settings, global_settings);
+
+    if (!native_settings->isValid()) {
+        delete native_settings;
         return false;
     }
 
@@ -90,6 +108,15 @@ void DPlatformNativeInterfaceHook::clearNativeSettings(quint32 settingWindow)
 #ifdef Q_OS_LINUX
     DXcbXSettings::clearSettings(settingWindow);
 #endif
+}
+
+DXcbXSettings *DPlatformNativeInterfaceHook::xSettings(QXcbConnection *connection)
+{
+    if (!m_xsettings) {
+        m_xsettings = new DXcbXSettings(connection);
+    }
+
+    return m_xsettings;
 }
 
 DPP_END_NAMESPACE

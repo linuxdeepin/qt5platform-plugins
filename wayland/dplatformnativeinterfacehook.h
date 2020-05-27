@@ -26,23 +26,27 @@
 QT_BEGIN_NAMESPACE
 class QPlatformNativeInterface;
 class QWaylandIntegration;
+class QXcbNativeInterface;
 class QXcbConnection;
 QT_END_NAMESPACE
 
 DPP_BEGIN_NAMESPACE
 
+class DXcbXSettings;
 class DPlatformNativeInterfaceHook
 {
 public:
-    static void setXcbConnectioin(QXcbConnection *connection);
+    static void init(QXcbNativeInterface *connection);
     static QFunctionPointer platformFunction(QPlatformNativeInterface *interface, const QByteArray &function);
     static thread_local QHash<QByteArray, QFunctionPointer> functionCache;
 
     static bool buildNativeSettings(QObject *object, quint32 settingWindow);
     static void clearNativeSettings(quint32 settingWindow);
+    static DXcbXSettings *xSettings(QXcbConnection *connection);
 
 private:
     static QXcbConnection *xcb_connection;
+    static DXcbXSettings *m_xsettings;
 };
 
 DPP_END_NAMESPACE

@@ -41,9 +41,10 @@ typedef DXcbXSettings NativeSettings;
 class DNativeSettings : public QAbstractDynamicMetaObject
 {
 public:
-    explicit DNativeSettings(QObject *base, quint32 settingsWindow, QXcbConnection *connection);
+    explicit DNativeSettings(QObject *base, NativeSettings *settings, bool global_settings);
     ~DNativeSettings();
 
+    static QByteArray getSettingsProperty(QObject *base);
     bool isValid() const;
 
 private:

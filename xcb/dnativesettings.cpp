@@ -39,8 +39,10 @@ QHash<QObject*, DNativeSettings*> DNativeSettings::mapped;
  * 通过覆盖QObject的qt_metacall虚函数，检测base object中自定义的属性列表，将xwindow对应的设置和object对象中的属性绑定到一起使用
  * 将对象通过property/setProperty调用对属性的读写操作转为对xsetting的属性设 置
  */
-DNativeSettings::DNativeSettings(QObject *base, quint32 settingsWindow, QXcbConnection *connection)
+DNativeSettings::DNativeSettings(QObject *base, NativeSettings *settings, bool global_settings)
     : m_base(base)
+    , m_settings(settings)
+    , m_isGlobalSettings(global_settings)
 {
     if (mapped.value(base)) {
         qCritical() << "DNativeSettings: Native settings are already initialized for object:" << base;
@@ -55,38 +57,6 @@ DNativeSettings::DNativeSettings(QObject *base, quint32 settingsWindow, QXcbConn
         meta_object = reinterpret_cast<const QMetaObject*>(ptr);
     } else {
         meta_object = m_base->metaObject();
-    }
-
-    QByteArray settings_property;
-
-    {
-        // 获取base对象是否指定了native settings的域
-        // 默认情况下，native settings的值保存在窗口的_XSETTINGS_SETTINGS属性上
-        // 指定域后，会将native settings的值保存到指定的窗口属性。
-        // 将域的值转换成窗口属性时，会把 "/" 替换为 "_"，如域："/xxx/xxx" 转成窗口属性为："_xxx_xxx"
-        // 且所有字母转换为大写
-        settings_property = base->property("_d_domain").toByteArray();
-
-        if (settings_property.isEmpty()) {
-            int index = meta_object->indexOfClassInfo("Domain");
-
-            if (index >= 0) {
-                settings_property = QByteArray(meta_object->classInfo(index).value());
-            }
-        }
-
-        if (!settings_property.isEmpty()) {
-            settings_property = settings_property.toUpper();
-            settings_property.replace('/', '_');
-        }
-    }
-
-    // 当指定了窗口或窗口属性时，应当创建一个新的native settings
-    if (settingsWindow || !settings_property.isEmpty()) {
-        m_settings = new NativeSettings(connection, settingsWindow, settings_property);
-    } else {
-        m_isGlobalSettings = true;
-        m_settings = DPlatformIntegration::instance()->xSettings();
     }
 
     if (m_settings->initialized()) {
@@ -259,6 +229,43 @@ void DNativeSettings::init(const QMetaObject *metaObject)
             QMetaObject::connect(m_base, index, m_base, m_relaySlotIndex, Qt::DirectConnection);
         }
     }
+}
+
+QByteArray DNativeSettings::getSettingsProperty(QObject *base)
+{
+    const QMetaObject *meta_object;
+
+    if (qintptr ptr = qvariant_cast<qintptr>(base->property("_d_metaObject"))) {
+        meta_object = reinterpret_cast<const QMetaObject*>(ptr);
+    } else {
+        meta_object = base->metaObject();
+    }
+
+    QByteArray settings_property;
+
+    {
+        // 获取base对象是否指定了native settings的域
+        // 默认情况下，native settings的值保存在窗口的_XSETTINGS_SETTINGS属性上
+        // 指定域后，会将native settings的值保存到指定的窗口属性。
+        // 将域的值转换成窗口属性时，会把 "/" 替换为 "_"，如域："/xxx/xxx" 转成窗口属性为："_xxx_xxx"
+        // 且所有字母转换为大写
+        settings_property = base->property("_d_domain").toByteArray();
+
+        if (settings_property.isEmpty()) {
+            int index = meta_object->indexOfClassInfo("Domain");
+
+            if (index >= 0) {
+                settings_property = QByteArray(meta_object->classInfo(index).value());
+            }
+        }
+
+        if (!settings_property.isEmpty()) {
+            settings_property = settings_property.toUpper();
+            settings_property.replace('/', '_');
+        }
+    }
+
+    return settings_property;
 }
 
 int DNativeSettings::createProperty(const char *name, const char *)

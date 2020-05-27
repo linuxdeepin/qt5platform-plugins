@@ -10,11 +10,9 @@
 #include <KWayland/Client/plasmashell.h>
 
 #include "vtablehook.h"
-#include "/usr/include/xcb/xproto.h"
-#include "qxcbintegration.h"
-#include "waylandnativeeventfilter.h"
 #include "dplatformnativeinterfacehook.h"
 
+#include <qxcbnativeinterface.h>
 #include <private/qguiapplication_p.h>
 #include <qpa/qplatformnativeinterface.h>
 #include <QGuiApplication>
@@ -102,7 +100,6 @@ static QWaylandShellSurface *createShellSurface(QWaylandShellIntegration *self, 
     VtableHook::overrideVfptrFun(window, &QPlatformWindow::setGeometry, setGeometry);
     VtableHook::overrideVfptrFun(window, &QWaylandWindow::setWindowFlags, setWindowFlags);
 
-    qDebug() << "==============" << window << "==============";
     return surface;
 }
 
@@ -122,12 +119,7 @@ QWaylandShellIntegration *QKWaylandShellIntegrationPlugin::create(const QString 
     auto wayland_integration = static_cast<QWaylandIntegration *>(QGuiApplicationPrivate::platformIntegration());
     auto shell = wayland_integration->createShellIntegration("xdg-shell-v6");
 
-    int argc = 0;
-    auto xcb_integration = new QXcbIntegration(paramList, argc, nullptr);
-    auto m_eventfilter = new WaylandNativeEventFilter(xcb_integration->defaultConnection());
-    qApp->installNativeEventFilter(m_eventfilter);
-
-    DPlatformNativeInterfaceHook::setXcbConnectioin(xcb_integration->defaultConnection());
+    DPlatformNativeInterfaceHook::init(new QXcbNativeInterface);
     VtableHook::overrideVfptrFun(wayland_integration->nativeInterface(), &QPlatformNativeInterface::platformFunction, &DPlatformNativeInterfaceHook::platformFunction);
     VtableHook::overrideVfptrFun(shell, &QWaylandShellIntegration::createShellSurface, createShellSurface);
 
