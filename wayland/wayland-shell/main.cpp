@@ -10,9 +10,6 @@
 #include <KWayland/Client/plasmashell.h>
 
 #include "vtablehook.h"
-#include "dplatformnativeinterfacehook.h"
-
-#include <qxcbnativeinterface.h>
 #include <private/qguiapplication_p.h>
 #include <qpa/qplatformnativeinterface.h>
 #include <QGuiApplication>
@@ -119,8 +116,6 @@ QWaylandShellIntegration *QKWaylandShellIntegrationPlugin::create(const QString 
     auto wayland_integration = static_cast<QWaylandIntegration *>(QGuiApplicationPrivate::platformIntegration());
     auto shell = wayland_integration->createShellIntegration("xdg-shell-v6");
 
-    DPlatformNativeInterfaceHook::init(new QXcbNativeInterface);
-    VtableHook::overrideVfptrFun(wayland_integration->nativeInterface(), &QPlatformNativeInterface::platformFunction, &DPlatformNativeInterfaceHook::platformFunction);
     VtableHook::overrideVfptrFun(shell, &QWaylandShellIntegration::createShellSurface, createShellSurface);
 
     KWayland::Client::Registry *registry = new KWayland::Client::Registry();
@@ -128,8 +123,6 @@ QWaylandShellIntegration *QKWaylandShellIntegrationPlugin::create(const QString 
     connect(registry, &KWayland::Client::Registry::plasmaShellAnnounced,
             this, [registry] (quint32 name, quint32 version) {
         kwayland_shell = registry->createPlasmaShell(name, version, registry->parent());
-
-        qDebug() << lw_window_list;
 
         for (QPointer<QWaylandWindow> lw_window : lw_window_list) {
             if (lw_window) {
