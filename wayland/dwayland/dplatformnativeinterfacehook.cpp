@@ -18,21 +18,51 @@
 #include "QtWaylandClient/private/qwaylandnativeinterface_p.h"
 #undef private
 
+#include "utility.h"
 #include "dplatformnativeinterfacehook.h"
 #include "dxcbxsettings.h"
 #include "dnativesettings.h"
-#include "waylandnativeeventfilter.h"
 
-#include <qxcbconnection.h>
+#include <xcb/xcb.h>
 #include <qpa/qplatformnativeinterface.h>
-#include <QInputEvent>
-#include <QStringLiteral>
-#include <QCoreApplication>
-#include <QString>
-#include <QHash>
-#include <QtGlobal>
+#include <private/qguiapplication_p.h>
 
 DPP_BEGIN_NAMESPACE
+
+
+class DXcbEventFilter : public QThread
+{
+    Q_OBJECT
+public:
+    DXcbEventFilter(xcb_connection_t *connection)
+        : m_connection(connection)
+    {
+        QThread::start();
+    }
+
+    void run() override {
+        xcb_generic_event_t *event;
+        while (m_connection && (event = xcb_wait_for_event(m_connection))) {
+            uint response_type = event->response_type & ~0x80;
+            switch (response_type) {
+                case XCB_PROPERTY_NOTIFY: {
+                    xcb_property_notify_event_t *pn = (xcb_property_notify_event_t *)event;
+                    DXcbXSettings::handlePropertyNotifyEvent(pn);
+                    break;
+                }
+
+                case XCB_CLIENT_MESSAGE: {
+                    xcb_client_message_event_t *ev = reinterpret_cast<xcb_client_message_event_t*>(event);
+                    DXcbXSettings::handleClientMessageEvent(ev);
+                    break;
+                }
+            }
+        }
+    }
+
+private:
+    xcb_connection_t *m_connection;
+};
 
 static QFunctionPointer getFunction(const QByteArray &function)
 {
@@ -70,15 +100,10 @@ QFunctionPointer DPlatformNativeInterfaceHook::platformFunction(QPlatformNativeI
 
 void DPlatformNativeInterfaceHook::init()
 {
-    bool can_grab = true;
-    static bool can_not_grab_env = qEnvironmentVariableIsSet("QT_XCB_NO_GRAB_SERVER");
-    if(can_not_grab_env) can_grab = false;
-
     int primary_screen_number = 0;
-    xcb_connection = xcb_connect(qgetenv("DISPLAY").isEmpty() ? ":0" : qgetenv("DISPLAY"), &primary_screen_number);
+    xcb_connection = xcb_connect(qgetenv("DISPLAY"), &primary_screen_number);
 
-//    auto m_eventfilter = new WaylandNativeEventFilter(xcb_connection);
-//    qApp->installNativeEventFilter(m_eventfilter);
+    new DXcbEventFilter(xcb_connection);
 }
 
 bool DPlatformNativeInterfaceHook::buildNativeSettings(QObject *object, quint32 settingWindow)

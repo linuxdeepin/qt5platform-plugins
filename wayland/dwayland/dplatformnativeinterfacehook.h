@@ -18,9 +18,7 @@
 #ifndef DPLATFORMNATIVEINTERFACE_H
 #define DPLATFORMNATIVEINTERFACE_H
 
-#include <QtGlobal>
-#include <QObject>
-
+#include <QThread>
 #include "global.h"
 
 QT_BEGIN_NAMESPACE
@@ -43,6 +41,7 @@ public:
     static void clearNativeSettings(quint32 settingWindow);
 
 private:
+    static QPlatformNativeInterface* m_nativeinterface;
     static xcb_connection_t *xcb_connection;
     static DXcbXSettings *m_xsettings;
 };
