@@ -48,8 +48,6 @@ static void sendProperty(QWaylandShellSurface *self, const QString &name, const 
     if (QStringLiteral("window-position") == name) {
         if (ksurface) {
             ksurface->setPosition(value.toPoint());
-        } else {
-            lw_window_list << self->window();
         }
 
         return;
@@ -57,8 +55,6 @@ static void sendProperty(QWaylandShellSurface *self, const QString &name, const 
         if (ksurface) {
             ksurface->setRole(KWayland::Client::PlasmaShellSurface::Role::Panel);
             ksurface->setPanelBehavior(KWayland::Client::PlasmaShellSurface::PanelBehavior::AlwaysVisible);
-        } else {
-            fg_window_list << self->window();
         }
 
         return;
@@ -96,6 +92,9 @@ static QWaylandShellSurface *createShellSurface(QWaylandShellIntegration *self, 
     VtableHook::overrideVfptrFun(surface, &QWaylandShellSurface::sendProperty, sendProperty);
     VtableHook::overrideVfptrFun(window, &QPlatformWindow::setGeometry, setGeometry);
     VtableHook::overrideVfptrFun(window, &QWaylandWindow::setWindowFlags, setWindowFlags);
+
+    lw_window_list << window;
+    fg_window_list << window;
 
     return surface;
 }
