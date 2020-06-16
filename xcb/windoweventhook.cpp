@@ -359,7 +359,7 @@ void WindowEventHook::handleFocusInEvent(QXcbWindowEventListener *el, const xcb_
         return;
 
 #if QT_VERSION >= QT_VERSION_CHECK(5, 13, 0)
-    xcbWindow->connection()->focusInTimer().stop();
+    window->connection()->focusInTimer().stop();
 #endif
 
 #if QT_VERSION >= QT_VERSION_CHECK(5, 9, 0)
