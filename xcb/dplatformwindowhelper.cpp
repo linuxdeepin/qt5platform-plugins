@@ -35,6 +35,8 @@
 #include <private/qguiapplication_p.h>
 #include <qpa/qplatformcursor.h>
 
+#include <QPainterPath>
+
 Q_DECLARE_METATYPE(QPainterPath)
 Q_DECLARE_METATYPE(QMargins)
 
@@ -511,10 +513,17 @@ bool DPlatformWindowHelper::setWindowModified(bool modified)
     return me()->m_frameWindow->handle()->setWindowModified(modified);
 }
 
+#if QT_VERSION < QT_VERSION_CHECK(5, 15, 0)
 bool DPlatformWindowHelper::startSystemResize(const QPoint &pos, Qt::Corner corner)
 {
     return me()->m_frameWindow->handle()->startSystemResize(pos, corner);
 }
+#else
+bool DPlatformWindowHelper::startSystemResize(Qt::Edges edges)
+{
+    return me()->m_frameWindow->handle()->startSystemResize(edges);
+}
+#endif
 
 void DPlatformWindowHelper::setFrameStrutEventsEnabled(bool enabled)
 {
