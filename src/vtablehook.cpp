@@ -22,6 +22,7 @@
 #ifdef Q_OS_LINUX
 #include <sys/mman.h>
 #include <unistd.h>
+#include <dlfcn.h>
 
 QT_BEGIN_NAMESPACE
 QFunctionPointer qt_linux_find_symbol_sys(const char *symbol);
@@ -308,7 +309,14 @@ bool VtableHook::forceWriteMemory(void *adr, const void *data, size_t length)
 QFunctionPointer VtableHook::resolve(const char *symbol)
 {
 #ifdef Q_OS_LINUX
-    return QT_PREPEND_NAMESPACE(qt_linux_find_symbol_sys)(symbol);
+/**
+  * ！！不要使用qt_linux_find_symbol_sys函数去获取符号
+  *
+  * 在龙芯平台上，qt_linux_find_symbol_sys 无法获取部分已加载动态库的符号，
+  * 可能的原因是这个函数对 dlsym 的调用是在 libQt5Core 动态库中，这个库加载的比较早，
+  * 有可能是因此导致无法获取比这个库加载更晚的库中的符号(仅为猜测)
+  */
+    return QFunctionPointer(dlsym(RTLD_DEFAULT, symbol));
 #else
     // TODO
     return nullptr;
