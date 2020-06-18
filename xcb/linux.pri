@@ -30,26 +30,37 @@ contains(QT_CONFIG, xcb-xlib)|qtConfig(xcb-xlib) {
     DEFINES += XCB_USE_XLIB
     QMAKE_USE += xcb_xlib
 
-    greaterThan(QT_MINOR_VERSION, 11) {
-        contains(QT_CONFIG, xcb-xinput)|qtConfig(xcb-xinput) {
-            DEFINES += XCB_USE_XINPUT2 XCB_USE_XINPUT21 XCB_USE_XINPUT22
-            QMAKE_USE += xcb_xinput
+    greaterThan(QT_MINOR_VERSION, 14) {
+        DEFINES += XCB_USE_XINPUT2 XCB_USE_XINPUT21 XCB_USE_XINPUT22
+        QMAKE_USE += xcb_xinput
 
-            !isEmpty(QMAKE_LIBXI_VERSION_MAJOR) {
-                DEFINES += LIBXI_MAJOR=$$QMAKE_LIBXI_VERSION_MAJOR \
-                           LIBXI_MINOR=$$QMAKE_LIBXI_VERSION_MINOR \
-                           LIBXI_PATCH=$$QMAKE_LIBXI_VERSION_PATCH
-            }
+        !isEmpty(QMAKE_LIBXI_VERSION_MAJOR) {
+            DEFINES += LIBXI_MAJOR=$$QMAKE_LIBXI_VERSION_MAJOR \
+                       LIBXI_MINOR=$$QMAKE_LIBXI_VERSION_MINOR \
+                       LIBXI_PATCH=$$QMAKE_LIBXI_VERSION_PATCH
         }
     } else {
-        contains(QT_CONFIG, xinput2)|qtConfig(xinput2) {
-            DEFINES += XCB_USE_XINPUT2
-            QMAKE_USE += xinput2
+        greaterThan(QT_MINOR_VERSION, 11) {
+            contains(QT_CONFIG, xcb-xinput)|qtConfig(xcb-xinput) {
+                DEFINES += XCB_USE_XINPUT2 XCB_USE_XINPUT21 XCB_USE_XINPUT22
+                QMAKE_USE += xcb_xinput
 
-            !isEmpty(QMAKE_LIBXI_VERSION_MAJOR) {
-                DEFINES += LIBXI_MAJOR=$$QMAKE_LIBXI_VERSION_MAJOR \
-                           LIBXI_MINOR=$$QMAKE_LIBXI_VERSION_MINOR \
-                           LIBXI_PATCH=$$QMAKE_LIBXI_VERSION_PATCH
+                !isEmpty(QMAKE_LIBXI_VERSION_MAJOR) {
+                    DEFINES += LIBXI_MAJOR=$$QMAKE_LIBXI_VERSION_MAJOR \
+                               LIBXI_MINOR=$$QMAKE_LIBXI_VERSION_MINOR \
+                               LIBXI_PATCH=$$QMAKE_LIBXI_VERSION_PATCH
+                }
+            }
+        } else {
+            contains(QT_CONFIG, xinput2)|qtConfig(xinput2) {
+                DEFINES += XCB_USE_XINPUT2
+                QMAKE_USE += xinput2
+
+                !isEmpty(QMAKE_LIBXI_VERSION_MAJOR) {
+                    DEFINES += LIBXI_MAJOR=$$QMAKE_LIBXI_VERSION_MAJOR \
+                               LIBXI_MINOR=$$QMAKE_LIBXI_VERSION_MINOR \
+                               LIBXI_PATCH=$$QMAKE_LIBXI_VERSION_PATCH
+                }
             }
         }
     }

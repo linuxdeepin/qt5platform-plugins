@@ -92,8 +92,12 @@ public:
 
     bool setWindowModified(bool modified);
 
+#if QT_VERSION < QT_VERSION_CHECK(5, 15, 0)
     bool startSystemResize(const QPoint &pos, Qt::Corner corner);
-
+#else
+    bool startSystemResize(Qt::Edges edges);
+#endif
+    
     void setFrameStrutEventsEnabled(bool enabled);
     bool frameStrutEventsEnabled() const;
 

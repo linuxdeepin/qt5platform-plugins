@@ -19,6 +19,7 @@
 #define UTILITY_H
 
 #include <QImage>
+#include <QPainterPath>
 
 #include "global.h"
 
