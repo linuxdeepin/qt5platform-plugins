@@ -4,14 +4,15 @@
 #
 #-------------------------------------------------
 
-CONFIG += plugin
+TARGET = dwayland
+TEMPLATE = lib
+
+CONFIG += link_pkgconfig plugin
+PKGCONFIG += Qt5WaylandClient
 
 # Qt >= 5.8
 greaterThan(QT_MINOR_VERSION, 7): QT += gui-private
 else: QT += platformsupport-private
-
-TARGET = dwayland
-TEMPLATE = lib
 
 DESTDIR = $$_PRO_FILE_PWD_/../../bin/plugins/platforms
 
