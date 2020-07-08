@@ -4,17 +4,11 @@
 #
 #-------------------------------------------------
 
-QT       += KWaylandClient
-CONFIG += link_pkgconfig plugin
+CONFIG += plugin
 
 # Qt >= 5.8
 greaterThan(QT_MINOR_VERSION, 7): QT += gui-private
 else: QT += platformsupport-private
-
-# Qt >= 5.10
-greaterThan(QT_MINOR_VERSION, 9): QT += edid_support-private
-
-greaterThan(QT_MINOR_VERSION, 4): LIBS += -lQt5XcbQpa
 
 TARGET = dwayland
 TEMPLATE = lib
@@ -40,26 +34,16 @@ isEmpty(VERSION) {
     isEmpty(VERSION): VERSION = 1.1.11
 }
 
-DEFINES += WAYLAND_VERSION=\\\"$$VERSION\\\"
-
 SOURCES += \
         $$PWD/dplatformnativeinterfacehook.cpp \
-        $$PWD/../../src/vtablehook.cpp \
-        $$PWD/../../xcb/dnativesettings.cpp \
-        $$PWD/../../xcb/dxcbxsettings.cpp \
-        $$PWD/../../xcb/utility_x11.cpp \
         $$PWD/main.cpp
 
 HEADERS += \
         $$PWD/dplatformnativeinterfacehook.h \
-        $$PWD/../../xcb/utility.h \
-        $$PWD/../../xcb/dxcbxsettings.h \
-        $$PWD/../../xcb/dnativesettings.h
 
-INCLUDEPATH += $$PWD/../qtwayland-dev \
-               $$PWD/../../src \
-               $$PWD/../../xcb \
-               $$PWD/../../xcb/libqt5xcbqpa-dev/5.11.3
+INCLUDEPATH += $$PWD/../qtwayland-dev
+
+include($$PWD/../../src/src.pri)
 
 OTHER_FILES += \
     dwayland.json

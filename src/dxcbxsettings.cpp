@@ -37,16 +37,51 @@
 **
 ****************************************************************************/
 
-#include "utility.h"
 #include "dxcbxsettings.h"
+
+#if QT_HAS_INCLUDE("dplatformintegration.h")
 #include "dplatformintegration.h"
+#include "qxcbconnection.h"
+#define IN_DXCB_PLUGIN
+#endif
 
 #include <QtCore/QByteArray>
 #include <QtCore/QtEndian>
+#include <QVariant>
+#include <QSet>
+#include <QColor>
 
 #include <vector>
 #include <algorithm>
 #include <memory>
+
+static xcb_atom_t internAtom(xcb_connection_t *conn, const char *name)
+{
+    if (!name || *name == 0)
+        return XCB_NONE;
+
+    xcb_intern_atom_cookie_t cookie = xcb_intern_atom(conn, false, strlen(name), name);
+    xcb_intern_atom_reply_t *reply = xcb_intern_atom_reply(conn, cookie, 0);
+
+    if (!reply)
+        return XCB_NONE;
+
+    xcb_atom_t atom = reply->atom;
+    free(reply);
+
+    return atom;
+}
+
+static QByteArray atomName(xcb_connection_t *conn, xcb_atom_t atom)
+{
+    xcb_get_atom_name_cookie_t cookie = xcb_get_atom_name(conn, atom);
+    xcb_get_atom_name_reply_t *reply = xcb_get_atom_name_reply(conn, cookie, nullptr);
+
+    if (!reply)
+        return nullptr;
+
+    return QByteArray(xcb_get_atom_name_name(reply), xcb_get_atom_name_name_length(reply));
+}
 
 #define Q_XCB_REPLY_CONNECTION_ARG(connection, ...) connection
 
@@ -162,17 +197,17 @@ public:
         , initialized(false)
     {
         if (property.isEmpty()) {
-            x_settings_atom = Utility::internAtom(connection, "_XSETTINGS_SETTINGS");
+            x_settings_atom = internAtom(connection, "_XSETTINGS_SETTINGS");
         } else {
-            x_settings_atom = Utility::internAtom(connection, property);
+            x_settings_atom = internAtom(connection, property);
         }
 
         if (!_xsettings_notify_atom) {
-            _xsettings_notify_atom = Utility::internAtom(connection, "_XSETTINGS_SETTINGS_NOTIFY");
+            _xsettings_notify_atom = internAtom(connection, "_XSETTINGS_SETTINGS_NOTIFY");
         }
 
         if (!_xsettings_signal_atom) {
-            _xsettings_signal_atom = Utility::internAtom(connection,"_XSETTINGS_SETTINGS_SIGNAL");
+            _xsettings_signal_atom = internAtom(connection,"_XSETTINGS_SETTINGS_SIGNAL");
         }
 
         // init xsettings owner
@@ -198,7 +233,7 @@ public:
                                                                 false,
                                                                 x_settings_window,
                                                                 x_settings_atom,
-                                                                Utility::internAtom(connection, "_XSETTINGS_SETTINGS"),
+                                                                internAtom(connection, "_XSETTINGS_SETTINGS"),
                                                                 offset/4,
                                                                 8192);
 
@@ -240,7 +275,7 @@ public:
                             XCB_PROP_MODE_REPLACE,
                             x_settings_window,
                             x_settings_atom,
-                            Utility::internAtom(connection, "_XSETTINGS_SETTINGS"),
+                            internAtom(connection, "_XSETTINGS_SETTINGS"),
                             8, data.size(), data.constData());
 
         xcb_window_t xsettings_owner = _xsettings_owner;
@@ -638,7 +673,11 @@ bool DXcbXSettings::handleClientMessageEvent(const xcb_client_message_event_t *e
             for (DXcbXSettingsSignalCallback cb : self->d_ptr->signal_callback_links) {
                 // data32[2]为signal id
                 xcb_atom_t signal = event->data.data32[2];
+#ifdef IN_DXCB_PLUGIN
                 const QByteArray signal_string(DPlatformIntegration::xcbConnection()->atomName(signal));
+#else
+                const QByteArray signal_string(atomName(self->d_ptr->connection, signal));
+#endif
                 cb.func(self->d_ptr->connection, signal_string, event->data.data32[3], event->data.data32[4], cb.handle);
             }
         }
@@ -652,7 +691,7 @@ bool DXcbXSettings::handleClientMessageEvent(const xcb_client_message_event_t *e
 void DXcbXSettings::clearSettings(xcb_window_t setting_window)
 {
     if (DXcbXSettings *self = DXcbXSettingsPrivate::mapped.value(setting_window)) {
-        xcb_delete_property(DPlatformIntegration::xcbConnection()->xcb_connection(), setting_window, self->d_ptr->x_settings_atom);
+        xcb_delete_property(self->d_ptr->connection, setting_window, self->d_ptr->x_settings_atom);
     }
 }
 
@@ -703,10 +742,11 @@ void DXcbXSettings::removeSignalCallback(void *handle)
 void DXcbXSettings::emitSignal(const QByteArray &signal, qint32 data1, qint32 data2)
 {
     Q_D(const DXcbXSettings);
-    emitSignal(d->x_settings_window, d->x_settings_atom, signal, data1, data2);
+    emitSignal(d->connection, d->x_settings_window, d->x_settings_atom, signal, data1, data2);
 }
 
-void DXcbXSettings::emitSignal(xcb_window_t window, xcb_atom_t property, const QByteArray &signal, qint32 data1, qint32 data2)
+void DXcbXSettings::emitSignal(xcb_connection_t *conn, xcb_window_t window, xcb_atom_t property,
+                               const QByteArray &signal, qint32 data1, qint32 data2)
 {
     xcb_window_t xsettings_owner = DXcbXSettingsPrivate::_xsettings_owner;
 
@@ -714,7 +754,7 @@ void DXcbXSettings::emitSignal(xcb_window_t window, xcb_atom_t property, const Q
         return;
     }
 
-    xcb_atom_t signal_atom = DPlatformIntegration::xcbConnection()->internAtom(signal.constData());
+    xcb_atom_t signal_atom = internAtom(conn, signal.constData());
 
     // 使用client message事件模拟信号
     xcb_client_message_event_t notify_event;
@@ -736,7 +776,7 @@ void DXcbXSettings::emitSignal(xcb_window_t window, xcb_atom_t property, const Q
     // 信号携带的数据
     notify_event.data.data32[4] = data2;
 
-    xcb_send_event(DPlatformIntegration::xcbConnection()->xcb_connection(),
+    xcb_send_event(conn,
                    false,
                    xsettings_owner,
                    XCB_EVENT_MASK_PROPERTY_CHANGE,

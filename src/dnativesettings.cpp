@@ -22,7 +22,10 @@
 #ifdef Q_OS_LINUX
 #include "dxcbxsettings.h"
 #endif
+#if QT_HAS_INCLUDE("dplatformintegration.h")
 #include "dplatformintegration.h"
+#define IN_DXCB_PLUGIN
+#endif
 
 #include <QDebug>
 #include <QMetaProperty>
@@ -67,7 +70,12 @@ DNativeSettings::~DNativeSettings()
 {
     if (!m_isGlobalSettings) {
         delete m_settings;
-    } else if (DPlatformIntegration::instance() && m_settings->initialized()) {
+    } else if (
+#ifdef IN_DXCB_PLUGIN
+        DPlatformIntegration::instance() &&
+#endif
+        m_settings->initialized()
+        ) {
         // 移除注册的callback
         m_settings->removeCallbackForHandle(this);
         m_settings->removeSignalCallback(this);

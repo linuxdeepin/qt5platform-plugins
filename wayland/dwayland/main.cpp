@@ -15,14 +15,15 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 #include "global.h"
-#include <qpa/qplatformintegrationplugin.h>
-#include "QtWaylandClient/private/qwaylandintegration_p.h"
 
 #include "vtablehook.h"
 #include "dplatformnativeinterfacehook.h"
-#include <qxcbnativeinterface.h>
+
+#include "QtWaylandClient/private/qwaylandintegration_p.h"
 
 #include <QDebug>
+#include <qpa/qplatformintegrationplugin.h>
+#include <qpa/qplatformnativeinterface.h>
 
 DPP_USE_NAMESPACE
 

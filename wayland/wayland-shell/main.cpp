@@ -1,3 +1,5 @@
+#include "vtablehook.h"
+
 #define private public
 #include "QtWaylandClient/private/qwaylandintegration_p.h"
 #include "QtWaylandClient/private/qwaylandshellintegrationplugin_p.h"
@@ -9,12 +11,11 @@
 #include <KWayland/Client/registry.h>
 #include <KWayland/Client/plasmashell.h>
 
-#include "vtablehook.h"
-#include <private/qguiapplication_p.h>
-#include <qpa/qplatformnativeinterface.h>
 #include <QGuiApplication>
 #include <QPointer>
 #include <QDebug>
+#include <qpa/qplatformnativeinterface.h>
+#include <private/qguiapplication_p.h>
 
 #define WINDOWS_DOCK 0x00000081
 DPP_USE_NAMESPACE

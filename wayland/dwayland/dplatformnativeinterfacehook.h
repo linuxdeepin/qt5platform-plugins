@@ -18,10 +18,12 @@
 #ifndef DPLATFORMNATIVEINTERFACE_H
 #define DPLATFORMNATIVEINTERFACE_H
 
-#include <QThread>
 #include "global.h"
 
+#include <QtGlobal>
+
 QT_BEGIN_NAMESPACE
+class QObject;
 class QPlatformNativeInterface;
 QT_END_NAMESPACE
 

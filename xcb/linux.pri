@@ -15,16 +15,14 @@ greaterThan(QT_MINOR_VERSION, 4): LIBS += -lQt5XcbQpa
 HEADERS += \
     $$PWD/windoweventhook.h \
     $$PWD/xcbnativeeventfilter.h \
-    $$PWD/dxcbwmsupport.h \
-    $$PWD/dxcbxsettings.h
+    $$PWD/dxcbwmsupport.h
 
 SOURCES += \
     $$PWD/windoweventhook.cpp \
     $$PWD/xcbnativeeventfilter.cpp \
     $$PWD/utility_x11.cpp \
     $$PWD/dxcbwmsupport.cpp \
-    $$PWD/dforeignplatformwindow_x11.cpp \
-    $$PWD/dxcbxsettings.cpp
+    $$PWD/dforeignplatformwindow_x11.cpp
 
 contains(QT_CONFIG, xcb-xlib)|qtConfig(xcb-xlib) {
     DEFINES += XCB_USE_XLIB
@@ -97,3 +95,5 @@ exists($$PWD/libqt5xcbqpa-dev/$$QT_VERSION) {
 } else {
     error(Not support Qt Version: $$QT_VERSION)
 }
+
+include($$_PRO_FILE_PWD_/../src/src.pri)

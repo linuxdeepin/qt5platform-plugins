@@ -40,8 +40,16 @@
 #ifndef DXCBXSETTINGS_H
 #define DXCBXSETTINGS_H
 
-#include "qxcbscreen.h"
 #include "global.h"
+
+#include <QByteArray>
+#include <QByteArrayList>
+
+#include <xcb/xcb.h>
+
+QT_BEGIN_NAMESPACE
+class QVariant;
+QT_END_NAMESPACE
 
 DPP_BEGIN_NAMESPACE
 
@@ -75,7 +83,7 @@ public:
     void removeSignalCallback(void *handle);
     void emitSignal(const QByteArray &signal, qint32 data1, qint32 data2);
 
-    static void emitSignal(xcb_window_t window, xcb_atom_t type, const QByteArray &signal, qint32 data1, qint32 data2);
+    static void emitSignal(xcb_connection_t *conn, xcb_window_t window, xcb_atom_t type, const QByteArray &signal, qint32 data1, qint32 data2);
     static bool handlePropertyNotifyEvent(const xcb_property_notify_event_t *event);
     static bool handleClientMessageEvent(const xcb_client_message_event_t *event);
 

@@ -33,19 +33,17 @@ isEmpty(VERSION) {
     isEmpty(VERSION): VERSION = 1.1.11
 }
 
-DEFINES += WAYLAND_VERSION=\\\"$$VERSION\\\"
-
 SOURCES += \
         $$PWD/qt5dwaylandplugin.cpp \
-        $$PWD/../../src/vtablehook.cpp \
         $$PWD/main.cpp
 
 HEADERS += \
         $$PWD/qt5dwaylandplugin.h \
         $$PWD/qt5dwayland-plugin_global.h
 
-INCLUDEPATH += $$PWD/../qtwayland-dev \
-               $$PWD/../../src
+INCLUDEPATH += $$PWD/../qtwayland-dev
+
+include($$PWD/../../src/src.pri)
 
 OTHER_FILES += \
     kwayland-shell.json

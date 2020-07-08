@@ -18,7 +18,6 @@
 #include "QtWaylandClient/private/qwaylandnativeinterface_p.h"
 #undef private
 
-#include "utility.h"
 #include "dplatformnativeinterfacehook.h"
 #include "dxcbxsettings.h"
 #include "dnativesettings.h"
