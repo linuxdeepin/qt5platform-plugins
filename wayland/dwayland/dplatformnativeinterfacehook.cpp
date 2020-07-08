@@ -31,7 +31,6 @@ DPP_BEGIN_NAMESPACE
 
 class DXcbEventFilter : public QThread
 {
-    Q_OBJECT
 public:
     DXcbEventFilter(xcb_connection_t *connection)
         : m_connection(connection)

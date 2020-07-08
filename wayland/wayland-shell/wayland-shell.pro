@@ -15,6 +15,7 @@ else: QT += platformsupport-private
 TARGET = kwayland-shell
 TEMPLATE = lib
 
+DESTDIR = $$_PRO_FILE_PWD_/../../bin/plugins/wayland-shell-integration
 DEFINES += QT5DWAYLANDPLUGIN_LIBRARY
 
 # The following define makes your compiler emit warnings if you use
