@@ -17,13 +17,17 @@
 #include <qpa/qplatformnativeinterface.h>
 #include <private/qguiapplication_p.h>
 
-#define WINDOWS_DOCK 0x00000081
+// 用于窗口设置和dwayland相关的特殊属性的前缀
+// 以_d_dwayland_开头的属性需要做特殊处理，一般是用于和kwayland的交互
+#define _DWAYALND_ "_d_dwayland_"
+
 DPP_USE_NAMESPACE
 
 namespace QtWaylandClient {
+// kwayland中PlasmaShell的全局对象，用于使用kwayland中的扩展协议
 static QPointer<KWayland::Client::PlasmaShell> kwayland_shell;
-static QList<QPointer<QWaylandWindow>> lw_window_list;
-static QList<QPointer<QWaylandWindow>> fg_window_list;
+// 用于记录设置过以_DWAYALND_开头的属性，当kwyalnd_shell对象创建以后要使这些属性生效
+static QList<QPointer<QWaylandWindow>> send_property_window_list;
 
 static KWayland::Client::PlasmaShellSurface* createKWayland(QWaylandWindow *window)
 {
@@ -40,28 +44,32 @@ static KWayland::Client::PlasmaShellSurface* createKWayland(QWaylandWindow *wind
 
 static void sendProperty(QWaylandShellSurface *self, const QString &name, const QVariant &value)
 {
+    if (!name.startsWith(QStringLiteral(_DWAYALND_)))
+        return VtableHook::callOriginalFun(self, &QWaylandShellSurface::sendProperty, name, value);
+
     auto *ksurface = self->findChild<KWayland::Client::PlasmaShellSurface*>();
 
     if (!ksurface) {
         ksurface = createKWayland(self->window());
+
+        // 如果创建失败则说明kwaylnd_shell对象还未初始化，应当终止设置
+        // 记录下本次的设置行为，kwayland_shell创建后会重新设置这些属性
+        if (!ksurface) {
+            send_property_window_list << self->window();
+            return;
+        }
     }
 
-    if (QStringLiteral("window-position") == name) {
-        if (ksurface) {
-            ksurface->setPosition(value.toPoint());
-        }
+    if (QStringLiteral(_DWAYALND_ "window-position") == name) {
+        ksurface->setPosition(value.toPoint());
+    } else if (QStringLiteral(_DWAYALND_ "window-type") == name) {
+        const QByteArray &type = value.toByteArray();
 
-        return;
-    } else if((QStringLiteral("window-flags") == name) && ( (value.toULongLong() & WINDOWS_DOCK) == WINDOWS_DOCK)) {
-        if (ksurface) {
+        if (type == "dock") {
             ksurface->setRole(KWayland::Client::PlasmaShellSurface::Role::Panel);
             ksurface->setPanelBehavior(KWayland::Client::PlasmaShellSurface::PanelBehavior::AlwaysVisible);
         }
-
-        return;
     }
-
-    VtableHook::callOriginalFun(self, &QWaylandShellSurface::sendProperty, name, value);
 }
 
 static void setGeometry(QPlatformWindow *self, const QRect &rect)
@@ -70,18 +78,7 @@ static void setGeometry(QPlatformWindow *self, const QRect &rect)
 
     if (!self->QPlatformWindow::parent()) {
         if (auto lw_window = static_cast<QWaylandWindow*>(self)) {
-            lw_window->sendProperty(QStringLiteral("window-position"), rect.topLeft());
-        }
-    }
-}
-
-static void setWindowFlags(QWaylandWindow *self, Qt::WindowFlags flags)
-{
-    VtableHook::callOriginalFun(self, &QPlatformWindow::setWindowFlags, flags);
-
-    if (!self->QPlatformWindow::parent()) {
-        if (auto fg_window = static_cast<QWaylandWindow*>(self)) {
-            fg_window->sendProperty(QStringLiteral("window-flags"), (qulonglong)flags);
+            lw_window->sendProperty(QStringLiteral(_DWAYALND_ "window-position"), rect.topLeft());
         }
     }
 }
@@ -92,16 +89,17 @@ static QWaylandShellSurface *createShellSurface(QWaylandShellIntegration *self, 
 
     VtableHook::overrideVfptrFun(surface, &QWaylandShellSurface::sendProperty, sendProperty);
     VtableHook::overrideVfptrFun(window, &QPlatformWindow::setGeometry, setGeometry);
-    VtableHook::overrideVfptrFun(window, &QWaylandWindow::setWindowFlags, setWindowFlags);
 
-    // 如果kwyalnd_shell对象已经存在了，此处应该直接为窗口初始化设置位置和特殊的flags
-    // 否则就加到待处理列表，等待kwyland_shell创建后再处理
-    if (kwayland_shell) {
-        sendProperty(window->shellSurface(), "window-position", window->geometry().topLeft());
-        sendProperty(window->shellSurface(), "window-flags", (qulonglong)window->window()->flags());
-    } else {
-        lw_window_list << window;
-        fg_window_list << window;
+    // 初始化设置窗口位置
+    window->sendProperty(_DWAYALND_ "window-position", window->window()->geometry().topLeft());
+
+    if (window->window()) {
+        for (const QByteArray &pname : window->window()->dynamicPropertyNames()) {
+            if (Q_LIKELY(!pname.startsWith(QByteArrayLiteral(_DWAYALND_))))
+                continue;
+            // 将窗口自定义属性记录到wayland window property中
+            window->sendProperty(pname, window->window()->property(pname.constData()));
+        }
     }
 
     return surface;
@@ -127,24 +125,24 @@ QWaylandShellIntegration *QKWaylandShellIntegrationPlugin::create(const QString 
 
     KWayland::Client::Registry *registry = new KWayland::Client::Registry();
     registry->create(reinterpret_cast<wl_display*>(QGuiApplication::platformNativeInterface()->nativeResourceForIntegration(QByteArrayLiteral("display"))));
+
     connect(registry, &KWayland::Client::Registry::plasmaShellAnnounced,
             this, [registry] (quint32 name, quint32 version) {
         kwayland_shell = registry->createPlasmaShell(name, version, registry->parent());
 
-        for (QPointer<QWaylandWindow> lw_window : lw_window_list) {
+        for (QPointer<QWaylandWindow> lw_window : send_property_window_list) {
             if (lw_window) {
-                sendProperty(lw_window->shellSurface(), "window-position", lw_window->geometry().topLeft());
+                const QVariantMap &properites = lw_window->properties();
+
+                // 当kwayland_shell被创建后，找到以_d_dwayland_开头的扩展属性将其设置一遍
+                for (auto p = properites.constBegin(); p != properites.constEnd(); ++p) {
+                    if (p.key().startsWith(QStringLiteral(_DWAYALND_)))
+                        sendProperty(lw_window->shellSurface(), p.key(), p.value());
+                }
             }
         }
 
-        for (QPointer<QWaylandWindow> fg_window : fg_window_list) {
-            if (fg_window) {
-                sendProperty(fg_window->shellSurface(), "window-flags", (qulonglong)fg_window->window()->flags());
-            }
-        }
-
-        lw_window_list.clear();
-        fg_window_list.clear();
+        send_property_window_list.clear();
     });
     registry->setup();
 
