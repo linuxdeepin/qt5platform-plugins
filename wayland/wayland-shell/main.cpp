@@ -94,8 +94,15 @@ static QWaylandShellSurface *createShellSurface(QWaylandShellIntegration *self, 
     VtableHook::overrideVfptrFun(window, &QPlatformWindow::setGeometry, setGeometry);
     VtableHook::overrideVfptrFun(window, &QWaylandWindow::setWindowFlags, setWindowFlags);
 
-    lw_window_list << window;
-    fg_window_list << window;
+    // 如果kwyalnd_shell对象已经存在了，此处应该直接为窗口初始化设置位置和特殊的flags
+    // 否则就加到待处理列表，等待kwyland_shell创建后再处理
+    if (kwayland_shell) {
+        sendProperty(window->shellSurface(), "window-position", window->geometry().topLeft());
+        sendProperty(window->shellSurface(), "window-flags", (qulonglong)window->window()->flags());
+    } else {
+        lw_window_list << window;
+        fg_window_list << window;
+    }
 
     return surface;
 }
