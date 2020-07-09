@@ -39,4 +39,16 @@ void DWaylandIntegration::initialize()
     VtableHook::overrideVfptrFun(nativeInterface(), &QPlatformNativeInterface::platformFunction, &DWaylandInterfaceHook::platformFunction);
 }
 
+QStringList DWaylandIntegration::themeNames() const
+{
+    auto list = QWaylandIntegration::themeNames();
+    const QByteArray desktop_session = qgetenv("DESKTOP_SESSION");
+
+    // 在lightdm环境中，无此环境变量。默认使用deepin平台主题
+    if (desktop_session.isEmpty() || desktop_session == "deepin")
+        list.prepend("deepin");
+
+    return list;
+}
+
 DPP_END_NAMESPACE

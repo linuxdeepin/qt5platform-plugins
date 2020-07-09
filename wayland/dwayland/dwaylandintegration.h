@@ -33,6 +33,7 @@ public:
     DWaylandIntegration();
 
     void initialize() override;
+    QStringList themeNames() const override;
 };
 
 DPP_END_NAMESPACE
