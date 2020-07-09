@@ -32,7 +32,7 @@ typedef struct xcb_connection_t xcb_connection_t;
 DPP_BEGIN_NAMESPACE
 
 class DXcbXSettings;
-class DPlatformNativeInterfaceHook
+class DWaylandInterfaceHook
 {
 public:
     static void init();

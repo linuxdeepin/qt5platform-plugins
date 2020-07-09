@@ -18,7 +18,7 @@
 #include "QtWaylandClient/private/qwaylandnativeinterface_p.h"
 #undef private
 
-#include "dplatformnativeinterfacehook.h"
+#include "dwaylandinterfacehook.h"
 #include "dxcbxsettings.h"
 #include "dnativesettings.h"
 
@@ -65,18 +65,18 @@ private:
 static QFunctionPointer getFunction(const QByteArray &function)
 {
     if (function == buildNativeSettings) {
-        return reinterpret_cast<QFunctionPointer>(&DPlatformNativeInterfaceHook::buildNativeSettings);
+        return reinterpret_cast<QFunctionPointer>(&DWaylandInterfaceHook::buildNativeSettings);
     } else if (function == clearNativeSettings) {
-        return reinterpret_cast<QFunctionPointer>(&DPlatformNativeInterfaceHook::clearNativeSettings);
+        return reinterpret_cast<QFunctionPointer>(&DWaylandInterfaceHook::clearNativeSettings);
     }
 
     return nullptr;
 }
 
-thread_local QHash<QByteArray, QFunctionPointer> DPlatformNativeInterfaceHook::functionCache;
-xcb_connection_t *DPlatformNativeInterfaceHook::xcb_connection = nullptr;
-DXcbXSettings *DPlatformNativeInterfaceHook::m_xsettings = nullptr;
-QFunctionPointer DPlatformNativeInterfaceHook::platformFunction(QPlatformNativeInterface *interface, const QByteArray &function)
+thread_local QHash<QByteArray, QFunctionPointer> DWaylandInterfaceHook::functionCache;
+xcb_connection_t *DWaylandInterfaceHook::xcb_connection = nullptr;
+DXcbXSettings *DWaylandInterfaceHook::m_xsettings = nullptr;
+QFunctionPointer DWaylandInterfaceHook::platformFunction(QPlatformNativeInterface *interface, const QByteArray &function)
 {
     if (QFunctionPointer f = functionCache.value(function)) {
         return f;
@@ -96,7 +96,7 @@ QFunctionPointer DPlatformNativeInterfaceHook::platformFunction(QPlatformNativeI
     return nullptr;
 }
 
-void DPlatformNativeInterfaceHook::init()
+void DWaylandInterfaceHook::init()
 {
     int primary_screen_number = 0;
     xcb_connection = xcb_connect(qgetenv("DISPLAY"), &primary_screen_number);
@@ -104,7 +104,7 @@ void DPlatformNativeInterfaceHook::init()
     new DXcbEventFilter(xcb_connection);
 }
 
-bool DPlatformNativeInterfaceHook::buildNativeSettings(QObject *object, quint32 settingWindow)
+bool DWaylandInterfaceHook::buildNativeSettings(QObject *object, quint32 settingWindow)
 {
     QByteArray settings_property = DNativeSettings::getSettingsProperty(object);
     DXcbXSettings *settings = nullptr;
@@ -127,7 +127,7 @@ bool DPlatformNativeInterfaceHook::buildNativeSettings(QObject *object, quint32 
     return true;
 }
 
-void DPlatformNativeInterfaceHook::clearNativeSettings(quint32 settingWindow)
+void DWaylandInterfaceHook::clearNativeSettings(quint32 settingWindow)
 {
 #ifdef Q_OS_LINUX
     DXcbXSettings::clearSettings(settingWindow);

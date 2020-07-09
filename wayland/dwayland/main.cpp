@@ -16,14 +16,9 @@
  */
 #include "global.h"
 
-#include "vtablehook.h"
-#include "dplatformnativeinterfacehook.h"
+#include "dwaylandintegration.h"
 
-#include "QtWaylandClient/private/qwaylandintegration_p.h"
-
-#include <QDebug>
 #include <qpa/qplatformintegrationplugin.h>
-#include <qpa/qplatformnativeinterface.h>
 
 DPP_USE_NAMESPACE
 
@@ -42,15 +37,12 @@ QPlatformIntegration* DWaylandIntegrationPlugin::create(const QString& system, c
 #ifdef Q_OS_LINUX
     Q_UNUSED(system);
     Q_UNUSED(paramList);
-    auto *integration =  new QtWaylandClient::QWaylandIntegration();
+    auto *integration =  new DWaylandIntegration();
 
     if (integration->hasFailed()) {
         delete integration;
         integration = nullptr;
     }
-
-    DPlatformNativeInterfaceHook::init();
-    VtableHook::overrideVfptrFun(integration->nativeInterface(), &QPlatformNativeInterface::platformFunction, &DPlatformNativeInterfaceHook::platformFunction);
 
     return integration;
 #endif

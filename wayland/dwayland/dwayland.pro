@@ -36,11 +36,13 @@ isEmpty(VERSION) {
 }
 
 SOURCES += \
-        $$PWD/dplatformnativeinterfacehook.cpp \
-        $$PWD/main.cpp
+        $$PWD/dwaylandinterfacehook.cpp \
+        $$PWD/main.cpp \
+        $$PWD/dwaylandintegration.cpp
 
 HEADERS += \
-        $$PWD/dplatformnativeinterfacehook.h \
+        $$PWD/dwaylandinterfacehook.h \
+        $$PWD/dwaylandintegration.h
 
 INCLUDEPATH += $$PWD/../qtwayland-dev
 
