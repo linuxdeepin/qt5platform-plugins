@@ -41,6 +41,7 @@ public:
 
     static bool buildNativeSettings(QObject *object, quint32 settingWindow);
     static void clearNativeSettings(quint32 settingWindow);
+    static DXcbXSettings *globalSettings();
 
 private:
     static QPlatformNativeInterface* m_nativeinterface;

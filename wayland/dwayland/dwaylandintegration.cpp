@@ -22,21 +22,84 @@
 #include "dwaylandintegration.h"
 #include "dwaylandinterfacehook.h"
 #include "vtablehook.h"
+#include "dxcbxsettings.h"
 
+#define private public
+#include <QtWaylandClient/private/qwaylanddisplay_p.h>
+#include <QtWaylandClient/private/qwaylandscreen_p.h>
+#include <QtWaylandClient/private/qwaylandcursor_p.h>
+#undef private
+
+#include <QDebug>
 #include <qpa/qplatformnativeinterface.h>
+#include <private/qguiapplication_p.h>
+
+#include <wayland-cursor.h>
 
 DPP_BEGIN_NAMESPACE
 
+enum XSettingType:quint64 {
+    Gtk_CursorThemeName
+};
+
+static void onXSettingsChanged(xcb_connection_t *connection, const QByteArray &name, const QVariant &property, void *handle)
+{
+    Q_UNUSED(connection)
+    Q_UNUSED(property)
+    Q_UNUSED(name)
+
+    quint64 type = reinterpret_cast<quint64>(handle);
+
+    switch (type) {
+    case Gtk_CursorThemeName:
+        const QByteArray &cursor_name = DWaylandInterfaceHook::globalSettings()->setting(name).toByteArray();
+        const auto &cursor_map = DWaylandIntegration::instance()->display()->mCursorThemesBySize;
+
+        // 处理光标主题变化
+        for (auto cursor = cursor_map.constBegin(); cursor != cursor_map.constEnd(); ++cursor) {
+            QtWaylandClient::QWaylandCursorTheme *ct = cursor.value();
+            // 根据大小记载新的主题
+            auto theme = wl_cursor_theme_load(cursor_name.constData(), cursor.key(), DWaylandIntegration::instance()->display()->shm()->object());
+
+            // 如果新主题创建失败则不更新数据
+            if (!theme)
+                continue;
+
+            // 先尝试销毁旧主题
+            if (ct->m_theme) {
+                wl_cursor_theme_destroy(ct->m_theme);
+            }
+
+            // 清理缓存数据
+            ct->m_cursors.clear();
+            ct->m_theme = theme;
+        }
+
+        break;
+    }
+}
+
+DWaylandIntegration *DWaylandIntegration::m_instance = nullptr;
 DWaylandIntegration::DWaylandIntegration()
 {
+    m_instance = this;
     DWaylandInterfaceHook::init();
 }
 
 void DWaylandIntegration::initialize()
 {
+    // 由于Qt代码中可能写死了判断是不是wayland平台，所以只能伪装成是wayland
+    if (qgetenv("DXCB_FAKE_PLATFORM_NAME_XCB") != "0") {
+        *QGuiApplicationPrivate::platform_name = "wayland";
+    }
+    qApp->setProperty("_d_isDwayland", true);
+
     QWaylandIntegration::initialize();
     // 覆盖wayland的平台函数接口，用于向上层返回一些必要的与平台相关的函数供其使用
     VtableHook::overrideVfptrFun(nativeInterface(), &QPlatformNativeInterface::platformFunction, &DWaylandInterfaceHook::platformFunction);
+
+    // 监听xsettings的信号，用于更新程序状态（如更新光标主题）
+    DWaylandInterfaceHook::globalSettings()->registerCallbackForProperty("Gtk/CursorThemeName", onXSettingsChanged, reinterpret_cast<void*>(XSettingType::Gtk_CursorThemeName));
 }
 
 QStringList DWaylandIntegration::themeNames() const

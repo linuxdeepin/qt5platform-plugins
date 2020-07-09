@@ -3,7 +3,7 @@
 ** Copyright (C) 2016 The Qt Company Ltd.
 ** Contact: https://www.qt.io/licensing/
 **
-** This file is part of the config.tests of the Qt Toolkit.
+** This file is part of the plugins of the Qt Toolkit.
 **
 ** $QT_BEGIN_LICENSE:LGPL$
 ** Commercial License Usage
@@ -37,8 +37,8 @@
 **
 ****************************************************************************/
 
-#ifndef QWAYLANDSHELLSURFACE_H
-#define QWAYLANDSHELLSURFACE_H
+#ifndef QWAYLANDBUFFER_H
+#define QWAYLANDBUFFER_H
 
 //
 //  W A R N I N G
@@ -51,61 +51,47 @@
 // We mean it.
 //
 
+#include <QtWaylandClient/qtwaylandclientglobal.h>
+
 #include <QtCore/QSize>
-#include <QObject>
+#include <QtCore/QRect>
 
 #include <wayland-client.h>
-
-#include <QtWaylandClient/private/qwayland-wayland.h>
-#include <QtWaylandClient/qtwaylandclientglobal.h>
+#include <wayland-client-protocol.h>
 
 QT_BEGIN_NAMESPACE
 
-class QVariant;
-class QWindow;
-
 namespace QtWaylandClient {
 
-class QWaylandWindow;
-class QWaylandInputDevice;
-
-class Q_WAYLAND_CLIENT_EXPORT QWaylandShellSurface : public QObject
-{
-    Q_OBJECT
+class Q_WAYLAND_CLIENT_EXPORT QWaylandBuffer {
 public:
-    explicit QWaylandShellSurface(QWaylandWindow *window);
-    ~QWaylandShellSurface() override {}
-    virtual void resize(QWaylandInputDevice * /*inputDevice*/, enum wl_shell_surface_resize /*edges*/)
-    {}
+    QWaylandBuffer();
+    virtual ~QWaylandBuffer();
+    void init(wl_buffer *buf);
 
-    virtual bool move(QWaylandInputDevice *) { return false; }
-    virtual void setTitle(const QString & /*title*/) {}
-    virtual void setAppId(const QString & /*appId*/) {}
+    wl_buffer *buffer() {return mBuffer;}
+    virtual QSize size() const = 0;
+    virtual int scale() const { return 1; }
 
-    virtual void setWindowFlags(Qt::WindowFlags flags);
+    void setBusy() { mBusy = true; }
+    bool busy() const { return mBusy; }
 
-    virtual bool isExposed() const { return true; }
-    virtual bool handleExpose(const QRegion &) { return false; }
+    void setCommitted() { mCommitted = true; }
+    bool committed() const { return mCommitted; }
 
-    virtual void raise() {}
-    virtual void lower() {}
-    virtual void setContentOrientationMask(Qt::ScreenOrientations orientation) { Q_UNUSED(orientation) }
-
-    virtual void sendProperty(const QString &name, const QVariant &value);
-
-    inline QWaylandWindow *window() { return m_window; }
-
-    virtual void applyConfigure() {}
-    virtual void requestWindowStates(Qt::WindowStates states) {Q_UNUSED(states);}
-    virtual bool wantsDecorations() const { return false; }
+protected:
+    struct wl_buffer *mBuffer = nullptr;
 
 private:
-    QWaylandWindow *m_window = nullptr;
-    friend class QWaylandWindow;
+    bool mBusy = false;
+    bool mCommitted = false;
+
+    static void release(void *data, wl_buffer *);
+    static const wl_buffer_listener listener;
 };
 
 }
 
 QT_END_NAMESPACE
 
-#endif // QWAYLANDSHELLSURFACE_H
+#endif // QWAYLANDBUFFER_H

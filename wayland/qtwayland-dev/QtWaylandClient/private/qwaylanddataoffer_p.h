@@ -3,7 +3,7 @@
 ** Copyright (C) 2016 The Qt Company Ltd.
 ** Contact: https://www.qt.io/licensing/
 **
-** This file is part of the config.tests of the Qt Toolkit.
+** This file is part of the plugins of the Qt Toolkit.
 **
 ** $QT_BEGIN_LICENSE:LGPL$
 ** Commercial License Usage
@@ -37,8 +37,8 @@
 **
 ****************************************************************************/
 
-#ifndef QWAYLANDSHELLSURFACE_H
-#define QWAYLANDSHELLSURFACE_H
+#ifndef QWAYLANDDATAOFFER_H
+#define QWAYLANDDATAOFFER_H
 
 //
 //  W A R N I N G
@@ -51,61 +51,60 @@
 // We mean it.
 //
 
-#include <QtCore/QSize>
-#include <QObject>
+#include <QtGui/private/qinternalmimedata_p.h>
 
-#include <wayland-client.h>
-
+#include <QtWaylandClient/private/qtwaylandclientglobal_p.h>
 #include <QtWaylandClient/private/qwayland-wayland.h>
-#include <QtWaylandClient/qtwaylandclientglobal.h>
+
+QT_REQUIRE_CONFIG(wayland_datadevice);
 
 QT_BEGIN_NAMESPACE
 
-class QVariant;
-class QWindow;
-
 namespace QtWaylandClient {
 
-class QWaylandWindow;
-class QWaylandInputDevice;
+class QWaylandDisplay;
+class QWaylandMimeData;
 
-class Q_WAYLAND_CLIENT_EXPORT QWaylandShellSurface : public QObject
+class Q_WAYLAND_CLIENT_EXPORT QWaylandDataOffer : public QtWayland::wl_data_offer
 {
-    Q_OBJECT
 public:
-    explicit QWaylandShellSurface(QWaylandWindow *window);
-    ~QWaylandShellSurface() override {}
-    virtual void resize(QWaylandInputDevice * /*inputDevice*/, enum wl_shell_surface_resize /*edges*/)
-    {}
+    explicit QWaylandDataOffer(QWaylandDisplay *display, struct ::wl_data_offer *offer);
+    ~QWaylandDataOffer() override;
 
-    virtual bool move(QWaylandInputDevice *) { return false; }
-    virtual void setTitle(const QString & /*title*/) {}
-    virtual void setAppId(const QString & /*appId*/) {}
+    QString firstFormat() const;
 
-    virtual void setWindowFlags(Qt::WindowFlags flags);
+    QMimeData *mimeData();
 
-    virtual bool isExposed() const { return true; }
-    virtual bool handleExpose(const QRegion &) { return false; }
-
-    virtual void raise() {}
-    virtual void lower() {}
-    virtual void setContentOrientationMask(Qt::ScreenOrientations orientation) { Q_UNUSED(orientation) }
-
-    virtual void sendProperty(const QString &name, const QVariant &value);
-
-    inline QWaylandWindow *window() { return m_window; }
-
-    virtual void applyConfigure() {}
-    virtual void requestWindowStates(Qt::WindowStates states) {Q_UNUSED(states);}
-    virtual bool wantsDecorations() const { return false; }
+protected:
+    void data_offer_offer(const QString &mime_type) override;
 
 private:
-    QWaylandWindow *m_window = nullptr;
-    friend class QWaylandWindow;
+    QScopedPointer<QWaylandMimeData> m_mimeData;
+};
+
+
+class QWaylandMimeData : public QInternalMimeData {
+public:
+    explicit QWaylandMimeData(QWaylandDataOffer *dataOffer, QWaylandDisplay *display);
+    ~QWaylandMimeData() override;
+
+    void appendFormat(const QString &mimeType);
+
+protected:
+    bool hasFormat_sys(const QString &mimeType) const override;
+    QStringList formats_sys() const override;
+    QVariant retrieveData_sys(const QString &mimeType, QVariant::Type type) const override;
+
+private:
+    int readData(int fd, QByteArray &data) const;
+
+    mutable QWaylandDataOffer *m_dataOffer = nullptr;
+    QWaylandDisplay *m_display = nullptr;
+    mutable QStringList m_types;
+    mutable QHash<QString, QByteArray> m_data;
 };
 
 }
 
 QT_END_NAMESPACE
-
-#endif // QWAYLANDSHELLSURFACE_H
+#endif

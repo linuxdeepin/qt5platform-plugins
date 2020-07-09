@@ -1,9 +1,9 @@
 /****************************************************************************
 **
-** Copyright (C) 2016 The Qt Company Ltd.
+** Copyright (C) 2016 Klarälvdalens Datakonsult AB (KDAB).
 ** Contact: https://www.qt.io/licensing/
 **
-** This file is part of the config.tests of the Qt Toolkit.
+** This file is part of the QtWaylandClient module of the Qt Toolkit.
 **
 ** $QT_BEGIN_LICENSE:LGPL$
 ** Commercial License Usage
@@ -37,8 +37,9 @@
 **
 ****************************************************************************/
 
-#ifndef QWAYLANDSHELLSURFACE_H
-#define QWAYLANDSHELLSURFACE_H
+
+#ifndef QWAYLANDDATADEVICE_H
+#define QWAYLANDDATADEVICE_H
 
 //
 //  W A R N I N G
@@ -51,61 +52,85 @@
 // We mean it.
 //
 
-#include <QtCore/QSize>
+#include <qtwaylandclientglobal_p.h>
 #include <QObject>
-
-#include <wayland-client.h>
+#include <QPointer>
+#include <QPoint>
 
 #include <QtWaylandClient/private/qwayland-wayland.h>
-#include <QtWaylandClient/qtwaylandclientglobal.h>
+
+QT_REQUIRE_CONFIG(wayland_datadevice);
 
 QT_BEGIN_NAMESPACE
 
-class QVariant;
+class QMimeData;
 class QWindow;
 
 namespace QtWaylandClient {
 
-class QWaylandWindow;
+class QWaylandDisplay;
+class QWaylandDataDeviceManager;
+class QWaylandDataOffer;
+class QWaylandDataSource;
 class QWaylandInputDevice;
+class QWaylandWindow;
 
-class Q_WAYLAND_CLIENT_EXPORT QWaylandShellSurface : public QObject
+class QWaylandDataDevice : public QObject, public QtWayland::wl_data_device
 {
     Q_OBJECT
 public:
-    explicit QWaylandShellSurface(QWaylandWindow *window);
-    ~QWaylandShellSurface() override {}
-    virtual void resize(QWaylandInputDevice * /*inputDevice*/, enum wl_shell_surface_resize /*edges*/)
-    {}
+    QWaylandDataDevice(QWaylandDataDeviceManager *manager, QWaylandInputDevice *inputDevice);
+    ~QWaylandDataDevice() override;
 
-    virtual bool move(QWaylandInputDevice *) { return false; }
-    virtual void setTitle(const QString & /*title*/) {}
-    virtual void setAppId(const QString & /*appId*/) {}
+    QWaylandDataOffer *selectionOffer() const;
+    void invalidateSelectionOffer();
+    QWaylandDataSource *selectionSource() const;
+    void setSelectionSource(QWaylandDataSource *source);
 
-    virtual void setWindowFlags(Qt::WindowFlags flags);
+#if QT_CONFIG(draganddrop)
+    QWaylandDataOffer *dragOffer() const;
+    void startDrag(QMimeData *mimeData, QWaylandWindow *icon);
+    void cancelDrag();
+#endif
 
-    virtual bool isExposed() const { return true; }
-    virtual bool handleExpose(const QRegion &) { return false; }
+protected:
+    void data_device_data_offer(struct ::wl_data_offer *id) override;
 
-    virtual void raise() {}
-    virtual void lower() {}
-    virtual void setContentOrientationMask(Qt::ScreenOrientations orientation) { Q_UNUSED(orientation) }
+#if QT_CONFIG(draganddrop)
+    void data_device_drop() override;
+    void data_device_enter(uint32_t serial, struct ::wl_surface *surface, wl_fixed_t x, wl_fixed_t y, struct ::wl_data_offer *id) override;
+    void data_device_leave() override;
+    void data_device_motion(uint32_t time, wl_fixed_t x, wl_fixed_t y) override;
+#endif
+    void data_device_selection(struct ::wl_data_offer *id) override;
 
-    virtual void sendProperty(const QString &name, const QVariant &value);
+private Q_SLOTS:
+    void selectionSourceCancelled();
 
-    inline QWaylandWindow *window() { return m_window; }
-
-    virtual void applyConfigure() {}
-    virtual void requestWindowStates(Qt::WindowStates states) {Q_UNUSED(states);}
-    virtual bool wantsDecorations() const { return false; }
+#if QT_CONFIG(draganddrop)
+    void dragSourceCancelled();
+    void dragSourceTargetChanged(const QString &mimeType);
+#endif
 
 private:
-    QWaylandWindow *m_window = nullptr;
-    friend class QWaylandWindow;
+#if QT_CONFIG(draganddrop)
+    QPoint calculateDragPosition(int x, int y, QWindow *wnd) const;
+#endif
+
+    QWaylandDisplay *m_display = nullptr;
+    QWaylandInputDevice *m_inputDevice = nullptr;
+    uint32_t m_enterSerial = 0;
+    QPointer<QWindow> m_dragWindow;
+    QPoint m_dragPoint;
+    QScopedPointer<QWaylandDataOffer> m_dragOffer;
+    QScopedPointer<QWaylandDataOffer> m_selectionOffer;
+    QScopedPointer<QWaylandDataSource> m_selectionSource;
+
+    QScopedPointer<QWaylandDataSource> m_dragSource;
 };
 
 }
 
 QT_END_NAMESPACE
 
-#endif // QWAYLANDSHELLSURFACE_H
+#endif // QWAYLANDDATADEVICE_H

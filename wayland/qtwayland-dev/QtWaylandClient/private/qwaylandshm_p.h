@@ -1,9 +1,9 @@
 /****************************************************************************
 **
-** Copyright (C) 2016 The Qt Company Ltd.
+** Copyright (C) 2016 LG Electronics Inc, author: <mikko.levonmaa@lge.com>
 ** Contact: https://www.qt.io/licensing/
 **
-** This file is part of the config.tests of the Qt Toolkit.
+** This file is part of the plugins of the Qt Toolkit.
 **
 ** $QT_BEGIN_LICENSE:LGPL$
 ** Commercial License Usage
@@ -37,8 +37,8 @@
 **
 ****************************************************************************/
 
-#ifndef QWAYLANDSHELLSURFACE_H
-#define QWAYLANDSHELLSURFACE_H
+#ifndef QWAYLANDSHM_H
+#define QWAYLANDSHM_H
 
 //
 //  W A R N I N G
@@ -51,61 +51,43 @@
 // We mean it.
 //
 
-#include <QtCore/QSize>
-#include <QObject>
+#include <QVector>
+#include <QImage>
 
-#include <wayland-client.h>
-
-#include <QtWaylandClient/private/qwayland-wayland.h>
 #include <QtWaylandClient/qtwaylandclientglobal.h>
+#include <QtWaylandClient/private/qwayland-wayland.h>
 
 QT_BEGIN_NAMESPACE
 
-class QVariant;
-class QWindow;
-
 namespace QtWaylandClient {
 
-class QWaylandWindow;
-class QWaylandInputDevice;
+class QWaylandDisplay;
 
-class Q_WAYLAND_CLIENT_EXPORT QWaylandShellSurface : public QObject
+class Q_WAYLAND_CLIENT_EXPORT QWaylandShm : public QtWayland::wl_shm
 {
-    Q_OBJECT
+
 public:
-    explicit QWaylandShellSurface(QWaylandWindow *window);
-    ~QWaylandShellSurface() override {}
-    virtual void resize(QWaylandInputDevice * /*inputDevice*/, enum wl_shell_surface_resize /*edges*/)
-    {}
 
-    virtual bool move(QWaylandInputDevice *) { return false; }
-    virtual void setTitle(const QString & /*title*/) {}
-    virtual void setAppId(const QString & /*appId*/) {}
+    QWaylandShm(QWaylandDisplay *display, int version, uint32_t id);
+    ~QWaylandShm() override;
 
-    virtual void setWindowFlags(Qt::WindowFlags flags);
+    bool formatSupported(wl_shm_format format) const;
+    bool formatSupported(QImage::Format format) const;
 
-    virtual bool isExposed() const { return true; }
-    virtual bool handleExpose(const QRegion &) { return false; }
+    static wl_shm_format formatFrom(QImage::Format format);
+    static QImage::Format formatFrom(wl_shm_format format);
 
-    virtual void raise() {}
-    virtual void lower() {}
-    virtual void setContentOrientationMask(Qt::ScreenOrientations orientation) { Q_UNUSED(orientation) }
-
-    virtual void sendProperty(const QString &name, const QVariant &value);
-
-    inline QWaylandWindow *window() { return m_window; }
-
-    virtual void applyConfigure() {}
-    virtual void requestWindowStates(Qt::WindowStates states) {Q_UNUSED(states);}
-    virtual bool wantsDecorations() const { return false; }
+protected:
+    void shm_format(uint32_t format) override;
 
 private:
-    QWaylandWindow *m_window = nullptr;
-    friend class QWaylandWindow;
+    QVector<uint32_t> m_formats;
+
 };
 
 }
 
 QT_END_NAMESPACE
 
-#endif // QWAYLANDSHELLSURFACE_H
+#endif
+

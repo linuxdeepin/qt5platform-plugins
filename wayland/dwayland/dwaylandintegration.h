@@ -30,10 +30,15 @@ DPP_BEGIN_NAMESPACE
 class DWaylandIntegration : public QtWaylandClient::QWaylandIntegration
 {
 public:
+    static DWaylandIntegration *instance()
+    { return m_instance; }
     DWaylandIntegration();
 
     void initialize() override;
     QStringList themeNames() const override;
+
+private:
+    static DWaylandIntegration *m_instance;
 };
 
 DPP_END_NAMESPACE

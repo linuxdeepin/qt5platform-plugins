@@ -1,9 +1,10 @@
 /****************************************************************************
 **
+** Copyright (C) 2016 Robin Burchell <robin.burchell@viroteck.net>
 ** Copyright (C) 2016 The Qt Company Ltd.
 ** Contact: https://www.qt.io/licensing/
 **
-** This file is part of the config.tests of the Qt Toolkit.
+** This file is part of the plugins of the Qt Toolkit.
 **
 ** $QT_BEGIN_LICENSE:LGPL$
 ** Commercial License Usage
@@ -37,8 +38,8 @@
 **
 ****************************************************************************/
 
-#ifndef QWAYLANDSHELLSURFACE_H
-#define QWAYLANDSHELLSURFACE_H
+#ifndef QWAYLANDABSTRACTDECORATION_H
+#define QWAYLANDABSTRACTDECORATION_H
 
 //
 //  W A R N I N G
@@ -51,61 +52,68 @@
 // We mean it.
 //
 
-#include <QtCore/QSize>
-#include <QObject>
+#include <QtCore/QMargins>
+#include <QtCore/QPointF>
+#include <QtGui/QGuiApplication>
+#include <QtGui/QCursor>
+#include <QtGui/QColor>
+#include <QtGui/QStaticText>
+#include <QtGui/QImage>
+#include <QtWaylandClient/qtwaylandclientglobal.h>
 
 #include <wayland-client.h>
 
-#include <QtWaylandClient/private/qwayland-wayland.h>
-#include <QtWaylandClient/qtwaylandclientglobal.h>
+#include <QtCore/QDebug>
 
 QT_BEGIN_NAMESPACE
 
-class QVariant;
 class QWindow;
+class QPaintDevice;
+class QPainter;
+class QEvent;
 
 namespace QtWaylandClient {
 
+class QWaylandScreen;
 class QWaylandWindow;
 class QWaylandInputDevice;
+class QWaylandAbstractDecorationPrivate;
 
-class Q_WAYLAND_CLIENT_EXPORT QWaylandShellSurface : public QObject
+class Q_WAYLAND_CLIENT_EXPORT QWaylandAbstractDecoration : public QObject
 {
     Q_OBJECT
+    Q_DECLARE_PRIVATE(QWaylandAbstractDecoration)
 public:
-    explicit QWaylandShellSurface(QWaylandWindow *window);
-    ~QWaylandShellSurface() override {}
-    virtual void resize(QWaylandInputDevice * /*inputDevice*/, enum wl_shell_surface_resize /*edges*/)
-    {}
+    QWaylandAbstractDecoration();
+    ~QWaylandAbstractDecoration() override;
 
-    virtual bool move(QWaylandInputDevice *) { return false; }
-    virtual void setTitle(const QString & /*title*/) {}
-    virtual void setAppId(const QString & /*appId*/) {}
+    void setWaylandWindow(QWaylandWindow *window);
+    QWaylandWindow *waylandWindow() const;
 
-    virtual void setWindowFlags(Qt::WindowFlags flags);
+    void update();
+    bool isDirty() const;
 
-    virtual bool isExposed() const { return true; }
-    virtual bool handleExpose(const QRegion &) { return false; }
+    virtual QMargins margins() const = 0;
+    QWindow *window() const;
+    const QImage &contentImage();
 
-    virtual void raise() {}
-    virtual void lower() {}
-    virtual void setContentOrientationMask(Qt::ScreenOrientations orientation) { Q_UNUSED(orientation) }
+    virtual bool handleMouse(QWaylandInputDevice *inputDevice, const QPointF &local, const QPointF &global,Qt::MouseButtons b,Qt::KeyboardModifiers mods) = 0;
+    virtual bool handleTouch(QWaylandInputDevice *inputDevice, const QPointF &local, const QPointF &global, Qt::TouchPointState state, Qt::KeyboardModifiers mods) = 0;
 
-    virtual void sendProperty(const QString &name, const QVariant &value);
+protected:
+    virtual void paint(QPaintDevice *device) = 0;
 
-    inline QWaylandWindow *window() { return m_window; }
+    void setMouseButtons(Qt::MouseButtons mb);
 
-    virtual void applyConfigure() {}
-    virtual void requestWindowStates(Qt::WindowStates states) {Q_UNUSED(states);}
-    virtual bool wantsDecorations() const { return false; }
+    void startResize(QWaylandInputDevice *inputDevice,enum wl_shell_surface_resize resize, Qt::MouseButtons buttons);
+    void startMove(QWaylandInputDevice *inputDevice, Qt::MouseButtons buttons);
 
-private:
-    QWaylandWindow *m_window = nullptr;
-    friend class QWaylandWindow;
+    bool isLeftClicked(Qt::MouseButtons newMouseButtonState);
+    bool isLeftReleased(Qt::MouseButtons newMouseButtonState);
 };
 
 }
 
 QT_END_NAMESPACE
 
-#endif // QWAYLANDSHELLSURFACE_H
+#endif // QWAYLANDABSTRACTDECORATION_H

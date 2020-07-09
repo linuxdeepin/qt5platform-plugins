@@ -3,7 +3,7 @@
 ** Copyright (C) 2016 The Qt Company Ltd.
 ** Contact: https://www.qt.io/licensing/
 **
-** This file is part of the config.tests of the Qt Toolkit.
+** This file is part of the plugins of the Qt Toolkit.
 **
 ** $QT_BEGIN_LICENSE:LGPL$
 ** Commercial License Usage
@@ -37,8 +37,8 @@
 **
 ****************************************************************************/
 
-#ifndef QWAYLANDSHELLSURFACE_H
-#define QWAYLANDSHELLSURFACE_H
+#ifndef QWAYLANDDND_H
+#define QWAYLANDDND_H
 
 //
 //  W A R N I N G
@@ -51,61 +51,44 @@
 // We mean it.
 //
 
-#include <QtCore/QSize>
-#include <QObject>
+#include <qpa/qplatformdrag.h>
+#include <QtGui/private/qsimpledrag_p.h>
 
-#include <wayland-client.h>
+#include <QtGui/QDrag>
+#include <QtCore/QMimeData>
 
-#include <QtWaylandClient/private/qwayland-wayland.h>
 #include <QtWaylandClient/qtwaylandclientglobal.h>
 
 QT_BEGIN_NAMESPACE
 
-class QVariant;
-class QWindow;
-
 namespace QtWaylandClient {
 
-class QWaylandWindow;
-class QWaylandInputDevice;
-
-class Q_WAYLAND_CLIENT_EXPORT QWaylandShellSurface : public QObject
+class QWaylandDisplay;
+#if QT_CONFIG(draganddrop)
+class Q_WAYLAND_CLIENT_EXPORT QWaylandDrag : public QBasicDrag
 {
-    Q_OBJECT
 public:
-    explicit QWaylandShellSurface(QWaylandWindow *window);
-    ~QWaylandShellSurface() override {}
-    virtual void resize(QWaylandInputDevice * /*inputDevice*/, enum wl_shell_surface_resize /*edges*/)
-    {}
+    QWaylandDrag(QWaylandDisplay *display);
+    ~QWaylandDrag() override;
 
-    virtual bool move(QWaylandInputDevice *) { return false; }
-    virtual void setTitle(const QString & /*title*/) {}
-    virtual void setAppId(const QString & /*appId*/) {}
+    void updateTarget(const QString &mimeType);
+    void setResponse(const QPlatformDragQtResponse &response);
+    void finishDrag(const QPlatformDropQtResponse &response);
 
-    virtual void setWindowFlags(Qt::WindowFlags flags);
+protected:
+    void startDrag() override;
+    void cancel() override;
+    void move(const QPoint &globalPos) override;
+    void drop(const QPoint &globalPos) override;
+    void endDrag() override;
 
-    virtual bool isExposed() const { return true; }
-    virtual bool handleExpose(const QRegion &) { return false; }
-
-    virtual void raise() {}
-    virtual void lower() {}
-    virtual void setContentOrientationMask(Qt::ScreenOrientations orientation) { Q_UNUSED(orientation) }
-
-    virtual void sendProperty(const QString &name, const QVariant &value);
-
-    inline QWaylandWindow *window() { return m_window; }
-
-    virtual void applyConfigure() {}
-    virtual void requestWindowStates(Qt::WindowStates states) {Q_UNUSED(states);}
-    virtual bool wantsDecorations() const { return false; }
 
 private:
-    QWaylandWindow *m_window = nullptr;
-    friend class QWaylandWindow;
+    QWaylandDisplay *m_display = nullptr;
 };
-
+#endif
 }
 
 QT_END_NAMESPACE
 
-#endif // QWAYLANDSHELLSURFACE_H
+#endif // QWAYLANDDND_H

@@ -3,7 +3,7 @@
 ** Copyright (C) 2016 The Qt Company Ltd.
 ** Contact: https://www.qt.io/licensing/
 **
-** This file is part of the config.tests of the Qt Toolkit.
+** This file is part of the plugins of the Qt Toolkit.
 **
 ** $QT_BEGIN_LICENSE:LGPL$
 ** Commercial License Usage
@@ -37,8 +37,8 @@
 **
 ****************************************************************************/
 
-#ifndef QWAYLANDSHELLSURFACE_H
-#define QWAYLANDSHELLSURFACE_H
+#ifndef QWAYLANDTOUCH_H
+#define QWAYLANDTOUCH_H
 
 //
 //  W A R N I N G
@@ -51,61 +51,63 @@
 // We mean it.
 //
 
-#include <QtCore/QSize>
-#include <QObject>
+#include <qpa/qwindowsysteminterface.h>
 
-#include <wayland-client.h>
-
-#include <QtWaylandClient/private/qwayland-wayland.h>
+#include <QtWaylandClient/private/qwayland-touch-extension.h>
 #include <QtWaylandClient/qtwaylandclientglobal.h>
 
 QT_BEGIN_NAMESPACE
 
-class QVariant;
-class QWindow;
-
 namespace QtWaylandClient {
 
-class QWaylandWindow;
+class QWaylandDisplay;
 class QWaylandInputDevice;
 
-class Q_WAYLAND_CLIENT_EXPORT QWaylandShellSurface : public QObject
+class Q_WAYLAND_CLIENT_EXPORT QWaylandTouchExtension : public QtWayland::qt_touch_extension
 {
-    Q_OBJECT
 public:
-    explicit QWaylandShellSurface(QWaylandWindow *window);
-    ~QWaylandShellSurface() override {}
-    virtual void resize(QWaylandInputDevice * /*inputDevice*/, enum wl_shell_surface_resize /*edges*/)
-    {}
+    QWaylandTouchExtension(QWaylandDisplay *display, uint32_t id);
 
-    virtual bool move(QWaylandInputDevice *) { return false; }
-    virtual void setTitle(const QString & /*title*/) {}
-    virtual void setAppId(const QString & /*appId*/) {}
-
-    virtual void setWindowFlags(Qt::WindowFlags flags);
-
-    virtual bool isExposed() const { return true; }
-    virtual bool handleExpose(const QRegion &) { return false; }
-
-    virtual void raise() {}
-    virtual void lower() {}
-    virtual void setContentOrientationMask(Qt::ScreenOrientations orientation) { Q_UNUSED(orientation) }
-
-    virtual void sendProperty(const QString &name, const QVariant &value);
-
-    inline QWaylandWindow *window() { return m_window; }
-
-    virtual void applyConfigure() {}
-    virtual void requestWindowStates(Qt::WindowStates states) {Q_UNUSED(states);}
-    virtual bool wantsDecorations() const { return false; }
+    void touchCanceled();
 
 private:
-    QWaylandWindow *m_window = nullptr;
-    friend class QWaylandWindow;
+    void registerDevice(int caps);
+
+    QWaylandDisplay *mDisplay = nullptr;
+
+    void touch_extension_touch(uint32_t time,
+                               uint32_t id,
+                               uint32_t state,
+                               int32_t x,
+                               int32_t y,
+                               int32_t normalized_x,
+                               int32_t normalized_y,
+                               int32_t width,
+                               int32_t height,
+                               uint32_t pressure,
+                               int32_t velocity_x,
+                               int32_t velocity_y,
+                               uint32_t flags,
+                               struct wl_array *rawdata) override;
+    void touch_extension_configure(uint32_t flags) override;
+
+    void sendTouchEvent();
+
+    QList<QWindowSystemInterface::TouchPoint> mTouchPoints;
+    QList<QWindowSystemInterface::TouchPoint> mPrevTouchPoints;
+    QTouchDevice *mTouchDevice = nullptr;
+    uint32_t mTimestamp;
+    int mPointsLeft;
+    uint32_t mFlags;
+    int mMouseSourceId;
+    QPointF mLastMouseLocal;
+    QPointF mLastMouseGlobal;
+    QWindow *mTargetWindow = nullptr;
+    QWaylandInputDevice *mInputDevice = nullptr;
 };
 
 }
 
 QT_END_NAMESPACE
 
-#endif // QWAYLANDSHELLSURFACE_H
+#endif // QWAYLANDTOUCH_H

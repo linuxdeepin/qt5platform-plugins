@@ -52,6 +52,7 @@
 //
 
 #include <QtWaylandClient/qtwaylandclientglobal.h>
+#include <QtWaylandClient/private/qwaylanddisplay_p.h>
 
 QT_BEGIN_NAMESPACE
 
@@ -72,7 +73,17 @@ public:
         return true;
     }
     virtual QWaylandShellSurface *createShellSurface(QWaylandWindow *window) = 0;
-    virtual void handleKeyboardFocusChanged(QWaylandWindow *newFocus, QWaylandWindow *oldFocus);
+    virtual void handleKeyboardFocusChanged(QWaylandWindow *newFocus, QWaylandWindow *oldFocus) {
+        if (newFocus)
+            m_display->handleWindowActivated(newFocus);
+        if (oldFocus)
+            m_display->handleWindowDeactivated(oldFocus);
+    }
+    virtual void *nativeResourceForWindow(const QByteArray &resource, QWindow *window) {
+        Q_UNUSED(resource);
+        Q_UNUSED(window);
+        return nullptr;
+    }
 
 protected:
     QWaylandDisplay *m_display = nullptr;

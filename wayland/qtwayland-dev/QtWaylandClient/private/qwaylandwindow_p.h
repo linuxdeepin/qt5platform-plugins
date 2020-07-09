@@ -80,23 +80,6 @@ class QWaylandScreen;
 class QWaylandShmBackingStore;
 class QWaylandPointerEvent;
 
-class Q_WAYLAND_CLIENT_EXPORT QWaylandWindowConfigure
-{
-public:
-    QWaylandWindowConfigure()
-    { }
-
-    void clear()
-    { width = height = edges = 0; }
-
-    bool isEmpty() const
-    { return !height || !width; }
-
-    int width = 0;
-    int height = 0;
-    uint32_t edges = 0;
-};
-
 class Q_WAYLAND_CLIENT_EXPORT QWaylandWindow : public QObject, public QPlatformWindow, public QtWayland::wl_surface
 {
     Q_OBJECT
@@ -121,8 +104,9 @@ public:
     void setWindowIcon(const QIcon &icon) override;
 
     void setGeometry(const QRect &rect) override;
+    void resizeFromApplyConfigure(const QSize &sizeWithMargins, const QPoint &offset = {0, 0});
 
-    void configure(uint32_t edges, int32_t width, int32_t height);
+    void applyConfigureWhenPossible(); //rename to possible?
 
     using QtWayland::wl_surface::attach;
     void attach(QWaylandBuffer *buffer, int x, int y);
@@ -137,6 +121,8 @@ public:
     void waitForFrameSync();
 
     QMargins frameMargins() const override;
+    QSize surfaceSize() const;
+    QRect windowGeometry() const;
 
     static QWaylandWindow *fromWlSurface(::wl_surface *surface);
 
@@ -148,8 +134,9 @@ public:
     void handleContentOrientationChange(Qt::ScreenOrientation orientation) override;
     void setOrientationMask(Qt::ScreenOrientations mask);
 
-    void setWindowState(Qt::WindowStates state) override;
+    void setWindowState(Qt::WindowStates states) override;
     void setWindowFlags(Qt::WindowFlags flags) override;
+    void handleWindowStatesChanged(Qt::WindowStates states);
 
     void raise() override;
     void lower() override;
@@ -173,9 +160,6 @@ public:
 
     bool createDecoration();
 
-    inline bool isMaximized() const { return mState & Qt::WindowMaximized; }
-    inline bool isFullscreen() const { return mState & Qt::WindowFullScreen; }
-
 #if QT_CONFIG(cursor)
     void setMouseCursor(QWaylandInputDevice *device, const QCursor &cursor);
     void restoreMouseCursor(QWaylandInputDevice *device);
@@ -184,7 +168,7 @@ public:
     QWaylandWindow *transientParent() const;
 
     QMutex *resizeMutex() { return &mResizeLock; }
-    void doResize();
+    void doApplyConfigure();
     void setCanResize(bool canResize);
 
     bool setMouseGrabEnabled(bool grab) override;
@@ -209,7 +193,7 @@ public:
     void requestUpdate() override;
 
 public slots:
-    void requestResize();
+    void applyConfigure();
 
 protected:
     void surface_enter(struct ::wl_output *output) override;
@@ -231,8 +215,7 @@ protected:
     QWaitCondition mFrameSyncWait;
 
     QMutex mResizeLock;
-    QWaylandWindowConfigure mConfigure;
-    bool mRequestResizeSent = false;
+    bool mWaitingToApplyConfigure = false;
     bool mCanResize = true;
     bool mResizeDirty = false;
     bool mResizeAfterSwap;
@@ -244,9 +227,9 @@ protected:
 
     QIcon mWindowIcon;
 
-    Qt::WindowStates mState = Qt::WindowNoState;
     Qt::WindowFlags mFlags;
     QRegion mMask;
+    Qt::WindowStates mLastReportedWindowStates = Qt::WindowNoState;
 
     QWaylandShmBackingStore *mBackingStore = nullptr;
 
@@ -254,7 +237,6 @@ private slots:
     void handleScreenRemoved(QScreen *qScreen);
 
 private:
-    bool setWindowStateInternal(Qt::WindowStates flags);
     void setGeometry_helper(const QRect &rect);
     void initWindow();
     void initializeWlSurface();

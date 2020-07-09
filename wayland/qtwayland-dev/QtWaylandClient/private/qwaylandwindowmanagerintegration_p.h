@@ -3,7 +3,7 @@
 ** Copyright (C) 2016 The Qt Company Ltd.
 ** Contact: https://www.qt.io/licensing/
 **
-** This file is part of the config.tests of the Qt Toolkit.
+** This file is part of the plugins of the Qt Toolkit.
 **
 ** $QT_BEGIN_LICENSE:LGPL$
 ** Commercial License Usage
@@ -37,8 +37,8 @@
 **
 ****************************************************************************/
 
-#ifndef QWAYLANDSHELLSURFACE_H
-#define QWAYLANDSHELLSURFACE_H
+#ifndef QWAYLANDWINDOWMANAGERINTEGRATION_H
+#define QWAYLANDWINDOWMANAGERINTEGRATION_H
 
 //
 //  W A R N I N G
@@ -51,61 +51,51 @@
 // We mean it.
 //
 
-#include <QtCore/QSize>
-#include <QObject>
+#include <QtCore/QObject>
+#include <QtCore/QScopedPointer>
 
 #include <wayland-client.h>
+#include <QtServiceSupport/private/qgenericunixservices_p.h>
 
-#include <QtWaylandClient/private/qwayland-wayland.h>
+#include <QtWaylandClient/private/qwayland-qt-windowmanager.h>
 #include <QtWaylandClient/qtwaylandclientglobal.h>
 
 QT_BEGIN_NAMESPACE
 
-class QVariant;
-class QWindow;
-
 namespace QtWaylandClient {
 
 class QWaylandWindow;
-class QWaylandInputDevice;
+class QWaylandDisplay;
 
-class Q_WAYLAND_CLIENT_EXPORT QWaylandShellSurface : public QObject
+class QWaylandWindowManagerIntegrationPrivate;
+
+class Q_WAYLAND_CLIENT_EXPORT QWaylandWindowManagerIntegration : public QObject, public QGenericUnixServices, public QtWayland::qt_windowmanager
 {
     Q_OBJECT
+    Q_DECLARE_PRIVATE(QWaylandWindowManagerIntegration)
 public:
-    explicit QWaylandShellSurface(QWaylandWindow *window);
-    ~QWaylandShellSurface() override {}
-    virtual void resize(QWaylandInputDevice * /*inputDevice*/, enum wl_shell_surface_resize /*edges*/)
-    {}
+    explicit QWaylandWindowManagerIntegration(QWaylandDisplay *waylandDisplay);
+    ~QWaylandWindowManagerIntegration() override;
 
-    virtual bool move(QWaylandInputDevice *) { return false; }
-    virtual void setTitle(const QString & /*title*/) {}
-    virtual void setAppId(const QString & /*appId*/) {}
+    bool openUrl(const QUrl &url) override;
+    bool openDocument(const QUrl &url) override;
 
-    virtual void setWindowFlags(Qt::WindowFlags flags);
-
-    virtual bool isExposed() const { return true; }
-    virtual bool handleExpose(const QRegion &) { return false; }
-
-    virtual void raise() {}
-    virtual void lower() {}
-    virtual void setContentOrientationMask(Qt::ScreenOrientations orientation) { Q_UNUSED(orientation) }
-
-    virtual void sendProperty(const QString &name, const QVariant &value);
-
-    inline QWaylandWindow *window() { return m_window; }
-
-    virtual void applyConfigure() {}
-    virtual void requestWindowStates(Qt::WindowStates states) {Q_UNUSED(states);}
-    virtual bool wantsDecorations() const { return false; }
+    bool showIsFullScreen() const;
 
 private:
-    QWaylandWindow *m_window = nullptr;
-    friend class QWaylandWindow;
-};
+    static void wlHandleListenerGlobal(void *data, wl_registry *registry, uint32_t id,
+                                       const QString &interface, uint32_t version);
 
-}
+    QScopedPointer<QWaylandWindowManagerIntegrationPrivate> d_ptr;
+
+    void windowmanager_hints(int32_t showIsFullScreen) override;
+    void windowmanager_quit() override;
+
+    void openUrl_helper(const QUrl &url);
+};
 
 QT_END_NAMESPACE
 
-#endif // QWAYLANDSHELLSURFACE_H
+}
+
+#endif // QWAYLANDWINDOWMANAGERINTEGRATION_H

@@ -3,7 +3,7 @@
 ** Copyright (C) 2016 The Qt Company Ltd.
 ** Contact: https://www.qt.io/licensing/
 **
-** This file is part of the config.tests of the Qt Toolkit.
+** This file is part of the plugins of the Qt Toolkit.
 **
 ** $QT_BEGIN_LICENSE:LGPL$
 ** Commercial License Usage
@@ -37,8 +37,8 @@
 **
 ****************************************************************************/
 
-#ifndef QWAYLANDSHELLSURFACE_H
-#define QWAYLANDSHELLSURFACE_H
+#ifndef QWAYLANDEXTENDEDSURFACE_H
+#define QWAYLANDEXTENDEDSURFACE_H
 
 //
 //  W A R N I N G
@@ -51,61 +51,44 @@
 // We mean it.
 //
 
-#include <QtCore/QSize>
-#include <QObject>
+#include <QtCore/QString>
+#include <QtCore/QVariant>
+
+#include <QtWaylandClient/qtwaylandclientglobal.h>
 
 #include <wayland-client.h>
-
-#include <QtWaylandClient/private/qwayland-wayland.h>
-#include <QtWaylandClient/qtwaylandclientglobal.h>
+#include <QtWaylandClient/private/qwayland-surface-extension.h>
 
 QT_BEGIN_NAMESPACE
 
-class QVariant;
-class QWindow;
-
 namespace QtWaylandClient {
 
+class QWaylandDisplay;
 class QWaylandWindow;
-class QWaylandInputDevice;
 
-class Q_WAYLAND_CLIENT_EXPORT QWaylandShellSurface : public QObject
+class Q_WAYLAND_CLIENT_EXPORT QWaylandExtendedSurface : public QtWayland::qt_extended_surface
 {
-    Q_OBJECT
 public:
-    explicit QWaylandShellSurface(QWaylandWindow *window);
-    ~QWaylandShellSurface() override {}
-    virtual void resize(QWaylandInputDevice * /*inputDevice*/, enum wl_shell_surface_resize /*edges*/)
-    {}
+    QWaylandExtendedSurface(QWaylandWindow *window);
+    ~QWaylandExtendedSurface() override;
 
-    virtual bool move(QWaylandInputDevice *) { return false; }
-    virtual void setTitle(const QString & /*title*/) {}
-    virtual void setAppId(const QString & /*appId*/) {}
+    void setContentOrientationMask(Qt::ScreenOrientations mask);
 
-    virtual void setWindowFlags(Qt::WindowFlags flags);
+    void updateGenericProperty(const QString &name, const QVariant &value);
 
-    virtual bool isExposed() const { return true; }
-    virtual bool handleExpose(const QRegion &) { return false; }
-
-    virtual void raise() {}
-    virtual void lower() {}
-    virtual void setContentOrientationMask(Qt::ScreenOrientations orientation) { Q_UNUSED(orientation) }
-
-    virtual void sendProperty(const QString &name, const QVariant &value);
-
-    inline QWaylandWindow *window() { return m_window; }
-
-    virtual void applyConfigure() {}
-    virtual void requestWindowStates(Qt::WindowStates states) {Q_UNUSED(states);}
-    virtual bool wantsDecorations() const { return false; }
+    Qt::WindowFlags setWindowFlags(Qt::WindowFlags flags);
 
 private:
+    void extended_surface_onscreen_visibility(int32_t visibility) override;
+    void extended_surface_set_generic_property(const QString &name, wl_array *value) override;
+    void extended_surface_close() override;
+
     QWaylandWindow *m_window = nullptr;
-    friend class QWaylandWindow;
+    QVariantMap m_properties;
 };
 
 }
 
 QT_END_NAMESPACE
 
-#endif // QWAYLANDSHELLSURFACE_H
+#endif // QWAYLANDEXTENDEDSURFACE_H

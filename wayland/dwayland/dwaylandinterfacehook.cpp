@@ -113,7 +113,7 @@ bool DWaylandInterfaceHook::buildNativeSettings(QObject *object, quint32 setting
         settings = new DXcbXSettings(xcb_connection, settingWindow, settings_property);
     } else {
         global_settings = true;
-        settings = !m_xsettings ? new DXcbXSettings(xcb_connection) : m_xsettings;
+        settings = globalSettings();
     }
 
     // 跟随object销毁
@@ -132,6 +132,15 @@ void DWaylandInterfaceHook::clearNativeSettings(quint32 settingWindow)
 #ifdef Q_OS_LINUX
     DXcbXSettings::clearSettings(settingWindow);
 #endif
+}
+
+DXcbXSettings *DWaylandInterfaceHook::globalSettings()
+{
+    if (Q_LIKELY(m_xsettings))
+        return m_xsettings;
+
+    m_xsettings = new DXcbXSettings(xcb_connection);
+    return m_xsettings;
 }
 
 DPP_END_NAMESPACE

@@ -63,7 +63,6 @@
 
 #include <QtWaylandClient/private/qwayland-wayland.h>
 #include <QtWaylandClient/private/qtwaylandclientglobal_p.h>
-#include <QtWaylandClient/private/qwayland-xdg-shell.h>
 #include <QtWaylandClient/private/qwaylandshm_p.h>
 
 struct wl_cursor_image;
@@ -75,16 +74,14 @@ class QSocketNotifier;
 class QPlatformScreen;
 
 namespace QtWayland {
-    class qt_shell;
-    class qt_sub_surface_extension;
     class qt_surface_extension;
     class zwp_text_input_manager_v2;
-    class xdg_shell;
+    class zxdg_output_manager_v1;
 }
 
 namespace QtWaylandClient {
 
-Q_DECLARE_LOGGING_CATEGORY(lcQpaWayland);
+Q_WAYLAND_CLIENT_EXPORT Q_DECLARE_LOGGING_CATEGORY(lcQpaWayland);
 
 class QWaylandInputDevice;
 class QWaylandBuffer;
@@ -95,11 +92,10 @@ class QWaylandDataDeviceManager;
 class QWaylandTouchExtension;
 class QWaylandQtKeyExtension;
 class QWaylandWindow;
-class QWaylandEventThread;
 class QWaylandIntegration;
 class QWaylandHardwareIntegration;
-class QWaylandXdgShell;
 class QWaylandShellSurface;
+class QWaylandCursorTheme;
 
 typedef void (*RegistryListener)(void *data,
                                  struct wl_registry *registry,
@@ -127,8 +123,9 @@ public:
 
     QWaylandWindowManagerIntegration *windowManagerIntegration() const;
 #if QT_CONFIG(cursor)
-    void setCursor(struct wl_buffer *buffer, struct wl_cursor_image *image);
-    void setCursor(const QSharedPointer<QWaylandBuffer> &buffer, const QPoint &hotSpot);
+    void setCursor(struct wl_buffer *buffer, struct wl_cursor_image *image, qreal dpr);
+    void setCursor(const QSharedPointer<QWaylandBuffer> &buffer, const QPoint &hotSpot, qreal dpr);
+    QWaylandCursorTheme *loadCursorTheme(qreal devicePixelRatio);
 #endif
     struct wl_display *wl_display() const { return mDisplay; }
     struct ::wl_registry *wl_registry() { return object(); }
@@ -147,6 +144,8 @@ public:
     QWaylandTouchExtension *touchExtension() const { return mTouchExtension.data(); }
     QtWayland::zwp_text_input_manager_v2 *textInputManager() const { return mTextInputManager.data(); }
     QWaylandHardwareIntegration *hardwareIntegration() const { return mHardwareIntegration.data(); }
+    QtWayland::zxdg_output_manager_v1 *xdgOutputManager() const { return mXdgOutputManager.data(); }
+
 
     struct RegistryGlobal {
         uint32_t id;
@@ -205,6 +204,9 @@ private:
     QList<QWaylandInputDevice *> mInputDevices;
     QList<Listener> mRegistryListeners;
     QWaylandIntegration *mWaylandIntegration = nullptr;
+#if QT_CONFIG(cursor)
+    QMap<int, QWaylandCursorTheme *> mCursorThemesBySize;
+#endif
 #if QT_CONFIG(wayland_datadevice)
     QScopedPointer<QWaylandDataDeviceManager> mDndSelectionHandler;
 #endif
@@ -215,6 +217,7 @@ private:
     QScopedPointer<QWaylandWindowManagerIntegration> mWindowManagerIntegration;
     QScopedPointer<QtWayland::zwp_text_input_manager_v2> mTextInputManager;
     QScopedPointer<QWaylandHardwareIntegration> mHardwareIntegration;
+    QScopedPointer<QtWayland::zxdg_output_manager_v1> mXdgOutputManager;
     QSocketNotifier *mReadNotifier = nullptr;
     int mFd;
     int mWritableNotificationFd;

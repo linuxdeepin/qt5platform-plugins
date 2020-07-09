@@ -3,7 +3,7 @@
 ** Copyright (C) 2016 The Qt Company Ltd.
 ** Contact: https://www.qt.io/licensing/
 **
-** This file is part of the config.tests of the Qt Toolkit.
+** This file is part of the plugins of the Qt Toolkit.
 **
 ** $QT_BEGIN_LICENSE:LGPL$
 ** Commercial License Usage
@@ -37,8 +37,8 @@
 **
 ****************************************************************************/
 
-#ifndef QWAYLANDSHELLSURFACE_H
-#define QWAYLANDSHELLSURFACE_H
+#ifndef QWAYLANDCLIENTGLOBAL_H
+#define QWAYLANDCLIENTGLOBAL_H
 
 //
 //  W A R N I N G
@@ -51,61 +51,20 @@
 // We mean it.
 //
 
-#include <QtCore/QSize>
-#include <QObject>
-
-#include <wayland-client.h>
-
-#include <QtWaylandClient/private/qwayland-wayland.h>
-#include <QtWaylandClient/qtwaylandclientglobal.h>
+#include <QtGui/qtguiglobal.h>
+#include <QtWaylandClient/qtwaylandclient-config.h>
 
 QT_BEGIN_NAMESPACE
 
-class QVariant;
-class QWindow;
-
-namespace QtWaylandClient {
-
-class QWaylandWindow;
-class QWaylandInputDevice;
-
-class Q_WAYLAND_CLIENT_EXPORT QWaylandShellSurface : public QObject
-{
-    Q_OBJECT
-public:
-    explicit QWaylandShellSurface(QWaylandWindow *window);
-    ~QWaylandShellSurface() override {}
-    virtual void resize(QWaylandInputDevice * /*inputDevice*/, enum wl_shell_surface_resize /*edges*/)
-    {}
-
-    virtual bool move(QWaylandInputDevice *) { return false; }
-    virtual void setTitle(const QString & /*title*/) {}
-    virtual void setAppId(const QString & /*appId*/) {}
-
-    virtual void setWindowFlags(Qt::WindowFlags flags);
-
-    virtual bool isExposed() const { return true; }
-    virtual bool handleExpose(const QRegion &) { return false; }
-
-    virtual void raise() {}
-    virtual void lower() {}
-    virtual void setContentOrientationMask(Qt::ScreenOrientations orientation) { Q_UNUSED(orientation) }
-
-    virtual void sendProperty(const QString &name, const QVariant &value);
-
-    inline QWaylandWindow *window() { return m_window; }
-
-    virtual void applyConfigure() {}
-    virtual void requestWindowStates(Qt::WindowStates states) {Q_UNUSED(states);}
-    virtual bool wantsDecorations() const { return false; }
-
-private:
-    QWaylandWindow *m_window = nullptr;
-    friend class QWaylandWindow;
-};
-
-}
+#if !defined(Q_WAYLAND_CLIENT_EXPORT)
+#  if defined(QT_SHARED)
+#    define Q_WAYLAND_CLIENT_EXPORT Q_DECL_EXPORT
+#  else
+#    define Q_WAYLAND_CLIENT_EXPORT
+#  endif
+#endif
 
 QT_END_NAMESPACE
 
-#endif // QWAYLANDSHELLSURFACE_H
+#endif //QWAYLANDCLIENTGLOBAL_H
+
