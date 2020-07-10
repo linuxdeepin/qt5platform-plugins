@@ -75,6 +75,15 @@ static void onXSettingsChanged(xcb_connection_t *connection, const QByteArray &n
             ct->m_theme = theme;
         }
 
+        // 更新窗口光标
+        for (auto s : DWaylandIntegration::instance()->display()->screens()) {
+            for (QWindow *w : s->windows()) {
+                QCursor cursor = w->cursor();
+                // 为窗口重新设置光标
+                s->cursor()->changeCursor(&cursor, w);
+            }
+        }
+
         break;
     }
 }
