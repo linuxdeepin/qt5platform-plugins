@@ -10,6 +10,7 @@
 
 #include <KWayland/Client/registry.h>
 #include <KWayland/Client/plasmashell.h>
+#include <KWayland/Client/server_decoration.h>
 
 #include <QGuiApplication>
 #include <QPointer>
@@ -28,6 +29,10 @@ namespace QtWaylandClient {
 static QPointer<KWayland::Client::PlasmaShell> kwayland_shell;
 // 用于记录设置过以_DWAYALND_开头的属性，当kwyalnd_shell对象创建以后要使这些属性生效
 static QList<QPointer<QWaylandWindow>> send_property_window_list;
+// kwin合成器提供的窗口边框管理器
+static QPointer<KWayland::Client::ServerSideDecorationManager> kwayland_ssd;
+// 在kwayland_ssd创建之前记录下已经创建的窗口
+static QList<QPointer<QWaylandWindow>> wayland_window_list;
 
 static KWayland::Client::PlasmaShellSurface* createKWayland(QWaylandWindow *window)
 {
@@ -42,22 +47,28 @@ static KWayland::Client::PlasmaShellSurface* createKWayland(QWaylandWindow *wind
     return nullptr;
 }
 
+static KWayland::Client::PlasmaShellSurface *ensureKWaylandSurface(QWaylandShellSurface *self)
+{
+    auto *ksurface = self->findChild<KWayland::Client::PlasmaShellSurface*>();
+
+    if (!ksurface) {
+        ksurface = createKWayland(self->window());
+    }
+
+    return ksurface;
+}
+
 static void sendProperty(QWaylandShellSurface *self, const QString &name, const QVariant &value)
 {
     if (!name.startsWith(QStringLiteral(_DWAYALND_)))
         return VtableHook::callOriginalFun(self, &QWaylandShellSurface::sendProperty, name, value);
 
-    auto *ksurface = self->findChild<KWayland::Client::PlasmaShellSurface*>();
-
+    auto *ksurface = ensureKWaylandSurface(self);
+    // 如果创建失败则说明kwaylnd_shell对象还未初始化，应当终止设置
+    // 记录下本次的设置行为，kwayland_shell创建后会重新设置这些属性
     if (!ksurface) {
-        ksurface = createKWayland(self->window());
-
-        // 如果创建失败则说明kwaylnd_shell对象还未初始化，应当终止设置
-        // 记录下本次的设置行为，kwayland_shell创建后会重新设置这些属性
-        if (!ksurface) {
-            send_property_window_list << self->window();
-            return;
-        }
+        send_property_window_list << self->window();
+        return;
     }
 
     if (QStringLiteral(_DWAYALND_ "window-position") == name) {
@@ -83,11 +94,52 @@ static void setGeometry(QPlatformWindow *self, const QRect &rect)
     }
 }
 
+static bool disableClientDecorations(QWaylandShellSurface *surface)
+{
+    Q_UNUSED(surface)
+
+    // 禁用qtwayland自带的bradient边框（太丑了）
+    return false;
+}
+
+static void createServerDecoration(QWaylandWindow *window)
+{
+    bool decoration = false;
+    switch (window->window()->type()) {
+        case Qt::Window:
+        case Qt::Widget:
+        case Qt::Dialog:
+        case Qt::Tool:
+        case Qt::Drawer:
+            decoration = true;
+            break;
+        default:
+            break;
+    }
+    if (window->window()->flags() & Qt::FramelessWindowHint)
+        decoration = false;
+    if (window->window()->flags() & Qt::BypassWindowManagerHint)
+        decoration = false;
+
+    if (!decoration)
+        return;
+
+    auto *surface = window->object();
+
+    if (!surface)
+        return;
+
+    // 创建由kwin server渲染的窗口边框对象
+    auto ssd = kwayland_ssd->create(surface);
+    ssd->requestMode(KWayland::Client::ServerSideDecoration::Mode::Server);
+}
+
 static QWaylandShellSurface *createShellSurface(QWaylandShellIntegration *self, QWaylandWindow *window)
 {
     auto surface = VtableHook::callOriginalFun(self, &QWaylandShellIntegration::createShellSurface, window);
 
     VtableHook::overrideVfptrFun(surface, &QWaylandShellSurface::sendProperty, sendProperty);
+    VtableHook::overrideVfptrFun(surface, &QWaylandShellSurface::wantsDecorations, disableClientDecorations);
     VtableHook::overrideVfptrFun(window, &QPlatformWindow::setGeometry, setGeometry);
 
     // 初始化设置窗口位置
@@ -100,6 +152,14 @@ static QWaylandShellSurface *createShellSurface(QWaylandShellIntegration *self, 
             // 将窗口自定义属性记录到wayland window property中
             window->sendProperty(pname, window->window()->property(pname.constData()));
         }
+    }
+
+    // 如果kwayland的server窗口装饰已转变完成，则为窗口创建边框
+    if (kwayland_ssd) {
+        createServerDecoration(window);
+    } else {
+        // 记录下来，等待kwayland的对象创建完成后为其创建边框
+        wayland_window_list << window;
     }
 
     return surface;
@@ -143,6 +203,19 @@ QWaylandShellIntegration *QKWaylandShellIntegrationPlugin::create(const QString 
         }
 
         send_property_window_list.clear();
+    });
+    connect(registry, &KWayland::Client::Registry::serverSideDecorationManagerAnnounced,
+            this, [registry] (quint32 name, quint32 version) {
+        kwayland_ssd = registry->createServerSideDecorationManager(name, version, registry->parent());
+
+        for (auto w : wayland_window_list) {
+            if (!w)
+                continue;
+            // 为窗口创建标题栏
+            createServerDecoration(w);
+        }
+
+        wayland_window_list.clear();
     });
     registry->setup();
 
