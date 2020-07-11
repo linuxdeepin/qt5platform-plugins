@@ -79,6 +79,9 @@ static void sendProperty(QWaylandShellSurface *self, const QString &name, const 
         if (type == "dock") {
             ksurface->setRole(KWayland::Client::PlasmaShellSurface::Role::Panel);
             ksurface->setPanelBehavior(KWayland::Client::PlasmaShellSurface::PanelBehavior::AlwaysVisible);
+        } else if (type == "launcher") {
+            ksurface->setRole(KWayland::Client::PlasmaShellSurface::Role::StandAlone);
+            ksurface->setPanelBehavior(KWayland::Client::PlasmaShellSurface::PanelBehavior::AlwaysVisible);
         }
     }
 }
