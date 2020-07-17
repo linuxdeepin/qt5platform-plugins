@@ -117,6 +117,7 @@ public:
 
     static qint32 getWorkspaceForWindow(quint32 WId);
     static QVector<quint32> getWindows();
+    static quint32 windowFromPoint(const QPoint &p);
     static QVector<quint32> getCurrentWorkspaceWindows();
 
     struct QtMotifWmHints {

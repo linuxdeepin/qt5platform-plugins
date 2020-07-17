@@ -879,6 +879,11 @@ QVector<uint> Utility::getWindows()
     return DXcbWMSupport::instance()->allWindow();
 }
 
+quint32 Utility::windowFromPoint(const QPoint &p)
+{
+    return DXcbWMSupport::instance()->windowFromPoint(p);
+}
+
 QVector<uint> Utility::getCurrentWorkspaceWindows()
 {
     qint32 current_workspace = 0;

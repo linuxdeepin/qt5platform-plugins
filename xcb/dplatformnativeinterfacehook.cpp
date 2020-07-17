@@ -74,6 +74,8 @@ static QFunctionPointer getFunction(const QByteArray &function)
         return reinterpret_cast<QFunctionPointer>(&DWMSupport::connectHasNoTitlebarChanged);
     } else if (function == getWindows) {
         return reinterpret_cast<QFunctionPointer>(&Utility::getWindows);
+    } else if (function == windowFromPoint) {
+        return reinterpret_cast<QFunctionPointer>(&Utility::windowFromPoint);
     } else if (function == getCurrentWorkspaceWindows) {
         return reinterpret_cast<QFunctionPointer>(&Utility::getCurrentWorkspaceWindows);
     } else if (function == connectWindowListChanged) {

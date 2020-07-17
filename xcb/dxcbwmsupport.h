@@ -111,6 +111,7 @@ public:
     QString windowManagerName() const;
 
     QVector<xcb_window_t> allWindow() const;
+    xcb_window_t windowFromPoint(const QPoint &p) const;
 
 signals:
     void windowManagerChanged();

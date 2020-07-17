@@ -70,6 +70,7 @@ DEFINE_CONST_CHAR(connectHasBlurWindowChanged);
 DEFINE_CONST_CHAR(connectHasCompositeChanged);
 DEFINE_CONST_CHAR(connectHasNoTitlebarChanged);
 DEFINE_CONST_CHAR(getWindows);
+DEFINE_CONST_CHAR(windowFromPoint);
 DEFINE_CONST_CHAR(getCurrentWorkspaceWindows);
 DEFINE_CONST_CHAR(connectWindowListChanged);
 DEFINE_CONST_CHAR(setMWMFunctions);
