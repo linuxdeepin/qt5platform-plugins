@@ -12,6 +12,8 @@
 #include <KWayland/Client/plasmashell.h>
 #include <KWayland/Client/server_decoration.h>
 
+#include <dshellsurface.h>
+
 #include <QGuiApplication>
 #include <QPointer>
 #include <QDebug>
@@ -23,6 +25,7 @@
 #define _DWAYALND_ "_d_dwayland_"
 
 DPP_USE_NAMESPACE
+using namespace DWaylandClient;
 
 namespace QtWaylandClient {
 // kwayland中PlasmaShell的全局对象，用于使用kwayland中的扩展协议
@@ -33,6 +36,8 @@ static QList<QPointer<QWaylandWindow>> send_property_window_list;
 static QPointer<KWayland::Client::ServerSideDecorationManager> kwayland_ssd;
 // 在kwayland_ssd创建之前记录下已经创建的窗口
 static QList<QPointer<QWaylandWindow>> wayland_window_list;
+// dde wayland协议的manager
+static QPointer<DShellSurfaceManager> dde_wayland;
 
 static KWayland::Client::PlasmaShellSurface* createKWayland(QWaylandWindow *window)
 {
@@ -58,6 +63,21 @@ static KWayland::Client::PlasmaShellSurface *ensureKWaylandSurface(QWaylandShell
     return ksurface;
 }
 
+static QMargins windowFrameMargins(QPlatformWindow *window)
+{
+    QWaylandWindow *wayland_window = static_cast<QWaylandWindow*>(window);
+
+    if (DShellSurface *s = dde_wayland->ensureShellSurface(wayland_window->object())) {
+        const QVariant &value= s->property("frameMargins");
+        if (value.type() == QVariant::Rect) {
+            const QRect &frame_margins = value.toRect();
+            return QMargins(frame_margins.left(), frame_margins.top(), frame_margins.right(), frame_margins.bottom());
+        }
+    }
+
+    return wayland_window->QPlatformWindow::frameMargins();
+}
+
 static void sendProperty(QWaylandShellSurface *self, const QString &name, const QVariant &value)
 {
     if (!name.startsWith(QStringLiteral(_DWAYALND_)))
@@ -72,7 +92,15 @@ static void sendProperty(QWaylandShellSurface *self, const QString &name, const 
     }
 
     if (QStringLiteral(_DWAYALND_ "window-position") == name) {
-        ksurface->setPosition(value.toPoint());
+        QWaylandWindow *wayland_window = self->window();
+
+        // 如果窗口没有使用内置的标题栏，则在设置窗口位置时要考虑窗口管理器为窗口添加的标题栏
+        if (!wayland_window->decoration()) {
+            const QMargins &margins = windowFrameMargins(wayland_window);
+            ksurface->setPosition(value.toPoint() - QPoint(margins.left(), margins.top()));
+        } else {
+            ksurface->setPosition(value.toPoint());
+        }
     } else if (QStringLiteral(_DWAYALND_ "window-type") == name) {
         const QByteArray &type = value.toByteArray();
 
@@ -137,6 +165,41 @@ static void createServerDecoration(QWaylandWindow *window)
     ssd->requestMode(KWayland::Client::ServerSideDecoration::Mode::Server);
 }
 
+static QRect windowGeometry(QPlatformWindow *window)
+{
+    QWaylandWindow *wayland_window = static_cast<QWaylandWindow*>(window);
+    QRect rect = wayland_window->QPlatformWindow::geometry();
+
+    // 纠正窗口位置
+    if (DShellSurface *s = dde_wayland->ensureShellSurface(wayland_window->object())) {
+        rect.moveTopLeft(s->geometry().topLeft());
+
+        if (!wayland_window->decoration()) {
+            const QMargins &margins = windowFrameMargins(wayland_window);
+            rect.translate(margins.left(), margins.top());
+        }
+    }
+
+    return rect;
+}
+
+static void registerWidnowForDDESurface(DShellSurface *surface)
+{
+    if (!surface->window())
+        return;
+
+    auto wayland_window = static_cast<QWaylandWindow*>(surface->window()->handle());
+    // 覆盖窗口geometry
+    VtableHook::overrideVfptrFun(wayland_window, &QPlatformWindow::geometry, windowGeometry);
+    // 没有使用内置边框的窗口应当从窗管获取frameMargins
+    // 暂时不要开启此逻辑，qtwayland 5.11中假定窗口无外边框，不能正常处理frameMargins
+//    if (!wayland_window->decoration())
+//        VtableHook::overrideVfptrFun(wayland_window, &QPlatformWindow::frameMargins, windowFrameMargins);
+    QObject::connect(surface, &DShellSurface::geometryChanged, surface, [surface] () {
+        QWindowSystemInterface::handleGeometryChange(surface->window(), surface->window()->handle()->geometry());
+    });
+}
+
 static QWaylandShellSurface *createShellSurface(QWaylandShellIntegration *self, QWaylandWindow *window)
 {
     auto surface = VtableHook::callOriginalFun(self, &QWaylandShellIntegration::createShellSurface, window);
@@ -163,6 +226,17 @@ static QWaylandShellSurface *createShellSurface(QWaylandShellIntegration *self, 
     } else {
         // 记录下来，等待kwayland的对象创建完成后为其创建边框
         wayland_window_list << window;
+    }
+
+    if (dde_wayland) {
+        //  注册使用dde wayland的接口
+        auto s = dde_wayland->registerWindow(window->window());
+
+        if (s) {
+            registerWidnowForDDESurface(s);
+        } else {
+            QObject::connect(dde_wayland, &DShellSurfaceManager::surfaceCreated, window, registerWidnowForDDESurface);
+        }
     }
 
     return surface;
@@ -220,6 +294,9 @@ QWaylandShellIntegration *QKWaylandShellIntegrationPlugin::create(const QString 
 
         wayland_window_list.clear();
     });
+
+    // 窗口dde wayland的管理接口
+    dde_wayland = new DShellSurfaceManager(this);
     registry->setup();
 
     return shell;

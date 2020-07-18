@@ -9,7 +9,7 @@ Build-Depends: debhelper (>=9), qtbase5-dev, qtbase5-private-dev,
  libudev-dev, libxrender-dev,libxi-dev, libsm-dev, libxcb-xinerama0-dev,
  libfontconfig1-dev, libfreetype6-dev, libglib2.0-dev, libxcb-damage0-dev,
  libxcb-composite0-dev, libcairo2-dev, libqt5waylandclient5-dev, libkf5wayland-dev,
- libwayland-dev
+ libwayland-dev, libdde-waylandclient-dev
 Standards-Version: 3.9.8
 
 Package: dde-qt5xcb-plugin
