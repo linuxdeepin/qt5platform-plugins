@@ -60,7 +60,7 @@ public:
         if (!vfptr_t1)
             return nullptr;
 
-        // symbol address + 2 * sizeof(quintptr) = virtal table start address
+        // symbol address + 2 * sizeof(quintptr) = virtual table start address
         return vfptr_t1 + 2;
     }
 
