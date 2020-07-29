@@ -31,15 +31,11 @@
 
 DPP_BEGIN_NAMESPACE
 
-#ifdef Q_OS_LINUX
-class DXcbXSettings;
-typedef DXcbXSettings NativeSettings;
-#endif
-
+class DPlatformSettings;
 class DNativeSettings : public QAbstractDynamicMetaObject
 {
 public:
-    explicit DNativeSettings(QObject *base, NativeSettings *settings, bool global_settings);
+    explicit DNativeSettings(QObject *base, DPlatformSettings *settings, bool global_settings);
     ~DNativeSettings();
 
     static QByteArray getSettingsProperty(QObject *base);
@@ -52,8 +48,8 @@ private:
     int metaCall(QMetaObject::Call, int _id, void **) override;
     bool isRelaySignal() const;
 
-    static void onPropertyChanged(void *screen, const QByteArray &name, const QVariant &property, DNativeSettings *handle);
-    static void onSignal(void *screen, const QByteArray &signal, qint32 data1, qint32 data2, DNativeSettings *handle);
+    static void onPropertyChanged(const QByteArray &name, const QVariant &property, DNativeSettings *handle);
+    static void onSignal(const QByteArray &signal, qint32 data1, qint32 data2, DNativeSettings *handle);
 
     QObject *m_base;
     QMetaObject *m_metaObject = nullptr;
@@ -68,7 +64,7 @@ private:
     int m_allKeysPropertyIndex;
     // 用于转发base对象产生的信号的槽，使用native settings的接口将其发送出去. 值为0时表示不转发base对象的所有信号
     int m_relaySlotIndex = 0;
-    NativeSettings *m_settings = nullptr;
+    DPlatformSettings *m_settings = nullptr;
     bool m_isGlobalSettings = false;
 
     static QHash<QObject*, DNativeSettings*> mapped;

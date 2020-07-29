@@ -40,7 +40,7 @@
 #ifndef DXCBXSETTINGS_H
 #define DXCBXSETTINGS_H
 
-#include "global.h"
+#include "dplatformsettings.h"
 
 #include <QByteArray>
 #include <QByteArrayList>
@@ -55,7 +55,7 @@ DPP_BEGIN_NAMESPACE
 
 class DXcbXSettingsPrivate;
 
-class DXcbXSettings
+class DXcbXSettings : public DPlatformSettings
 {
     Q_DECLARE_PRIVATE(DXcbXSettings)
 public:
@@ -65,13 +65,13 @@ public:
     ~DXcbXSettings();
 
     static xcb_window_t getOwner(xcb_connection_t *conn = nullptr, int screenNumber = 0);
-    bool initialized() const;
-    bool isEmpty() const;
+    bool initialized() const override;
+    bool isEmpty() const override;
 
-    bool contains(const QByteArray &property) const;
-    QVariant setting(const QByteArray &property) const;
-    void setSetting(const QByteArray &property, const QVariant &value);
-    QByteArrayList settingKeys() const;
+    bool contains(const QByteArray &property) const override;
+    QVariant setting(const QByteArray &property) const override;
+    void setSetting(const QByteArray &property, const QVariant &value) override;
+    QByteArrayList settingKeys() const override;
 
     typedef void (*PropertyChangeFunc)(xcb_connection_t *connection, const QByteArray &name, const QVariant &property, void *handle);
     void registerCallback(PropertyChangeFunc func, void *handle);
@@ -81,7 +81,7 @@ public:
     typedef void (*SignalFunc)(xcb_connection_t *connection, const QByteArray &signal, qint32 data1, qint32 data2, void *handle);
     void registerSignalCallback(SignalFunc func, void *handle);
     void removeSignalCallback(void *handle);
-    void emitSignal(const QByteArray &signal, qint32 data1, qint32 data2);
+    void emitSignal(const QByteArray &signal, qint32 data1, qint32 data2) override;
 
     static void emitSignal(xcb_connection_t *conn, xcb_window_t window, xcb_atom_t type, const QByteArray &signal, qint32 data1, qint32 data2);
     static bool handlePropertyNotifyEvent(const xcb_property_notify_event_t *event);
@@ -90,6 +90,7 @@ public:
     static void clearSettings(xcb_window_t setting_window);
 private:
     DXcbXSettingsPrivate *d_ptr;
+    friend class DXcbXSettingsPrivate;
 };
 
 DPP_END_NAMESPACE

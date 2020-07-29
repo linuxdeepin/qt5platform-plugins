@@ -192,9 +192,10 @@ void DXcbConnectionGrabber::release()
 class Q_DECL_HIDDEN DXcbXSettingsPrivate
 {
 public:
-    DXcbXSettingsPrivate(xcb_connection_t *connection, const QByteArray &property)
+    DXcbXSettingsPrivate(xcb_connection_t *connection, const QByteArray &property, DXcbXSettings *qq)
         : connection(connection)
         , initialized(false)
+        , q_ptr(qq)
     {
         if (property.isEmpty()) {
             x_settings_atom = internAtom(connection, "_XSETTINGS_SETTINGS");
@@ -498,12 +499,15 @@ public:
                 callback.func(connection, name, value, callback.handle);
             }
 
+            q_ptr->handlePropertyChanged(name, value);
+
             return true;
         }
 
         return false;
     }
 
+    DXcbXSettings *q_ptr = nullptr;
     xcb_connection_t *connection;
     xcb_window_t x_settings_window;
     // 保存xsetting值的窗口属性
@@ -534,7 +538,7 @@ DXcbXSettings::DXcbXSettings(xcb_connection_t *connection, const QByteArray &pro
 }
 
 DXcbXSettings::DXcbXSettings(xcb_connection_t *connection, xcb_window_t setting_window, const QByteArray &property)
-    : d_ptr(new DXcbXSettingsPrivate(connection, property))
+    : d_ptr(new DXcbXSettingsPrivate(connection, property, this))
 {
     if (!setting_window) {
         setting_window = d_ptr->_xsettings_owner;
@@ -670,16 +674,19 @@ bool DXcbXSettings::handleClientMessageEvent(const xcb_client_message_event_t *e
             if (type && type != self->d_ptr->x_settings_atom)
                 continue;
 
-            for (DXcbXSettingsSignalCallback cb : self->d_ptr->signal_callback_links) {
-                // data32[2]为signal id
-                xcb_atom_t signal = event->data.data32[2];
+            // data32[2]为signal id
+            xcb_atom_t signal = event->data.data32[2];
 #ifdef IN_DXCB_PLUGIN
-                const QByteArray signal_string(DPlatformIntegration::xcbConnection()->atomName(signal));
+            const QByteArray signal_string(DPlatformIntegration::xcbConnection()->atomName(signal));
 #else
-                const QByteArray signal_string(atomName(self->d_ptr->connection, signal));
+            const QByteArray signal_string(atomName(self->d_ptr->connection, signal));
 #endif
+
+            for (DXcbXSettingsSignalCallback cb : self->d_ptr->signal_callback_links) {
                 cb.func(self->d_ptr->connection, signal_string, event->data.data32[3], event->data.data32[4], cb.handle);
             }
+
+            self->handleNotify(signal_string, event->data.data32[3], event->data.data32[4]);
         }
 
         return true;

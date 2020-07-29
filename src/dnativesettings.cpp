@@ -41,7 +41,7 @@ QHash<QObject*, DNativeSettings*> DNativeSettings::mapped;
  * 通过覆盖QObject的qt_metacall虚函数，检测base object中自定义的属性列表，将xwindow对应的设置和object对象中的属性绑定到一起使用
  * 将对象通过property/setProperty调用对属性的读写操作转为对xsetting的属性设 置
  */
-DNativeSettings::DNativeSettings(QObject *base, NativeSettings *settings, bool global_settings)
+DNativeSettings::DNativeSettings(QObject *base, DPlatformSettings *settings, bool global_settings)
     : m_base(base)
     , m_settings(settings)
     , m_isGlobalSettings(global_settings)
@@ -200,11 +200,11 @@ void DNativeSettings::init(const QMetaObject *metaObject)
 
     m_propertySignalIndex = metaObject->indexOfMethod(QMetaObject::normalizedSignature("propertyChanged(const QByteArray&, const QVariant&)"));
     // 监听native setting变化
-    m_settings->registerCallback(reinterpret_cast<NativeSettings::PropertyChangeFunc>(onPropertyChanged), this);
+    m_settings->registerCallback(reinterpret_cast<DPlatformSettings::PropertyChangeFunc>(onPropertyChanged), this);
     // 监听信号. 如果base对象声明了要转发其信号，则此对象不应该关心来自于native settings的信号
     // 即信号的生产者和消费者只能选其一
     if (!isRelaySignal()) {
-        m_settings->registerSignalCallback(reinterpret_cast<NativeSettings::SignalFunc>(onSignal), this);
+        m_settings->registerSignalCallback(reinterpret_cast<DPlatformSettings::SignalFunc>(onSignal), this);
     }
     // 支持在base对象中直接使用property/setProperty读写native属性
     QObjectPrivate *op = QObjectPrivate::get(m_base);
@@ -303,10 +303,8 @@ int DNativeSettings::createProperty(const char *name, const char *)
     return m_firstProperty + property.index();
 }
 
-void DNativeSettings::onPropertyChanged(void *screen, const QByteArray &name, const QVariant &property, DNativeSettings *handle)
+void DNativeSettings::onPropertyChanged(const QByteArray &name, const QVariant &property, DNativeSettings *handle)
 {
-    Q_UNUSED(screen)
-
     if (handle->m_propertySignalIndex >= 0) {
         handle->method(handle->m_propertySignalIndex).invoke(handle->m_base, Q_ARG(QByteArray, name), Q_ARG(QVariant, property));
     }
@@ -376,10 +374,8 @@ void DNativeSettings::onPropertyChanged(void *screen, const QByteArray &name, co
 }
 
 // 处理native settings发过来的信号
-void DNativeSettings::onSignal(void *screen, const QByteArray &signal, qint32 data1, qint32 data2, DNativeSettings *handle)
+void DNativeSettings::onSignal(const QByteArray &signal, qint32 data1, qint32 data2, DNativeSettings *handle)
 {
-    Q_UNUSED(screen)
-
     // 根据不同的参数寻找对应的信号
     static QByteArrayList signal_suffixs {
         QByteArrayLiteral("()"),
