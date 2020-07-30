@@ -110,6 +110,8 @@ static void sendProperty(QWaylandShellSurface *self, const QString &name, const 
         } else if (type == "launcher") {
             ksurface->setRole(KWayland::Client::PlasmaShellSurface::Role::StandAlone);
             ksurface->setPanelBehavior(KWayland::Client::PlasmaShellSurface::PanelBehavior::AlwaysVisible);
+        } else if (type == "session-shell") {
+            ksurface->setRole(KWayland::Client::PlasmaShellSurface::Role::Override);
         }
     }
 }
