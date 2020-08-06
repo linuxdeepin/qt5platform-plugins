@@ -93,7 +93,6 @@ static void sendProperty(QWaylandShellSurface *self, const QString &name, const 
 
     if (QStringLiteral(_DWAYALND_ "window-position") == name) {
         QWaylandWindow *wayland_window = self->window();
-        ksurface->setRole(KWayland::Client::PlasmaShellSurface::Role::ToolTip);
 
         // 如果窗口没有使用内置的标题栏，则在设置窗口位置时要考虑窗口管理器为窗口添加的标题栏
         if (!wayland_window->decoration()) {
@@ -113,6 +112,8 @@ static void sendProperty(QWaylandShellSurface *self, const QString &name, const 
             ksurface->setPanelBehavior(KWayland::Client::PlasmaShellSurface::PanelBehavior::AlwaysVisible);
         } else if (type == "session-shell") {
             ksurface->setRole(KWayland::Client::PlasmaShellSurface::Role::Override);
+        } else if (type == "tooltip") {
+            ksurface->setRole(KWayland::Client::PlasmaShellSurface::Role::ToolTip);
         }
     }
 }
