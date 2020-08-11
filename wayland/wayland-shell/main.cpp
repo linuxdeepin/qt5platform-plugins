@@ -39,6 +39,15 @@ static QList<QPointer<QWaylandWindow>> wayland_window_list;
 // dde wayland协议的manager
 static QPointer<DShellSurfaceManager> dde_wayland;
 
+inline static ::wl_surface *getWindowWLSurface(QWaylandWindow *window)
+{
+#if QT_VERSION >= QT_VERSION_CHECK(5, 14, 0)
+    return window->wlSurface();
+#else
+    return window->object();
+#endif
+}
+
 static KWayland::Client::PlasmaShellSurface* createKWayland(QWaylandWindow *window)
 {
     if (!window)
@@ -46,7 +55,7 @@ static KWayland::Client::PlasmaShellSurface* createKWayland(QWaylandWindow *wind
 
     if (kwayland_shell) {
         auto surface = window->shellSurface();
-        return kwayland_shell->createSurface(window->object(), surface);
+        return kwayland_shell->createSurface(getWindowWLSurface(window), surface);
     }
 
     return nullptr;
@@ -67,7 +76,7 @@ static QMargins windowFrameMargins(QPlatformWindow *window)
 {
     QWaylandWindow *wayland_window = static_cast<QWaylandWindow*>(window);
 
-    if (DShellSurface *s = dde_wayland->ensureShellSurface(wayland_window->object())) {
+    if (DShellSurface *s = dde_wayland->ensureShellSurface(getWindowWLSurface(wayland_window))) {
         const QVariant &value= s->property("frameMargins");
         if (value.type() == QVariant::Rect) {
             const QRect &frame_margins = value.toRect();
@@ -108,10 +117,14 @@ static void sendProperty(QWaylandShellSurface *self, const QString &name, const 
             ksurface->setRole(KWayland::Client::PlasmaShellSurface::Role::Panel);
             ksurface->setPanelBehavior(KWayland::Client::PlasmaShellSurface::PanelBehavior::AlwaysVisible);
         } else if (type == "launcher") {
+#ifdef D_DEEPIN_KWIN
             ksurface->setRole(KWayland::Client::PlasmaShellSurface::Role::StandAlone);
+#endif
             ksurface->setPanelBehavior(KWayland::Client::PlasmaShellSurface::PanelBehavior::AlwaysVisible);
         } else if (type == "session-shell") {
+#ifdef D_DEEPIN_KWIN
             ksurface->setRole(KWayland::Client::PlasmaShellSurface::Role::Override);
+#endif
         } else if (type == "tooltip") {
             ksurface->setRole(KWayland::Client::PlasmaShellSurface::Role::ToolTip);
         }
@@ -159,7 +172,7 @@ static void createServerDecoration(QWaylandWindow *window)
     if (!decoration)
         return;
 
-    auto *surface = window->object();
+    auto *surface = getWindowWLSurface(window);
 
     if (!surface)
         return;
@@ -175,7 +188,7 @@ static QRect windowGeometry(QPlatformWindow *window)
     QRect rect = wayland_window->QPlatformWindow::geometry();
 
     // 纠正窗口位置
-    if (DShellSurface *s = dde_wayland->ensureShellSurface(wayland_window->object())) {
+    if (DShellSurface *s = dde_wayland->ensureShellSurface(getWindowWLSurface(wayland_window))) {
         rect.moveTopLeft(s->geometry().topLeft());
 
         if (!wayland_window->decoration()) {

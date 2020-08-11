@@ -44,7 +44,8 @@ HEADERS += \
         $$PWD/dwaylandinterfacehook.h \
         $$PWD/dwaylandintegration.h
 
-INCLUDEPATH += $$PWD/../qtwayland-dev
+qtHaveModule(waylandclient_private) : QT += waylandclient_private
+else: INCLUDEPATH += $$PWD/../qtwayland-dev
 
 include($$PWD/../../src/src.pri)
 

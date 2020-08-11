@@ -15,6 +15,11 @@ else: QT += platformsupport-private
 TARGET = kwayland-shell
 TEMPLATE = lib
 
+load(configure)
+qtCompileTest(deepin-kwin-test) {
+    DEFINES += D_DEEPIN_KWIN
+}
+
 DESTDIR = $$_PRO_FILE_PWD_/../../bin/plugins/wayland-shell-integration
 DEFINES += QT5DWAYLANDPLUGIN_LIBRARY
 
@@ -43,7 +48,8 @@ HEADERS += \
         $$PWD/qt5dwaylandplugin.h \
         $$PWD/qt5dwayland-plugin_global.h
 
-INCLUDEPATH += $$PWD/../qtwayland-dev
+qtHaveModule(waylandclient_private) : QT += waylandclient_private
+else: INCLUDEPATH += $$PWD/../qtwayland-dev
 
 include($$PWD/../../src/src.pri)
 
