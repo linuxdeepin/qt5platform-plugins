@@ -418,11 +418,22 @@ QVector<xcb_window_t> DXcbWMSupport::allWindow() const
     return window_list_stacking;
 }
 
+static QXcbScreen *screenFromPoint(const QPoint &p)
+{
+    for (QXcbScreen *screen : DPlatformIntegration::xcbConnection()->screens()) {
+        if (screen->geometry().contains(p)) {
+            return screen;
+        }
+    }
+
+    return DPlatformIntegration::xcbConnection()->primaryScreen();
+}
+
 xcb_window_t DXcbWMSupport::windowFromPoint(const QPoint &p) const
 {
     xcb_window_t wid = XCB_NONE;
     xcb_connection_t *xcb_connection = DPlatformIntegration::xcbConnection()->xcb_connection();
-    xcb_window_t root = DPlatformIntegration::xcbConnection()->primaryScreen()->root();
+    xcb_window_t root = screenFromPoint(p)->root();
 
     xcb_window_t parent = root;
     xcb_window_t child = root;
