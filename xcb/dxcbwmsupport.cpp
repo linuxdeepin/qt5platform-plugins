@@ -25,6 +25,7 @@
 #include "qxcbscreen.h"
 #undef private
 #include "qxcbwindow.h"
+#include "3rdparty/clientwin.h"
 
 DPP_BEGIN_NAMESPACE
 
@@ -449,6 +450,7 @@ xcb_window_t DXcbWMSupport::windowFromPoint(const QPoint &p) const
     if (!child || child == root)
         return wid;
 
+    child = Find_Client(xcb_connection, root, child);
     wid = child;
     return wid;
 }

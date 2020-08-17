@@ -43,7 +43,9 @@ SOURCES += \
     $$PWD/dplatformintegration.cpp \
     $$PWD/dplatformnativeinterfacehook.cpp \
     dhighdpi.cpp \
-    dnotitlebarwindowhelper.cpp
+    dnotitlebarwindowhelper.cpp \
+    3rdparty/dsimple.c \
+    3rdparty/clientwin.c
 
 HEADERS += \
     $$PWD/dplatformintegration.h \
@@ -52,7 +54,9 @@ HEADERS += \
     $$PWD/dforeignplatformwindow.h \
     $$PWD/dwmsupport.h \
     dhighdpi.h \
-    dnotitlebarwindowhelper.h
+    dnotitlebarwindowhelper.h \
+    3rdparty/dsimple.h \
+    3rdparty/clientwin.h
 
 INCLUDEPATH += $$PWD/../src
 
