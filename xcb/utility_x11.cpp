@@ -675,7 +675,7 @@ void Utility::setMotifWmHints(quint32 WId, Utility::QtMotifWmHints hints)
         }
 
         if (hints.decorations & DXcbWMSupport::MWM_DECOR_ALL) {
-            hints.functions = DXcbWMSupport::MWM_DECOR_ALL;
+            hints.decorations = DXcbWMSupport::MWM_DECOR_ALL;
         }
 
 #ifdef Q_XCB_CALL2
