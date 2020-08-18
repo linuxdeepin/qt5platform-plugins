@@ -30,6 +30,7 @@
 
 #include <QPainter>
 #include <QGuiApplication>
+#include <QLibrary>
 #include <QDebug>
 
 #include <private/qguiapplication_p.h>
@@ -44,6 +45,79 @@
 #endif
 
 DPP_BEGIN_NAMESPACE
+
+class Cairo
+{
+public:
+    Cairo()
+    {
+        cairo = new QLibrary("cairo");
+
+        if (!cairo->load()) {
+            delete cairo;
+            cairo = nullptr;
+            return;
+        }
+
+#define INIT_FUN(Name) Name = reinterpret_cast<decltype(Name)>(cairo->resolve(#Name)); Q_ASSERT(Name)
+
+        INIT_FUN(cairo_image_surface_create_for_data);
+        INIT_FUN(cairo_create);
+        INIT_FUN(cairo_surface_mark_dirty);
+        INIT_FUN(cairo_set_source_rgb);
+        INIT_FUN(cairo_set_source_surface);
+        INIT_FUN(cairo_set_operator);
+        INIT_FUN(cairo_move_to);
+        INIT_FUN(cairo_line_to);
+        INIT_FUN(cairo_curve_to);
+        INIT_FUN(cairo_clip);
+        INIT_FUN(cairo_rectangle);
+        INIT_FUN(cairo_fill);
+        INIT_FUN(cairo_paint);
+        INIT_FUN(cairo_destroy);
+        INIT_FUN(cairo_surface_destroy);
+        INIT_FUN(cairo_xlib_surface_set_drawable);
+        INIT_FUN(cairo_xlib_surface_create);
+        INIT_FUN(cairo_xlib_surface_get_width);
+        INIT_FUN(cairo_xlib_surface_get_height);
+    }
+
+    ~Cairo()
+    {
+        if (cairo)
+            delete cairo;
+    }
+
+    bool isValid() const
+    {
+        return cairo;
+    }
+
+    cairo_surface_t *(*cairo_image_surface_create_for_data)(unsigned char *data, cairo_format_t  format, int width, int height, int stride);
+    cairo_t *(*cairo_create)(cairo_surface_t *target);
+    void (*cairo_surface_mark_dirty)(cairo_surface_t *surface);
+    void (*cairo_set_source_rgb)(cairo_t *cr, double red, double green, double blue);
+    void (*cairo_set_source_surface)(cairo_t *cr, cairo_surface_t *surface, double x, double y);
+    void (*cairo_set_operator)(cairo_t *cr, cairo_operator_t op);
+    void (*cairo_move_to)(cairo_t *cr, double x, double y);
+    void (*cairo_line_to)(cairo_t *cr, double x, double y);
+    void (*cairo_curve_to)(cairo_t *cr, double x1, double y1, double x2, double y2, double x3, double y3);
+    void (*cairo_clip)(cairo_t *cr);
+    void (*cairo_rectangle)(cairo_t *cr, double x, double y, double width, double height);
+    void (*cairo_fill)(cairo_t *cr);
+    void (*cairo_paint)(cairo_t *cr);
+    void (*cairo_destroy)(cairo_t *cr);
+    void (*cairo_surface_destroy)(cairo_surface_t *surface);
+    void (*cairo_xlib_surface_set_drawable)(cairo_surface_t *surface, Drawable drawable, int width, int height);
+    cairo_surface_t *(*cairo_xlib_surface_create)(Display *dpy, Drawable drawable, Visual *visual, int width, int height);
+    int (*cairo_xlib_surface_get_width)(cairo_surface_t *surface);
+    int (*cairo_xlib_surface_get_height)(cairo_surface_t *surface);
+
+private:
+    QLibrary *cairo = nullptr;
+};
+
+Q_GLOBAL_STATIC(Cairo, __cairo)
 
 class DFrameWindowPrivate : public QPaintDeviceWindowPrivate
 {
@@ -156,7 +230,7 @@ DFrameWindow::~DFrameWindow()
 
 #ifdef Q_OS_LINUX
     if (nativeWindowXSurface)
-        cairo_surface_destroy(nativeWindowXSurface);
+        __cairo->cairo_surface_destroy(nativeWindowXSurface);
 
     if (nativeWindowXPixmap != XCB_PIXMAP_NONE)
         xcb_free_pixmap(DPlatformIntegration::xcbConnection()->xcb_connection(), nativeWindowXPixmap);
@@ -718,13 +792,13 @@ void DFrameWindow::drawNativeWindowXPixmap(xcb_rectangle_t *rects, int length)
                  source_image.width(), source_image.height(),
                  source_image.bytesPerLine(), source_image.format());
     const cairo_format_t format = cairo_format_from_qimage_format(image.format());
-    cairo_surface_t *surface = cairo_image_surface_create_for_data(image.bits(), format, image.width(), image.height(), image.bytesPerLine());
-    cairo_t *cr = cairo_create(surface);
+    cairo_surface_t *surface = __cairo->cairo_image_surface_create_for_data(image.bits(), format, image.width(), image.height(), image.bytesPerLine());
+    cairo_t *cr = __cairo->cairo_create(surface);
 
-    cairo_surface_mark_dirty(nativeWindowXSurface);
-    cairo_set_source_rgb(cr, 0, 255, 0);
-    cairo_set_source_surface(cr, nativeWindowXSurface, offset.x(), offset.y());
-    cairo_set_operator(cr, CAIRO_OPERATOR_SOURCE);
+    __cairo->cairo_surface_mark_dirty(nativeWindowXSurface);
+    __cairo->cairo_set_source_rgb(cr, 0, 255, 0);
+    __cairo->cairo_set_source_surface(cr, nativeWindowXSurface, offset.x(), offset.y());
+    __cairo->cairo_set_operator(cr, CAIRO_OPERATOR_SOURCE);
 
     bool clip = false;
 
@@ -734,11 +808,11 @@ void DFrameWindow::drawNativeWindowXPixmap(xcb_rectangle_t *rects, int length)
         switch (e.type) {
         case QPainterPath::MoveToElement:
             clip = true;
-            cairo_move_to(cr, e.x, e.y);
+            __cairo->cairo_move_to(cr, e.x, e.y);
             break;
         case QPainterPath::LineToElement:
             clip = true;
-            cairo_line_to(cr, e.x, e.y);
+            __cairo->cairo_line_to(cr, e.x, e.y);
             break;
         case QPainterPath::CurveToElement: {
             clip = true;
@@ -746,7 +820,7 @@ void DFrameWindow::drawNativeWindowXPixmap(xcb_rectangle_t *rects, int length)
             const QPainterPath::Element &p2 = m_clipPath.elementAt(++i);
             const QPainterPath::Element &p3 = m_clipPath.elementAt(++i);
 
-            cairo_curve_to(cr, e.x, e.y, p2.x, p2.y, p3.x, p3.y);
+            __cairo->cairo_curve_to(cr, e.x, e.y, p2.x, p2.y, p3.x, p3.y);
             break;
         }
         default:
@@ -755,7 +829,7 @@ void DFrameWindow::drawNativeWindowXPixmap(xcb_rectangle_t *rects, int length)
     }
 
     if (clip) {
-        cairo_clip(cr);
+        __cairo->cairo_clip(cr);
     }
 
     if (rects) {
@@ -763,19 +837,19 @@ void DFrameWindow::drawNativeWindowXPixmap(xcb_rectangle_t *rects, int length)
             const xcb_rectangle_t &rect = rects[i];
 
             d_func()->flushArea += QRect(rect.x + offset.x(), rect.y + offset.y(), rect.width, rect.height);
-            cairo_rectangle(cr, rect.x + offset.x(), rect.y + offset.y(), rect.width, rect.height);
-            cairo_fill(cr);
+            __cairo->cairo_rectangle(cr, rect.x + offset.x(), rect.y + offset.y(), rect.width, rect.height);
+            __cairo->cairo_fill(cr);
         }
     } else {
-        cairo_paint(cr);
+        __cairo->cairo_paint(cr);
 
         // draw shadow
         drawShadowTo(&image);
         d_func()->flushArea = QRect(QPoint(0, 0), d_func()->size);
     }
 
-    cairo_destroy(cr);
-    cairo_surface_destroy(surface);
+    __cairo->cairo_destroy(cr);
+    __cairo->cairo_surface_destroy(surface);
 
     d_func()->flush(QRegion());
 }
@@ -808,14 +882,14 @@ bool DFrameWindow::updateNativeWindowXPixmap(int width, int height)
     }
 
     if (Q_LIKELY(nativeWindowXSurface)) {
-        cairo_xlib_surface_set_drawable(nativeWindowXSurface, nativeWindowXPixmap, width, height);
-    } else {
+        __cairo->cairo_xlib_surface_set_drawable(nativeWindowXSurface, nativeWindowXPixmap, width, height);
+    } else if (__cairo->isValid()) {
         Display *display = (Display*)DPlatformIntegration::xcbConnection()->xlib_display();
 
         XWindowAttributes attr;
         XGetWindowAttributes(display, winId, &attr);
         //###(zccrs): 只能使用cairo的xlib接口，使用xcb接口会导致从创建的surface中读取内容时不正确
-        nativeWindowXSurface = cairo_xlib_surface_create(display, nativeWindowXPixmap, attr.visual, attr.width, attr.height);
+        nativeWindowXSurface = __cairo->cairo_xlib_surface_create(display, nativeWindowXPixmap, attr.visual, attr.width, attr.height);
     }
 
     return true;
@@ -902,8 +976,8 @@ void DFrameWindow::updateContentMarginsHint(bool force)
     qreal height_extra = (m_contentMarginsHint.top() + m_contentMarginsHint.bottom()) * device_pixel_ratio;
 #ifdef Q_OS_LINUX
     if (nativeWindowXSurface) {
-        int width = cairo_xlib_surface_get_width(nativeWindowXSurface);
-        int height = cairo_xlib_surface_get_height(nativeWindowXSurface);
+        int width = __cairo->cairo_xlib_surface_get_width(nativeWindowXSurface);
+        int height = __cairo->cairo_xlib_surface_get_height(nativeWindowXSurface);
 
         d_func()->resize(QSize(width + qRound(width_extra), height + qRound(height_extra)));
     }
