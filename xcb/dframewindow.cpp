@@ -51,7 +51,8 @@ class Cairo
 public:
     Cairo()
     {
-        cairo = new QLibrary("cairo");
+        // fix found lib was libcairo2-dev without version number
+        cairo = new QLibrary("cairo", "2");
 
         if (!cairo->load()) {
             delete cairo;
