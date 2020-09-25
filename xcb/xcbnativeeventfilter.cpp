@@ -325,7 +325,9 @@ void XcbNativeEventFilter::updateXIDeviceInfoMap()
         XFree(props);
     }
 
-    XIFreeDeviceInfo(devices);
+    // XIQueryDevice may return NULL..boom
+    if (devices)
+        XIFreeDeviceInfo(devices);
 }
 
 DPP_END_NAMESPACE
