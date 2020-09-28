@@ -487,6 +487,15 @@ bool DXcbWMSupport::hasComposite() const
 
 bool DXcbWMSupport::hasNoTitlebar() const
 {
+    /*
+    *  NOTE(lxz): Some dtk windows may be started before the window manager,
+    *  and the rounded corners of the window cannot be set correctly,
+    *  and need to use environment variables to force the setting.
+    */
+    if (qEnvironmentVariableIsSet("D_DXCB_FORCE_NO_TITLEBAR")) {
+        return qEnvironmentVariableIntValue("D_DXCB_FORCE_NO_TITLEBAR") != 0;
+    }
+
     static bool disable = qEnvironmentVariableIsSet("D_DXCB_DISABLE_NO_TITLEBAR");
 
     return !disable && m_hasNoTitlebar;
