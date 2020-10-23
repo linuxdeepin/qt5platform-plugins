@@ -55,6 +55,7 @@ DEFINE_CONST_CHAR(autoInputMaskByClipPath);
 DEFINE_CONST_CHAR(popupSystemWindowMenu);
 DEFINE_CONST_CHAR(groupLeader);
 DEFINE_CONST_CHAR(noTitlebar);
+DEFINE_CONST_CHAR(enableGLPaint);
 
 // functions
 DEFINE_CONST_CHAR(setWmBlurWindowBackgroundArea);

@@ -22,6 +22,7 @@
 #include "dwmsupport.h"
 #include "dnotitlebarwindowhelper.h"
 #include "dnativesettings.h"
+#include "dbackingstoreproxy.h"
 
 #ifdef USE_NEW_IMPLEMENTING
 #include "dplatformwindowhelper.h"
@@ -409,10 +410,11 @@ QPlatformBackingStore *DPlatformIntegration::createPlatformBackingStore(QWindow 
     qDebug() << __FUNCTION__ << window << window->type() << window->parent();
 
     QPlatformBackingStore *store = DPlatformIntegrationParent::createPlatformBackingStore(window);
+    bool useGLPaint = DBackingStoreProxy::useGLPaint(window);
 
-    if (window->property("_d_dxcb_overrideBackingStore").toBool()) {
+    if (useGLPaint || window->property("_d_dxcb_overrideBackingStore").toBool()) {
         // delegate of BackingStore for hidpi
-        store = new DHighDpi::BackingStore(store);
+        store = new DBackingStoreProxy(store, useGLPaint);
         qInfo() << __FUNCTION__ << "enabled override backing store for:" << window;
     }
 
