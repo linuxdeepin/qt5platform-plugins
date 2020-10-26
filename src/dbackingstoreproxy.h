@@ -31,7 +31,7 @@ class DOpenGLPaintDevice;
 class DBackingStoreProxy : public QPlatformBackingStore
 {
 public:
-    static bool useGLPaint(const QObject *obj);
+    static bool useGLPaint(const QWindow *w);
 
     DBackingStoreProxy(QPlatformBackingStore *proxy, bool useGLPaint = false);
     ~DBackingStoreProxy() override;

@@ -31,15 +31,18 @@
 
 DPP_BEGIN_NAMESPACE
 
-bool DBackingStoreProxy::useGLPaint(const QObject *obj)
+bool DBackingStoreProxy::useGLPaint(const QWindow *w)
 {
 #ifndef QT_NO_OPENDL
+    if (!w->supportsOpenGL())
+        return false;
+
     if (qEnvironmentVariableIsSet("D_NO_OPENGL") || qEnvironmentVariableIsSet("D_NO_HARDWARE_ACCELERATION"))
         return false;
 
     bool envIsIntValue = false;
     bool forceGLPaint = qEnvironmentVariableIntValue("D_USE_GL_PAINT", &envIsIntValue) == 1;
-    QVariant value = obj->property(enableGLPaint);
+    QVariant value = w->property(enableGLPaint);
 
     if (envIsIntValue && !forceGLPaint) {
         return false;
