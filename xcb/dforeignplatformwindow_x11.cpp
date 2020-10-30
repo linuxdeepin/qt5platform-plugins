@@ -78,6 +78,10 @@ DForeignPlatformWindow::DForeignPlatformWindow(QWindow *window, WId winId)
 DForeignPlatformWindow::~DForeignPlatformWindow()
 {
     qt_window_private(window())->windowFlags = Qt::ForeignWindow;
+    // removeWindowEventListener
+    destroy();
+    // do not destroy m_window
+    m_window = 0;
 }
 
 QRect DForeignPlatformWindow::geometry() const
