@@ -618,11 +618,36 @@ bool Utility::blurWindowBackgroundByImage(const quint32 WId, const QRect &blurRe
     return true;
 }
 
+bool Utility::updateBackgroundWallpaper(const quint32 WId, const QRect &area, const quint32 bMode)
+{
+    if (!DXcbWMSupport::instance()->hasWallpaperEffect())
+        return false;
+
+    xcb_atom_t atom = DXcbWMSupport::instance()->_deepin_wallpaper;
+
+    if (atom == XCB_NONE)
+        return false;
+
+    QVector<quint32> rects;
+    quint32 window_mode = (bMode & 0xffff0000) >> 16; //High 16 bits
+    quint32 wallpaper_mode = bMode & 0x0000ffff;      //low 16 bits
+    rects << area.x() << area.y() << area.width() << area.height() << window_mode << wallpaper_mode;
+
+    setWindowProperty(WId, atom, XCB_ATOM_CARDINAL, rects.constData(), rects.size(), sizeof(quint32) * 8);
+
+    return true;
+}
+
 void Utility::clearWindowBlur(const quint32 WId)
 {
     clearWindowProperty(WId, DXcbWMSupport::instance()->_net_wm_deepin_blur_region_rounded_atom);
     clearWindowProperty(WId, DXcbWMSupport::instance()->_net_wm_deepin_blur_region_mask);
     clearWindowProperty(WId, DXcbWMSupport::instance()->_kde_net_wm_blur_rehind_region_atom);
+}
+
+void Utility::clearWindowBackground(const quint32 WId)
+{
+    clearWindowProperty(WId, DXcbWMSupport::instance()->_deepin_wallpaper);
 }
 
 qint32 Utility::getWorkspaceForWindow(quint32 WId)

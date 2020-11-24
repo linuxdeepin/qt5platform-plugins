@@ -45,6 +45,8 @@ class DXcbWMSupport : public QObject
     Q_PROPERTY(bool hasNoTitlebar READ hasNoTitlebar NOTIFY hasNoTitlebarChanged)
     // 支持窗口内容裁剪
     Q_PROPERTY(bool hasScissorWindow READ hasScissorWindow NOTIFY hasScissorWindowChanged)
+    // 支持窗口壁纸绘制
+    Q_PROPERTY(bool hasWallpaperEffect READ hasWallpaperEffect NOTIFY hasWallpaperEffectChanged)
 
 public:
     enum {
@@ -81,6 +83,7 @@ public:
         static bool hasComposite();
         static bool hasNoTitlebar();
         static bool hasWindowAlpha();
+        static bool hasWallpaperEffect();
         static QString windowManagerName();
     };
 
@@ -89,6 +92,7 @@ public:
     static bool connectHasCompositeChanged(QObject *object, std::function<void()> slot);
     static bool connectHasNoTitlebarChanged(QObject *object, std::function<void()> slot);
     static bool connectWindowListChanged(QObject *object, std::function<void()> slot);
+    static bool connectHasWallpaperEffectChanged(QObject *object, std::function<void()> slot);
     static bool connectWindowMotifWMHintsChanged(QObject *object, std::function<void(quint32 winId)> slot);
 
     static void setMWMFunctions(quint32 winId, quint32 func);
@@ -107,6 +111,7 @@ public:
     bool hasNoTitlebar() const;
     bool hasScissorWindow() const;
     bool hasWindowAlpha() const;
+    bool hasWallpaperEffect() const;
 
     QString windowManagerName() const;
 
@@ -119,6 +124,7 @@ signals:
     void hasCompositeChanged(bool hasComposite);
     void hasNoTitlebarChanged(bool hasNoTitlebar);
     void hasScissorWindowChanged(bool hasScissorWindow);
+    void hasWallpaperEffectChanged(bool hasWallpaperEffect);
     void windowListChanged();
     void windowMotifWMHintsChanged(quint32 winId);
 
@@ -133,6 +139,7 @@ private:
     void updateHasComposite();
     void updateHasNoTitlebar();
     void updateHasScissorWindow();
+    void updateWallpaperEffect();
 
     qint8 getHasWindowAlpha() const;
 
@@ -144,6 +151,7 @@ private:
     bool m_hasComposite = false;
     bool m_hasNoTitlebar = false;
     bool m_hasScissorWindow = false;
+    bool m_hasWallpaperEffect = false;
     qint8 m_windowHasAlpha = -1;
 
     QString m_wmName;
@@ -151,6 +159,7 @@ private:
     xcb_atom_t _net_wm_deepin_blur_region_rounded_atom = 0;
     xcb_atom_t _kde_net_wm_blur_rehind_region_atom = 0;
     xcb_atom_t _net_wm_deepin_blur_region_mask = 0;
+    xcb_atom_t _deepin_wallpaper = 0;
     xcb_atom_t _deepin_no_titlebar = 0;
     xcb_atom_t _deepin_scissor_window = 0;
 

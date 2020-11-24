@@ -54,6 +54,8 @@ static QFunctionPointer getFunction(const QByteArray &function)
         return reinterpret_cast<QFunctionPointer>(&Utility::blurWindowBackgroundByPaths);
     } else if (function == setWmBlurWindowBackgroundMaskImage) {
         return reinterpret_cast<QFunctionPointer>(&Utility::blurWindowBackgroundByImage);
+    } else if (function == setWmWallpaperParameter) {
+        return reinterpret_cast<QFunctionPointer>(&Utility::updateBackgroundWallpaper);
     } else if (function == hasBlurWindow) {
         return reinterpret_cast<QFunctionPointer>(&DWMSupport::Global::hasBlurWindow);
     } else if (function == hasComposite) {
@@ -62,6 +64,8 @@ static QFunctionPointer getFunction(const QByteArray &function)
         return reinterpret_cast<QFunctionPointer>(&DWMSupport::Global::hasNoTitlebar);
     } else if (function == hasWindowAlpha) {
         return reinterpret_cast<QFunctionPointer>(&DWMSupport::Global::hasWindowAlpha);
+    } else if (function == hasWallpaperEffect) {
+        return reinterpret_cast<QFunctionPointer>(&DWMSupport::Global::hasWallpaperEffect);
     } else if (function == windowManagerName) {
         return reinterpret_cast<QFunctionPointer>(&DWMSupport::Global::windowManagerName);
     } else if (function == connectWindowManagerChangedSignal) {
@@ -72,6 +76,8 @@ static QFunctionPointer getFunction(const QByteArray &function)
         return reinterpret_cast<QFunctionPointer>(&DWMSupport::connectHasCompositeChanged);
     } else if (function == connectHasNoTitlebarChanged) {
         return reinterpret_cast<QFunctionPointer>(&DWMSupport::connectHasNoTitlebarChanged);
+    } else if (function == connectHasWallpaperEffectChanged) {
+        return reinterpret_cast<QFunctionPointer>(&DWMSupport::connectHasWallpaperEffectChanged);
     } else if (function == getWindows) {
         return reinterpret_cast<QFunctionPointer>(&Utility::getWindows);
     } else if (function == windowFromPoint) {

@@ -54,6 +54,7 @@ void DXcbWMSupport::updateWMName(bool emitSignal)
     _net_wm_deepin_blur_region_rounded_atom = Utility::internAtom(QT_STRINGIFY(_NET_WM_DEEPIN_BLUR_REGION_ROUNDED), false);
     _net_wm_deepin_blur_region_mask = Utility::internAtom(QT_STRINGIFY(_NET_WM_DEEPIN_BLUR_REGION_MASK), false);
     _kde_net_wm_blur_rehind_region_atom = Utility::internAtom(QT_STRINGIFY(_KDE_NET_WM_BLUR_BEHIND_REGION), false);
+    _deepin_wallpaper = Utility::internAtom(QT_STRINGIFY(_DEEPIN_WALLPAPER), false);
     _deepin_no_titlebar = Utility::internAtom(QT_STRINGIFY(_DEEPIN_NO_TITLEBAR), false);
     _deepin_scissor_window = Utility::internAtom(QT_STRINGIFY(_DEEPIN_SCISSOR_WINDOW), false);
 
@@ -134,6 +135,7 @@ void DXcbWMSupport::updateNetWMAtoms()
     updateHasBlurWindow();
     updateHasNoTitlebar();
     updateHasScissorWindow();
+    updateWallpaperEffect();
 }
 
 void DXcbWMSupport::updateRootWindowProperties()
@@ -243,6 +245,18 @@ void DXcbWMSupport::updateHasScissorWindow()
     emit hasScissorWindowChanged(m_hasScissorWindow);
 }
 
+void DXcbWMSupport::updateWallpaperEffect()
+{
+    bool hasWallpaperEffect(net_wm_atoms.contains(_deepin_scissor_window) && hasComposite());
+
+    if (m_hasWallpaperEffect == hasWallpaperEffect)
+        return;
+
+    m_hasWallpaperEffect = hasWallpaperEffect;
+
+    emit hasWallpaperEffectChanged(hasWallpaperEffect);
+}
+
 qint8 DXcbWMSupport::getHasWindowAlpha() const
 {
     if (m_windowHasAlpha < 0) {
@@ -295,6 +309,14 @@ bool DXcbWMSupport::connectHasNoTitlebarChanged(QObject *object, std::function<v
         return QObject::connect(globalXWMS, &DXcbWMSupport::hasNoTitlebarChanged, slot);
 
     return QObject::connect(globalXWMS, &DXcbWMSupport::hasNoTitlebarChanged, object, slot);
+}
+
+bool DXcbWMSupport::connectHasWallpaperEffectChanged(QObject *object, std::function<void ()> slot)
+{
+    if (!object)
+        return QObject::connect(globalXWMS, &DXcbWMSupport::hasWallpaperEffectChanged, slot);
+
+    return QObject::connect(globalXWMS, &DXcbWMSupport::hasWallpaperEffectChanged, object, slot);
 }
 
 bool DXcbWMSupport::connectWindowListChanged(QObject *object, std::function<void ()> slot)
@@ -514,6 +536,11 @@ bool DXcbWMSupport::hasWindowAlpha() const
     return m_hasComposite && getHasWindowAlpha();
 }
 
+bool DXcbWMSupport::hasWallpaperEffect() const
+{
+    return m_hasWallpaperEffect;
+}
+
 bool DXcbWMSupport::Global::hasBlurWindow()
 {
     return  DXcbWMSupport::instance()->hasBlurWindow();
@@ -535,6 +562,11 @@ bool DXcbWMSupport::Global::hasNoTitlebar()
 bool DXcbWMSupport::Global::hasWindowAlpha()
 {
     return DXcbWMSupport::instance()->hasWindowAlpha();
+}
+
+bool DXcbWMSupport::Global::hasWallpaperEffect()
+{
+    return  DXcbWMSupport::instance()->hasWallpaperEffect();
 }
 
 QString DXcbWMSupport::Global::windowManagerName()
