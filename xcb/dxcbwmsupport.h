@@ -127,6 +127,7 @@ signals:
     void hasWallpaperEffectChanged(bool hasWallpaperEffect);
     void windowListChanged();
     void windowMotifWMHintsChanged(quint32 winId);
+    void wallpaperSharedChanged();
 
 protected:
     explicit DXcbWMSupport();
@@ -160,6 +161,7 @@ private:
     xcb_atom_t _kde_net_wm_blur_rehind_region_atom = 0;
     xcb_atom_t _net_wm_deepin_blur_region_mask = 0;
     xcb_atom_t _deepin_wallpaper = 0;
+    xcb_atom_t _deepin_wallpaper_shared_key = 0;
     xcb_atom_t _deepin_no_titlebar = 0;
     xcb_atom_t _deepin_scissor_window = 0;
 
@@ -168,6 +170,7 @@ private:
 
     friend class XcbNativeEventFilter;
     friend class Utility;
+    friend class DBackingStoreProxy;
 };
 
 DPP_END_NAMESPACE

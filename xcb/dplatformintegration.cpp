@@ -408,6 +408,11 @@ QPlatformWindow *DPlatformIntegration::createPlatformWindow(QWindow *window) con
         }
     }
 
+    if (DBackingStoreProxy::useWallpaperPaint(window)) {
+        QPair<QRect, int> wallpaper_pair = window->property("_d_dxcb_wallpaper").value<QPair<QRect, int>>();
+        Utility::updateBackgroundWallpaper(w->winId(), wallpaper_pair.first, wallpaper_pair.second);
+    }
+
     return xw;
 }
 
@@ -417,10 +422,11 @@ QPlatformBackingStore *DPlatformIntegration::createPlatformBackingStore(QWindow 
 
     QPlatformBackingStore *store = DPlatformIntegrationParent::createPlatformBackingStore(window);
     bool useGLPaint = DBackingStoreProxy::useGLPaint(window);
+    bool useWallpaper = DBackingStoreProxy::useWallpaperPaint(window);
 
-    if (useGLPaint || window->property("_d_dxcb_overrideBackingStore").toBool()) {
+    if (useGLPaint || useWallpaper || window->property("_d_dxcb_overrideBackingStore").toBool()) {
         // delegate of BackingStore for hidpi
-        store = new DBackingStoreProxy(store, useGLPaint);
+        store = new DBackingStoreProxy(store, useGLPaint, useWallpaper);
         qInfo() << __FUNCTION__ << "enabled override backing store for:" << window;
     }
 

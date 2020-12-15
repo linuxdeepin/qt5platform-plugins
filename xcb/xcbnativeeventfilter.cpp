@@ -130,6 +130,8 @@ bool XcbNativeEventFilter::nativeEventFilter(const QByteArray &eventType, void *
 
             if (pn->atom == DPlatformIntegration::xcbConnection()->atom(QXcbAtom::_MOTIF_WM_HINTS)) {
                 emit DXcbWMSupport::instance()->windowMotifWMHintsChanged(pn->window);
+            } else if (pn->atom == DXcbWMSupport::instance()->_deepin_wallpaper_shared_key) {
+                    DXcbWMSupport::instance()->wallpaperSharedChanged();
             } else {
                 if (pn->window != DPlatformIntegration::instance()->defaultConnection()->rootWindow()) {
                     return false;

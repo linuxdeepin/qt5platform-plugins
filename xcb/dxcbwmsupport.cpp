@@ -55,6 +55,7 @@ void DXcbWMSupport::updateWMName(bool emitSignal)
     _net_wm_deepin_blur_region_mask = Utility::internAtom(QT_STRINGIFY(_NET_WM_DEEPIN_BLUR_REGION_MASK), false);
     _kde_net_wm_blur_rehind_region_atom = Utility::internAtom(QT_STRINGIFY(_KDE_NET_WM_BLUR_BEHIND_REGION), false);
     _deepin_wallpaper = Utility::internAtom(QT_STRINGIFY(_DEEPIN_WALLPAPER), false);
+    _deepin_wallpaper_shared_key = Utility::internAtom(QT_STRINGIFY(_DEEPIN_WALLPAPER_SHARED_MEMORY), false);
     _deepin_no_titlebar = Utility::internAtom(QT_STRINGIFY(_DEEPIN_NO_TITLEBAR), false);
     _deepin_scissor_window = Utility::internAtom(QT_STRINGIFY(_DEEPIN_SCISSOR_WINDOW), false);
 
@@ -247,7 +248,7 @@ void DXcbWMSupport::updateHasScissorWindow()
 
 void DXcbWMSupport::updateWallpaperEffect()
 {
-    bool hasWallpaperEffect(net_wm_atoms.contains(_deepin_scissor_window) && hasComposite());
+    bool hasWallpaperEffect(net_wm_atoms.contains(_deepin_wallpaper));
 
     if (m_hasWallpaperEffect == hasWallpaperEffect)
         return;

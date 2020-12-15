@@ -620,9 +620,6 @@ bool Utility::blurWindowBackgroundByImage(const quint32 WId, const QRect &blurRe
 
 bool Utility::updateBackgroundWallpaper(const quint32 WId, const QRect &area, const quint32 bMode)
 {
-    if (!DXcbWMSupport::instance()->hasWallpaperEffect())
-        return false;
-
     xcb_atom_t atom = DXcbWMSupport::instance()->_deepin_wallpaper;
 
     if (atom == XCB_NONE)

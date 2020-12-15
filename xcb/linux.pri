@@ -99,4 +99,5 @@ exists($$PWD/libqt5xcbqpa-dev/$$QT_VERSION) {
     error(Not support Qt Version: $$QT_VERSION)
 }
 
+INCLUDEPATH += $$PWD/../xcb
 include($$_PRO_FILE_PWD_/../src/src.pri)

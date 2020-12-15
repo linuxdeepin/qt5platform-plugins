@@ -25,6 +25,10 @@
 
 #include <qpa/qplatformbackingstore.h>
 
+QT_BEGIN_NAMESPACE
+class QSharedMemory;
+QT_END_NAMESPACE
+
 DPP_BEGIN_NAMESPACE
 
 class DOpenGLPaintDevice;
@@ -32,8 +36,9 @@ class DBackingStoreProxy : public QPlatformBackingStore
 {
 public:
     static bool useGLPaint(const QWindow *w);
+    static bool useWallpaperPaint(const QWindow *w);
 
-    DBackingStoreProxy(QPlatformBackingStore *proxy, bool useGLPaint = false);
+    DBackingStoreProxy(QPlatformBackingStore *proxy, bool useGLPaint = false, bool useWallpaper = false);
     ~DBackingStoreProxy() override;
 
     QPaintDevice *paintDevice() override;
@@ -65,6 +70,9 @@ public:
     void endPaint() override;
 
 private:
+    void updateWallpaperShared();
+
+private:
     QPlatformBackingStore *m_proxy = nullptr;
     QImage m_image;
     QRectF m_dirtyWindowRect;
@@ -72,6 +80,10 @@ private:
 
     QScopedPointer<DOpenGLPaintDevice> glDevice;
     bool enableGL = false;
+    bool enableWallpaper = false;
+
+    QSharedMemory *m_sharedMemory = nullptr;
+    QImage m_wallpaper;
 };
 
 DPP_END_NAMESPACE

@@ -25,9 +25,19 @@
 #include <QDebug>
 #include <QPainter>
 #include <QOpenGLPaintDevice>
+#include <QSharedMemory>
 
 #include <private/qguiapplication_p.h>
 #include <private/qhighdpiscaling_p.h>
+
+#if QT_HAS_INCLUDE("utility.h")
+#include "utility.h"
+#include "dwmsupport.h"
+#else
+#define DISABLE_WALLPAPER
+#endif
+
+#define HEADER_SIZE 16
 
 DPP_BEGIN_NAMESPACE
 
@@ -54,17 +64,35 @@ bool DBackingStoreProxy::useGLPaint(const QWindow *w)
 #endif
 }
 
-DBackingStoreProxy::DBackingStoreProxy(QPlatformBackingStore *proxy, bool useGLPaint)
+bool DBackingStoreProxy::useWallpaperPaint(const QWindow *w)
+{
+    return w->property("_d_dxcb_wallpaper").isValid();
+}
+
+DBackingStoreProxy::DBackingStoreProxy(QPlatformBackingStore *proxy, bool useGLPaint, bool useWallpaper)
     : QPlatformBackingStore(proxy->window())
     , m_proxy(proxy)
     , enableGL(useGLPaint)
+    , enableWallpaper(useWallpaper)
 {
+#ifndef DISABLE_WALLPAPER
+    if (useWallpaper) {
+        QObject::connect(DXcbWMSupport::instance(), &DXcbWMSupport::hasWallpaperEffectChanged, window(), &QWindow::requestUpdate);
+        QObject::connect(DXcbWMSupport::instance(), &DXcbWMSupport::wallpaperSharedChanged, window(), [ this ] {
+            updateWallpaperShared();
+        });
 
+        updateWallpaperShared();
+    }
+#endif
 }
 
 DBackingStoreProxy::~DBackingStoreProxy()
 {
     delete m_proxy;
+
+    if (m_sharedMemory != nullptr)
+        delete m_sharedMemory;
 }
 
 QPaintDevice *DBackingStoreProxy::paintDevice()
@@ -172,25 +200,48 @@ void DBackingStoreProxy::beginPaint(const QRegion &region)
 
     m_proxy->beginPaint(region);
 
+    qreal window_scale = window()->devicePixelRatio();
+
+    bool enable = enableWallpaper && !m_wallpaper.isNull();
+
+#ifndef DISABLE_WALLPAPER
+    enable = enable && !DXcbWMSupport::instance()->hasWallpaperEffect();
+#endif
+
+    if (enable) {
+        QPainter p(paintDevice());
+
+        for (QRect rect : region) {
+            rect = QHighDpi::fromNativePixels(rect, window());
+            rect = QRect(rect.topLeft() * window_scale, QHighDpi::toNative(rect.size(), window_scale));
+
+            // 在指定区域绘制图片
+            p.drawImage(rect, m_wallpaper, rect);
+            m_dirtyRect |= rect;
+        }
+        p.end();
+    }
+
     if (m_image.isNull()) {
         return;
     }
 
-    qreal window_scale = window()->devicePixelRatio();
     m_dirtyRect = QRect();
 
     QPainter p(&m_image);
-    p.setCompositionMode(QPainter::CompositionMode_Clear);
+    if (!enable) {
+        p.setCompositionMode(QPainter::CompositionMode_Clear);
 
-    for (QRect rect : region) {
-        rect = QHighDpi::fromNativePixels(rect, window());
-        rect = QRect(rect.topLeft() * window_scale, QHighDpi::toNative(rect.size(), window_scale));
+        for (QRect rect : region) {
+            rect = QHighDpi::fromNativePixels(rect, window());
+            rect = QRect(rect.topLeft() * window_scale, QHighDpi::toNative(rect.size(), window_scale));
 
-        // 如果是透明绘制，应当先清理要绘制的区域
-        if (m_image.format() == QImage::Format_ARGB32_Premultiplied)
-            p.fillRect(rect, Qt::transparent);
+            // 如果是透明绘制，应当先清理要绘制的区域
+            if (m_image.format() == QImage::Format_ARGB32_Premultiplied)
+                p.fillRect(rect, Qt::transparent);
 
-        m_dirtyRect |= rect;
+            m_dirtyRect |= rect;
+        }
     }
 
     p.end();
@@ -220,6 +271,44 @@ void DBackingStoreProxy::endPaint()
     pa.end();
 
     m_proxy->endPaint();
+}
+
+void DBackingStoreProxy::updateWallpaperShared()
+{
+    QString key;
+#ifndef DISABLE_WALLPAPER
+    key = Utility::windowProperty(window()->winId(),
+                                  DXcbWMSupport::instance()->_deepin_wallpaper_shared_key,
+                                  XCB_ATOM_STRING,
+                                  1024);
+#endif
+    if (key.isEmpty())
+        return;
+
+    if (m_sharedMemory != nullptr) {
+        m_wallpaper = QImage();
+        delete m_sharedMemory;
+        m_sharedMemory = nullptr;
+    }
+
+    m_sharedMemory = new QSharedMemory(key);
+    if (!m_sharedMemory->attach()) {
+        qWarning() << "Unable to attach to shared memory segment.";
+        return;
+    }
+
+    m_sharedMemory->lock();
+    const qint32 *header = reinterpret_cast<const qint32*>(m_sharedMemory->constData());
+    const uchar *content = reinterpret_cast<const uchar*>(m_sharedMemory->constData()) + HEADER_SIZE;
+
+    qint32 byte_count = header[0];
+    qint32 image_width = header[1];
+    qint32 image_height = header[2];
+    qint32 image_format = header[3];
+
+    m_wallpaper = QImage(content, image_width, image_height, QImage::Format(image_format));
+    m_sharedMemory->unlock();
+    window()->requestUpdate();
 }
 
 DPP_END_NAMESPACE
