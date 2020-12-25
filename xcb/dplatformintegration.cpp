@@ -284,6 +284,12 @@ void DPlatformIntegration::clearNativeSettings(quint32 settingWindow)
 #endif
 }
 
+void DPlatformIntegration::setWMClassName(const QByteArray &name)
+{
+    if (auto self = instance())
+        self->m_wmClass = name;
+}
+
 QPlatformWindow *DPlatformIntegration::createPlatformWindow(QWindow *window) const
 {
     qDebug() << __FUNCTION__ << window << window->type() << window->parent();

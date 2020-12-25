@@ -124,6 +124,8 @@ static QFunctionPointer getFunction(const QByteArray &function)
         return reinterpret_cast<QFunctionPointer>(&DPlatformIntegration::buildNativeSettings);
     } else if (function == clearNativeSettings) {
         return reinterpret_cast<QFunctionPointer>(&DPlatformIntegration::clearNativeSettings);
+    } else if (function == setWMClassName) {
+        return reinterpret_cast<QFunctionPointer>(&DPlatformIntegration::setWMClassName);
     }
 
     return nullptr;
