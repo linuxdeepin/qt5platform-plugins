@@ -33,6 +33,7 @@
 #include <xcb/xcb_icccm.h>
 
 DPP_BEGIN_NAMESPACE
+#define xcbReplyHolder(xcb_reply_type, var) QScopedPointer<xcb_reply_type, QScopedPointerPodDeleter> var
 
 enum {
     baseEventMask
@@ -87,26 +88,23 @@ DForeignPlatformWindow::~DForeignPlatformWindow()
 QRect DForeignPlatformWindow::geometry() const
 {
     xcb_connection_t *conn = DPlatformIntegration::xcbConnection()->xcb_connection();
-    xcb_get_geometry_reply_t *geomReply =
-        xcb_get_geometry_reply(conn, xcb_get_geometry(conn, m_window), 0);
+
+    xcbReplyHolder(xcb_get_geometry_reply_t, geomReply)(xcb_get_geometry_reply(conn, xcb_get_geometry(conn, m_window), nullptr));
     if (!geomReply)
         return QRect();
 
-    xcb_translate_coordinates_reply_t *translateReply =
-        xcb_translate_coordinates_reply(conn, xcb_translate_coordinates(conn, m_window, DPlatformIntegration::xcbConnection()->rootWindow(), 0, 0), 0);
+    auto xtc_cookie = xcb_translate_coordinates(conn, m_window, DPlatformIntegration::xcbConnection()->rootWindow(), 0, 0);
+    xcbReplyHolder(xcb_translate_coordinates_reply_t, translateReply)(xcb_translate_coordinates_reply(conn, xtc_cookie, nullptr));
     if (!translateReply) {
-        free(geomReply);
         return QRect();
     }
 
     const QRect result(QPoint(translateReply->dst_x, translateReply->dst_y), QSize(geomReply->width, geomReply->height));
-    free(translateReply);
 
     // auto remove _GTK_FRAME_EXTENTS
     xcb_get_property_cookie_t cookie = xcb_get_property(xcb_connection(), false, m_window,
                                                         Utility::internAtom("_GTK_FRAME_EXTENTS"), XCB_ATOM_CARDINAL, 0, 4);
-    QScopedPointer<xcb_get_property_reply_t, QScopedPointerPodDeleter> reply(
-        xcb_get_property_reply(xcb_connection(), cookie, NULL));
+    xcbReplyHolder(xcb_get_property_reply_t, reply)(xcb_get_property_reply(xcb_connection(), cookie, nullptr));
     if (reply && reply->type == XCB_ATOM_CARDINAL && reply->format == 32 && reply->value_len == 4) {
         quint32 *data = (quint32 *)xcb_get_property_value(reply.data());
         // _NET_FRAME_EXTENTS format is left, right, top, bottom
