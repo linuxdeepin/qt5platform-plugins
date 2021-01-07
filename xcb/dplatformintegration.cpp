@@ -43,6 +43,7 @@
 #include "windoweventhook.h"
 #include "xcbnativeeventfilter.h"
 #include "dplatformnativeinterfacehook.h"
+#include "dplatforminputcontexthook.h"
 #include "dxcbxsettings.h"
 #include "dhighdpi.h"
 
@@ -71,7 +72,10 @@
 #include <private/qsimpledrag_p.h>
 #undef protected
 #include <qpa/qplatformnativeinterface.h>
+#include <qpa/qplatforminputcontext.h>
 #include <private/qpaintengine_raster_p.h>
+
+#include "im_interface.h"
 
 // https://www.freedesktop.org/wiki/Specifications/XSettingsRegistry/
 #define XSETTINGS_CURSOR_BLINK QByteArrayLiteral("Net/CursorBlink")
@@ -1005,6 +1009,27 @@ void DPlatformIntegration::initialize()
     qApp->setProperty("_d_isDxcb", true);
 
     QXcbIntegration::initialize();
+
+    // 适配虚拟键盘
+    if (DPlatformInputContextHook::instance()->isValid()) {
+        VtableHook::overrideVfptrFun(inputContext(),
+                                    &QPlatformInputContext::showInputPanel,
+                                    &DPlatformInputContextHook::showInputPanel);
+        VtableHook::overrideVfptrFun(inputContext(),
+                                    &QPlatformInputContext::hideInputPanel,
+                                    &DPlatformInputContextHook::hideInputPanel);
+        VtableHook::overrideVfptrFun(inputContext(),
+                                    &QPlatformInputContext::isInputPanelVisible,
+                                    &DPlatformInputContextHook::isInputPanelVisible);
+        VtableHook::overrideVfptrFun(inputContext(),
+                                    &QPlatformInputContext::keyboardRect,
+                                    &DPlatformInputContextHook::keyboardRect);
+
+        QObject::connect(DPlatformInputContextHook::instance(), &ComDeepinImInterface::geometryChanged,
+                             inputContext(), &QPlatformInputContext::emitKeyboardRectChanged);
+        QObject::connect(DPlatformInputContextHook::instance(), &ComDeepinImInterface::imActiveChanged,
+                             inputContext(), &QPlatformInputContext::emitInputPanelVisibleChanged);
+    }
 
 #ifdef Q_OS_LINUX
     m_eventFilter = new XcbNativeEventFilter(defaultConnection());

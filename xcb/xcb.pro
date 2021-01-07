@@ -8,7 +8,7 @@ PLUGIN_CLASS_NAME = DXcbIntegrationPlugin
 
 DESTDIR = $$_PRO_FILE_PWD_/../bin/plugins/platforms
 
-QT       += opengl x11extras
+QT       += opengl x11extras dbus
 QT       += core-private #xcb_qpa_lib-private
 greaterThan(QT_MAJOR_VERSION, 4) {
     QT += widgets widgets-private
@@ -45,7 +45,8 @@ SOURCES += \
     dhighdpi.cpp \
     dnotitlebarwindowhelper.cpp \
     3rdparty/dsimple.c \
-    3rdparty/clientwin.c
+    3rdparty/clientwin.c \
+    $$PWD/dplatforminputcontexthook.cpp
 
 HEADERS += \
     $$PWD/dplatformintegration.h \
@@ -56,7 +57,8 @@ HEADERS += \
     dhighdpi.h \
     dnotitlebarwindowhelper.h \
     3rdparty/dsimple.h \
-    3rdparty/clientwin.h
+    3rdparty/clientwin.h \
+    $$PWD/dplatforminputcontexthook.h
 
 INCLUDEPATH += $$PWD/../src
 
@@ -68,6 +70,8 @@ isEmpty(INSTALL_PATH) {
 } else {
     target.path = $$INSTALL_PATH
 }
+
+DBUS_INTERFACES += ../misc/com.deepin.im.xml
 
 message($$target.path)
 
