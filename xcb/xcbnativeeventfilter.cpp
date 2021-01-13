@@ -89,7 +89,7 @@ bool XcbNativeEventFilter::nativeEventFilter(const QByteArray &eventType, void *
     uint response_type = event->response_type & ~0x80;
 
 #if QT_VERSION < QT_VERSION_CHECK(5, 12, 0)
-    if (response_type == m_connection->xfixes_first_event + XCB_XFIXES_SELECTION_NOTIFY) {
+    if (Q_UNLIKELY(response_type == m_connection->xfixes_first_event + XCB_XFIXES_SELECTION_NOTIFY)) {
 #else
     // cannot use isXFixesType because symbols from QXcbBasicConnection are not exported
     if (response_type == m_connection->m_xfixesFirstEvent + XCB_XFIXES_SELECTION_NOTIFY) {
@@ -109,7 +109,7 @@ bool XcbNativeEventFilter::nativeEventFilter(const QByteArray &eventType, void *
             QXcbClipboard *xcbClipboard = m_connection->m_clipboard;
             xcbClipboard->emitChanged(mode);
         }
-    } else if (response_type == m_damageFirstEvent + XCB_DAMAGE_NOTIFY) {
+    } else if (Q_UNLIKELY(response_type == m_damageFirstEvent + XCB_DAMAGE_NOTIFY)) {
         xcb_damage_notify_event_t *ev = (xcb_damage_notify_event_t*)event;
 
         QXcbWindow *window = m_connection->platformWindowFromId(ev->drawable);
@@ -159,7 +159,7 @@ bool XcbNativeEventFilter::nativeEventFilter(const QByteArray &eventType, void *
         case XCB_GE_GENERIC: {
             QXcbConnection *xcb_connect = DPlatformIntegration::xcbConnection();
 
-            if (xcb_connect->m_xi2Enabled && isXIEvent(event, xcb_connect->m_xiOpCode)) {
+            if (Q_LIKELY(xcb_connect->m_xi2Enabled) && isXIEvent(event, xcb_connect->m_xiOpCode)) {
                 xXIGenericDeviceEvent *xiEvent = reinterpret_cast<xXIGenericDeviceEvent *>(event);
 
                 {
@@ -175,13 +175,13 @@ bool XcbNativeEventFilter::nativeEventFilter(const QByteArray &eventType, void *
                     auto device = xiDeviceInfoMap.find(source_id);
 
                     // find device
-                    if (device != xiDeviceInfoMap.constEnd()) {
+                    if (Q_LIKELY(device != xiDeviceInfoMap.constEnd())) {
                         lastXIEventDeviceInfo = qMakePair(xiDEvent->time, device.value());
                     }
                 }
 
-                if (xiEvent->evtype != XI_DeviceChanged) {
-                    if (xiEvent->evtype == XI_HierarchyChanged) {
+                if (Q_LIKELY(xiEvent->evtype != XI_DeviceChanged)) {
+                    if (Q_UNLIKELY(xiEvent->evtype == XI_HierarchyChanged)) {
                         xXIHierarchyEvent *xiEvent = reinterpret_cast<xXIHierarchyEvent *>(event);
                         // We only care about hotplugged devices
                         if (!(xiEvent->flags & (XISlaveRemoved | XISlaveAdded)))
@@ -237,19 +237,20 @@ bool XcbNativeEventFilter::nativeEventFilter(const QByteArray &eventType, void *
         case XCB_CLIENT_MESSAGE: {
             xcb_client_message_event_t *ev = reinterpret_cast<xcb_client_message_event_t*>(event);
 
-            if (DXcbXSettings::handleClientMessageEvent(ev)) {
+            if (Q_UNLIKELY(DXcbXSettings::handleClientMessageEvent(ev))) {
                 return true;
             }
             break;
         }
         default:
-            static auto updateScaleLogcailDpi = qApp->property("_d_updateScaleLogcailDpi").toULongLong();
+            // 过时的缩放方案, 在引入 DHighDpi 后已不再使用, 此处仅作为兼容性保障支持
+            static const auto updateScaleLogcailDpi = qApp->property("_d_updateScaleLogcailDpi").toULongLong();
 #if QT_VERSION < QT_VERSION_CHECK(5, 12, 0)
-            if (updateScaleLogcailDpi && DPlatformIntegration::xcbConnection()->has_randr_extension
+            if (Q_UNLIKELY(updateScaleLogcailDpi) && DPlatformIntegration::xcbConnection()->has_randr_extension
                     && response_type == DPlatformIntegration::xcbConnection()->xrandr_first_event + XCB_RANDR_NOTIFY) {
 #else
             // cannot use isXRandrType because symbols from QXcbBasicConnection are not exported
-            if (updateScaleLogcailDpi && DPlatformIntegration::xcbConnection()->hasXRender()
+            if (Q_UNLIKELY(updateScaleLogcailDpi) && DPlatformIntegration::xcbConnection()->hasXRender()
                     && response_type == DPlatformIntegration::xcbConnection()->m_xrandrFirstEvent + XCB_RANDR_NOTIFY) {
 #endif
                 xcb_randr_notify_event_t *e = reinterpret_cast<xcb_randr_notify_event_t *>(event);
