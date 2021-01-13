@@ -40,6 +40,7 @@ class XcbNativeEventFilter;
 class DPlatformBackingStoreHelper;
 class DPlatformOpenGLContextHelper;
 class DXcbXSettings;
+class DApplicationEventMonitor;
 
 class DPlatformIntegration : public DPlatformIntegrationParent
 {
@@ -104,6 +105,7 @@ private:
 
     DPlatformBackingStoreHelper *m_storeHelper;
     DPlatformOpenGLContextHelper *m_contextHelper;
+    QScopedPointer<DApplicationEventMonitor> m_pApplicationEventMonitor;
 };
 
 DPP_END_NAMESPACE
