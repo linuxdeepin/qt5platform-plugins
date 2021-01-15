@@ -116,16 +116,19 @@ DPlatformIntegration::DPlatformIntegration(const QStringList &parameters, int &a
     VtableHook::overrideVfptrFun(nativeInterface(),
                                  &QPlatformNativeInterface::platformFunction,
                                  &DPlatformNativeInterfaceHook::platformFunction);
+
+    // 不仅仅需要在插件被加载时初始化, 也有可能DPlatformIntegration会被创建多次, 也应当在
+    // DPlatformIntegration每次被创建时都重新初始化DHighDpi.
+    DHighDpi::init();
 }
 
 DPlatformIntegration::~DPlatformIntegration()
 {
 #ifdef Q_OS_LINUX
-    if (!m_eventFilter)
-        return;
-
-    qApp->removeNativeEventFilter(m_eventFilter);
-    delete m_eventFilter;
+    if (m_eventFilter) {
+        qApp->removeNativeEventFilter(m_eventFilter);
+        delete m_eventFilter;
+    }
 #endif
 
 #ifdef USE_NEW_IMPLEMENTING
@@ -134,6 +137,7 @@ DPlatformIntegration::~DPlatformIntegration()
 
     if (m_xsettings) {
         delete m_xsettings;
+        m_xsettings = nullptr;
     }
 #endif
 }

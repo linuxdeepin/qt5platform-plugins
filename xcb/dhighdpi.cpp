@@ -43,11 +43,16 @@ QPointF DHighDpi::fromNativePixels(const QPointF &pixelPoint, const QWindow *win
     return QHighDpi::fromNativePixels(pixelPoint, window);
 }
 
-__attribute__((constructor)) // 在库被加载时就执行此函数
-static void init()
+inline static void init()
 {
+    // 禁用platform theme中的缩放机制
+    // 当DHighDpi存在时不应该再使用这个过时的机制
+    qputenv("D_DISABLE_RT_SCREEN_SCALE", "1");
+
     DHighDpi::init();
 }
+// 在插件被加载时先做一次初始化
+Q_CONSTRUCTOR_FUNCTION(init)
 void DHighDpi::init()
 {
     if (QGuiApplication::testAttribute(Qt::AA_DisableHighDpiScaling)
@@ -57,11 +62,17 @@ void DHighDpi::init()
             || !DXcbXSettings::getOwner()
             || (qEnvironmentVariableIsSet("QT_SCALE_FACTOR_ROUNDING_POLICY")
                 && qgetenv("QT_SCALE_FACTOR_ROUNDING_POLICY") != "PassThrough")) {
+        // init函数可能会被重复调用, 此处应该清理VtableHook
+        if (active) {
+#if QT_VERSION < QT_VERSION_CHECK(5, 14, 0)
+            VtableHook::resetVfptrFun(&QXcbScreen::pixelDensity);
+#endif
+            VtableHook::resetVfptrFun(&QXcbScreen::logicalDpi);
+            active = false;
+        }
         return;
     }
 
-    // 禁用platform theme中的缩放机制
-    qputenv("D_DISABLE_RT_SCREEN_SCALE", "1");
     // 设置为完全控制缩放比例，避免被Qt“4舍5入”了缩放比
     qputenv("QT_SCALE_FACTOR_ROUNDING_POLICY", "PassThrough");
 
