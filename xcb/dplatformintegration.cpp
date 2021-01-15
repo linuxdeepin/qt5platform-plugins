@@ -993,8 +993,10 @@ static void startDrag(QXcbDrag *drag)
     if (actions.testFlag(Qt::LinkAction))
         support_actions << drag->atom(QXcbAtom::XdndActionLink);
 
-    if (support_actions.size() < 2)
-        return;
+    // 此处不能直接 return ,因为一个拖拽包含多种 actions 后再次拖拽单一 action 时需要将 property 更新, 否则单一 actoin 的拖拽会被强行改成
+    // 上一次的 actions, 导致某些小问题 (比如文管的拖拽行为不一致的问题)
+    //    if (support_actions.size() < 2)
+    //        return;
 
     xcb_change_property(drag->xcb_connection(), XCB_PROP_MODE_REPLACE, drag->connection()->clipboard()->m_owner,
                         drag->atom(QXcbAtom::XdndActionList), XCB_ATOM_ATOM, sizeof(xcb_atom_t) * 8,
