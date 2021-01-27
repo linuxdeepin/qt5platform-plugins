@@ -8,7 +8,8 @@ HEADERS += \
     $$PWD/dplatformsettings.h \
     $$PWD/ddesktopinputselectioncontrol.h \
     $$PWD/dinputselectionhandle.h \
-    $$PWD/dapplicationeventmonitor.h
+    $$PWD/dapplicationeventmonitor.h \
+    $$PWD/dselectedtexttooltip.h
 
 SOURCES += \
     $$PWD/dbackingstoreproxy.cpp \
@@ -19,6 +20,7 @@ SOURCES += \
     $$PWD/dplatformsettings.cpp \
     $$PWD/ddesktopinputselectioncontrol.cpp \
     $$PWD/dinputselectionhandle.cpp \
-    $$PWD/dapplicationeventmonitor.cpp
+    $$PWD/dapplicationeventmonitor.cpp \
+    $$PWD/dselectedtexttooltip.cpp
 
 INCLUDEPATH += $$PWD

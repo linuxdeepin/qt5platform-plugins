@@ -18,6 +18,7 @@
 #include "ddesktopinputselectioncontrol.h"
 #include "dinputselectionhandle.h"
 #include "dapplicationeventmonitor.h"
+#include "dselectedtexttooltip.h"
 
 #include <qpa/qplatforminputcontext.h>
 #include <QInputMethod>
@@ -26,6 +27,7 @@
 #include <QStyleHints>
 #include <QImageReader>
 #include <QMouseEvent>
+#include <QKeyEvent>
 #include <QDebug>
 
 DPP_BEGIN_NAMESPACE
@@ -143,6 +145,28 @@ void DDesktopInputSelectionControl::updateCursorHandlePosition()
     }
 }
 
+void DDesktopInputSelectionControl::updateTooltipPosition()
+{
+    if (QWindow *focusWindow = QGuiApplication::focusWindow()) {
+        QPoint topleft_point;
+        QSize tooltip_size = m_selectedTextTooltip->size();
+
+        if (cursorRectangle().x() > anchorRectangle().x()) { // 从前往后选择
+            auto tmp_point = focusWindow->mapToGlobal(anchorHandleRect().topLeft());
+            topleft_point = QPoint(tmp_point.x() + m_fingerOptSize.width() / 2, tmp_point.y() - tooltip_size.height());
+        } else { //从后往前选择
+            auto tmp_point = focusWindow->mapToGlobal(anchorHandleRect().bottomLeft());
+            topleft_point = QPoint(tmp_point.x() - m_fingerOptSize.width() / 2 - tooltip_size.width(), tmp_point.y() + tooltip_size.height());
+
+            if (topleft_point.x() < 0) {
+                topleft_point.setX(m_fingerOptSize.width() / 2);
+            }
+        }
+
+        m_selectedTextTooltip->setPosition(topleft_point);
+    }
+}
+
 void DDesktopInputSelectionControl::updateVisibility()
 {
     if (!m_anchorSelectionHandle || !m_cursorSelectionHandle) {
@@ -200,6 +224,7 @@ void DDesktopInputSelectionControl::updateVisibility()
 void DDesktopInputSelectionControl::createHandles()
 {
     if (QWindow *focusWindow = QGuiApplication::focusWindow()) {
+        m_selectedTextTooltip.reset(new DSelectedTextTooltip);
         m_anchorSelectionHandle.reset(new DInputSelectionHandle(DInputSelectionHandle::Up, focusWindow, this));
         m_cursorSelectionHandle.reset(new DInputSelectionHandle(DInputSelectionHandle::Down, focusWindow, this));
         m_handleImageSize = m_anchorSelectionHandle->handleImageSize();
@@ -213,6 +238,7 @@ void DDesktopInputSelectionControl::onWindowStateChanged(Qt::WindowState state)
 {
     m_anchorSelectionHandle->setVisible(state != Qt::WindowState::WindowMinimized);
     m_cursorSelectionHandle->setVisible(state != Qt::WindowState::WindowMinimized);
+    m_selectedTextTooltip->setVisible(state != Qt::WindowState::WindowMinimized);
 }
 
 void DDesktopInputSelectionControl::updateSelectionControlVisible()
@@ -222,10 +248,53 @@ void DDesktopInputSelectionControl::updateSelectionControlVisible()
         setEnabled(true);
         m_anchorSelectionHandle->show();
         m_cursorSelectionHandle->show();
+        m_selectedTextTooltip->show();
     } else {
         setEnabled(false);
         m_anchorSelectionHandle->hide();
         m_cursorSelectionHandle->hide();
+        m_selectedTextTooltip->hide();
+    }
+}
+
+void DDesktopInputSelectionControl::onOptAction(int type)
+{
+    switch (type) {
+    case DSelectedTextTooltip::Cut: {
+        QKeyEvent key_event(QEvent::KeyPress, Qt::Key_X, Qt::ControlModifier);
+        QCoreApplication::sendEvent(QGuiApplication::focusObject(), &key_event);
+        break;
+    }
+
+    case DSelectedTextTooltip::Copy: {
+        QKeyEvent key_event(QEvent::KeyPress, Qt::Key_C, Qt::ControlModifier);
+        QCoreApplication::sendEvent(QGuiApplication::focusObject(), &key_event);
+        m_selectionControlVisible = false;
+        Q_EMIT selectionControlVisibleChanged();
+        break;
+    }
+
+    case DSelectedTextTooltip::Paste: {
+        QKeyEvent key_event(QEvent::KeyPress, Qt::Key_V, Qt::ControlModifier);
+        QCoreApplication::sendEvent(QGuiApplication::focusObject(), &key_event);
+        break;
+    }
+
+    case DSelectedTextTooltip::SelectAll: {
+        QKeyEvent key_event(QEvent::KeyPress, Qt::Key_A, Qt::ControlModifier);
+        QCoreApplication::sendEvent(QGuiApplication::focusObject(), &key_event);
+        // 更新handle的位置
+        updateAnchorHandlePosition();
+        updateCursorHandlePosition();
+        updateTooltipPosition();
+
+        m_anchorSelectionHandle->show();
+        m_cursorSelectionHandle->show();
+        m_selectedTextTooltip->show();
+        break;
+    }
+    default:
+        break;
     }
 }
 
@@ -238,6 +307,11 @@ void DDesktopInputSelectionControl::setEnabled(bool val)
         connect(this, &DDesktopInputSelectionControl::anchorRectangleChanged, this, &DDesktopInputSelectionControl::updateAnchorHandlePosition);
         connect(this, &DDesktopInputSelectionControl::cursorRectangleChanged, this, &DDesktopInputSelectionControl::updateCursorHandlePosition);
 
+        connect(this, &DDesktopInputSelectionControl::anchorRectangleChanged, this, &DDesktopInputSelectionControl::updateTooltipPosition);
+        connect(this, &DDesktopInputSelectionControl::cursorRectangleChanged, this, &DDesktopInputSelectionControl::updateTooltipPosition);
+
+        connect(m_selectedTextTooltip.data(), &DSelectedTextTooltip::optAction, this, &DDesktopInputSelectionControl::onOptAction);
+
         if (focusWindow) {
             focusWindow->installEventFilter(this);
             connect(focusWindow, &QWindow::windowStateChanged, this, &DDesktopInputSelectionControl::onWindowStateChanged);
@@ -245,6 +319,11 @@ void DDesktopInputSelectionControl::setEnabled(bool val)
     } else {
         disconnect(this, &DDesktopInputSelectionControl::anchorRectangleChanged, this, &DDesktopInputSelectionControl::updateAnchorHandlePosition);
         disconnect(this, &DDesktopInputSelectionControl::cursorRectangleChanged, this, &DDesktopInputSelectionControl::updateCursorHandlePosition);
+
+        disconnect(this, &DDesktopInputSelectionControl::anchorRectangleChanged, this, &DDesktopInputSelectionControl::updateTooltipPosition);
+        disconnect(this, &DDesktopInputSelectionControl::cursorRectangleChanged, this, &DDesktopInputSelectionControl::updateTooltipPosition);
+
+        disconnect(m_selectedTextTooltip.data(), &DSelectedTextTooltip::optAction, this, &DDesktopInputSelectionControl::onOptAction);
 
         if (focusWindow) {
             focusWindow->removeEventFilter(this);
@@ -351,6 +430,7 @@ bool DDesktopInputSelectionControl::eventFilter(QObject *object, QEvent *event)
         if (windowMoved) {
             updateAnchorHandlePosition();
             updateCursorHandlePosition();
+            updateTooltipPosition();
         }
         updateVisibility();
         return false;

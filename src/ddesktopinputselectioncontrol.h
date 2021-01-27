@@ -36,6 +36,7 @@ DPP_BEGIN_NAMESPACE
 
 class DInputSelectionHandle;
 class DApplicationEventMonitor;
+class DSelectedTextTooltip;
 class DDesktopInputSelectionControl : public QObject
 {
     Q_OBJECT
@@ -61,9 +62,11 @@ public:
 public Q_SLOTS:
     void updateAnchorHandlePosition();
     void updateCursorHandlePosition();
+    void updateTooltipPosition();
     void updateVisibility();
     void onWindowStateChanged(Qt::WindowState state);
     void updateSelectionControlVisible();
+    void onOptAction(int type);
 
 signals:
     void anchorPositionChanged();
@@ -102,6 +105,7 @@ private:
     QInputMethod *m_pInputMethod;
     QScopedPointer<DInputSelectionHandle> m_anchorSelectionHandle;
     QScopedPointer<DInputSelectionHandle> m_cursorSelectionHandle;
+    QScopedPointer<DSelectedTextTooltip> m_selectedTextTooltip;
     QPointer<DApplicationEventMonitor> m_pApplicationEventMonitor;
     QSize m_handleImageSize;
 
