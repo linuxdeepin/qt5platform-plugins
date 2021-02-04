@@ -1109,7 +1109,7 @@ void DPlatformIntegration::initialize()
 
     QObject::connect(m_pApplicationEventMonitor.data(), &DApplicationEventMonitor::lastInputDeviceTypeChanged, qApp, [this] {
         // 这里为了不重复对g_desktopInputSelectionControl 做初始化设定, 做一个exists判定
-        if (!g_desktopInputSelectionControl.exists()) {
+        if (!g_desktopInputSelectionControl.exists() && m_pApplicationEventMonitor->lastInputDeviceType() == DApplicationEventMonitor::TouchScreen) {
             g_desktopInputSelectionControl->createHandles();
             g_desktopInputSelectionControl->setApplicationEventMonitor(m_pApplicationEventMonitor.data());
         }
