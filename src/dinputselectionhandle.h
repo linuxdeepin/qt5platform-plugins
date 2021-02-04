@@ -41,7 +41,7 @@ public:
         Down = 1 // handle位于选中区域的下方
     };
 
-    DInputSelectionHandle(HandlePosition position, QWindow *eventWindow, DDesktopInputSelectionControl *pControl);
+    DInputSelectionHandle(HandlePosition position, DDesktopInputSelectionControl *pControl);
 
     HandlePosition handlePosition() const;
     void setHandlePosition(HandlePosition position);
@@ -58,7 +58,6 @@ private:
 
 private:
     HandlePosition m_position;
-    QWindow *m_eventWindow;
     DDesktopInputSelectionControl *m_pInputSelectionControl;
     QImage m_image;
 };

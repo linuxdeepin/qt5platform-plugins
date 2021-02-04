@@ -62,6 +62,8 @@ DDesktopInputSelectionControl::DDesktopInputSelectionControl(QObject *parent, QI
 
     connect(this, &DDesktopInputSelectionControl::selectionControlVisibleChanged, this, &DDesktopInputSelectionControl::updateVisibility);
     connect(this, &DDesktopInputSelectionControl::selectionControlVisibleChanged, this, &DDesktopInputSelectionControl::updateSelectionControlVisible);
+
+    connect(qApp, &QGuiApplication::focusWindowChanged, this, &DDesktopInputSelectionControl::onFocusWindowChanged);
 }
 
 DDesktopInputSelectionControl::~DDesktopInputSelectionControl()
@@ -223,15 +225,13 @@ void DDesktopInputSelectionControl::updateVisibility()
 
 void DDesktopInputSelectionControl::createHandles()
 {
-    if (QWindow *focusWindow = QGuiApplication::focusWindow()) {
-        m_selectedTextTooltip.reset(new DSelectedTextTooltip);
-        m_anchorSelectionHandle.reset(new DInputSelectionHandle(DInputSelectionHandle::Up, focusWindow, this));
-        m_cursorSelectionHandle.reset(new DInputSelectionHandle(DInputSelectionHandle::Down, focusWindow, this));
-        m_handleImageSize = m_anchorSelectionHandle->handleImageSize();
+    m_selectedTextTooltip.reset(new DSelectedTextTooltip);
+    m_anchorSelectionHandle.reset(new DInputSelectionHandle(DInputSelectionHandle::Up, this));
+    m_cursorSelectionHandle.reset(new DInputSelectionHandle(DInputSelectionHandle::Down, this));
+    m_handleImageSize = m_anchorSelectionHandle->handleImageSize();
 
-        m_anchorSelectionHandle->resize(m_fingerOptSize);
-        m_cursorSelectionHandle->resize(m_fingerOptSize);
-    }
+    m_anchorSelectionHandle->resize(m_fingerOptSize);
+    m_cursorSelectionHandle->resize(m_fingerOptSize);
 }
 
 void DDesktopInputSelectionControl::onWindowStateChanged(Qt::WindowState state)
@@ -295,6 +295,15 @@ void DDesktopInputSelectionControl::onOptAction(int type)
     }
     default:
         break;
+    }
+}
+
+void DDesktopInputSelectionControl::onFocusWindowChanged()
+{
+    if (!qApp->focusWindow()) {
+        m_anchorSelectionHandle->hide();
+        m_cursorSelectionHandle->hide();
+        m_selectedTextTooltip->hide();
     }
 }
 

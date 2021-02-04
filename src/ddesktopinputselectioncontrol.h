@@ -67,6 +67,7 @@ public Q_SLOTS:
     void onWindowStateChanged(Qt::WindowState state);
     void updateSelectionControlVisible();
     void onOptAction(int type);
+    void onFocusWindowChanged();
 
 signals:
     void anchorPositionChanged();

@@ -32,7 +32,7 @@ class DApplicationEventMonitor : public QObject
 public:
     enum InputDeviceType {
         None = 0, // 初始状态
-        Mouse = 1, //鼠标(包含滚轮)
+        Mouse = 1, //鼠标
         Tablet = 2, //平板外围设备
         Keyboard = 3, //键盘
         TouchScreen = 4 //触摸屏
@@ -47,7 +47,7 @@ protected:
     bool eventFilter(QObject *watched, QEvent *event) override;
 
 private:
-    static InputDeviceType eventType(QEvent::Type type);
+    static InputDeviceType eventType(QEvent *type);
 
 signals:
     void lastInputDeviceTypeChanged();

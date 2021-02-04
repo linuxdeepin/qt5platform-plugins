@@ -1007,8 +1007,6 @@ static void startDrag(QXcbDrag *drag)
     xcb_flush(drag->xcb_connection());
 }
 
-Q_GLOBAL_STATIC_WITH_ARGS(DDesktopInputSelectionControl, g_desktopInputSelectionControl, (nullptr, qApp->inputMethod()));
-
 void DPlatformIntegration::initialize()
 {
     // 由于Qt很多代码中写死了是xcb，所以只能伪装成是xcb
@@ -1103,15 +1101,13 @@ void DPlatformIntegration::initialize()
     }
 
     m_pApplicationEventMonitor.reset(new DApplicationEventMonitor);
-    if (g_desktopInputSelectionControl.exists()) {
-        g_desktopInputSelectionControl->setApplicationEventMonitor(m_pApplicationEventMonitor.data());
-    }
 
     QObject::connect(m_pApplicationEventMonitor.data(), &DApplicationEventMonitor::lastInputDeviceTypeChanged, qApp, [this] {
         // 这里为了不重复对g_desktopInputSelectionControl 做初始化设定, 做一个exists判定
-        if (!g_desktopInputSelectionControl.exists() && m_pApplicationEventMonitor->lastInputDeviceType() == DApplicationEventMonitor::TouchScreen) {
-            g_desktopInputSelectionControl->createHandles();
-            g_desktopInputSelectionControl->setApplicationEventMonitor(m_pApplicationEventMonitor.data());
+        if (!m_pDesktopInputSelectionControl && m_pApplicationEventMonitor->lastInputDeviceType() == DApplicationEventMonitor::TouchScreen) {
+            m_pDesktopInputSelectionControl.reset(new DDesktopInputSelectionControl(nullptr, qApp->inputMethod()));
+            m_pDesktopInputSelectionControl->createHandles();
+            m_pDesktopInputSelectionControl->setApplicationEventMonitor(m_pApplicationEventMonitor.data());
         }
     });
 }

@@ -26,10 +26,9 @@
 
 DPP_BEGIN_NAMESPACE
 
-DInputSelectionHandle::DInputSelectionHandle(HandlePosition position, QWindow *eventWindow, DDesktopInputSelectionControl *pControl)
+DInputSelectionHandle::DInputSelectionHandle(HandlePosition position, DDesktopInputSelectionControl *pControl)
     : QRasterWindow()
     , m_position(position)
-    , m_eventWindow(eventWindow)
     , m_pInputSelectionControl(pControl)
 {
     setFlags(Qt::ToolTip | Qt::FramelessWindowHint | Qt::WindowStaysOnTopHint | Qt::WindowDoesNotAcceptFocus);
@@ -91,17 +90,23 @@ void DInputSelectionHandle::paintEvent(QPaintEvent *pe)
 
 void DInputSelectionHandle::mousePressEvent(QMouseEvent *event)
 {
-    QCoreApplication::sendEvent(m_eventWindow, event);
+    if (QWindow *focusWindow = QGuiApplication::focusWindow()) {
+        QCoreApplication::sendEvent(focusWindow, event);
+    }
 }
 
 void DInputSelectionHandle::mouseReleaseEvent(QMouseEvent *event)
 {
-    QCoreApplication::sendEvent(m_eventWindow, event);
+    if (QWindow *focusWindow = QGuiApplication::focusWindow()) {
+        QCoreApplication::sendEvent(focusWindow, event);
+    }
 }
 
 void DInputSelectionHandle::mouseMoveEvent(QMouseEvent *event)
 {
-    QCoreApplication::sendEvent(m_eventWindow, event);
+    if (QWindow *focusWindow = QGuiApplication::focusWindow()) {
+        QCoreApplication::sendEvent(focusWindow, event);
+    }
 }
 
 DPP_END_NAMESPACE

@@ -19,6 +19,7 @@
 
 #include <QGuiApplication>
 #include <QInputEvent>
+#include <QTouchDevice>
 
 DPP_BEGIN_NAMESPACE
 
@@ -38,18 +39,24 @@ DApplicationEventMonitor::InputDeviceType DApplicationEventMonitor::lastInputDev
     return m_lastInputDeviceType;
 }
 
-DApplicationEventMonitor::InputDeviceType DApplicationEventMonitor::eventType(QEvent::Type type)
+DApplicationEventMonitor::InputDeviceType DApplicationEventMonitor::eventType(QEvent *event)
 {
+    Q_ASSERT(event);
+
     InputDeviceType last_input_device_type = None;
 
-    switch (type) {
+    switch (event->type()) {
     case QEvent::MouseButtonPress:
     case QEvent::MouseButtonRelease:
     case QEvent::MouseMove:
-    case QEvent::MouseButtonDblClick:
-    case QEvent::Wheel:
-        last_input_device_type = Mouse;
+    case QEvent::MouseButtonDblClick: {
+        QMouseEvent *pMouseEvent = static_cast<QMouseEvent *>(event);
+
+        if (pMouseEvent->source() == Qt::MouseEventNotSynthesized) { //由真实鼠标事件生成
+            last_input_device_type = Mouse;
+        }
         break;
+    }
     case QEvent::TabletPress:
     case QEvent::TabletRelease:
     case QEvent::TabletMove:
@@ -62,9 +69,14 @@ DApplicationEventMonitor::InputDeviceType DApplicationEventMonitor::eventType(QE
     case QEvent::TouchBegin:
     case QEvent::TouchUpdate:
     case QEvent::TouchEnd:
-    case QEvent::TouchCancel:
-        last_input_device_type = TouchScreen;
+    case QEvent::TouchCancel: {
+        QTouchEvent *pTouchEvent = static_cast<QTouchEvent *>(event);
+
+        if (pTouchEvent->device()->type() == QTouchDevice::TouchScreen) {
+            last_input_device_type = TouchScreen;
+        }
         break;
+    }
     default:
         break;
     }
@@ -74,7 +86,7 @@ DApplicationEventMonitor::InputDeviceType DApplicationEventMonitor::eventType(QE
 
 bool DApplicationEventMonitor::eventFilter(QObject *watched, QEvent *event)
 {
-    auto last_input_device_type = eventType(event->type());
+    auto last_input_device_type = eventType(event);
 
     if (last_input_device_type != None && last_input_device_type != m_lastInputDeviceType) {
         m_lastInputDeviceType = last_input_device_type;

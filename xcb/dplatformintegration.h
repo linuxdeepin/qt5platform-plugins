@@ -41,6 +41,7 @@ class DPlatformBackingStoreHelper;
 class DPlatformOpenGLContextHelper;
 class DXcbXSettings;
 class DApplicationEventMonitor;
+class DDesktopInputSelectionControl;
 
 class DPlatformIntegration : public DPlatformIntegrationParent
 {
@@ -106,6 +107,7 @@ private:
     DPlatformBackingStoreHelper *m_storeHelper;
     DPlatformOpenGLContextHelper *m_contextHelper;
     QScopedPointer<DApplicationEventMonitor> m_pApplicationEventMonitor;
+    QScopedPointer<DDesktopInputSelectionControl> m_pDesktopInputSelectionControl;
 };
 
 DPP_END_NAMESPACE
