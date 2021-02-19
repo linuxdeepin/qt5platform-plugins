@@ -11,7 +11,6 @@ DESTDIR = $$_PRO_FILE_PWD_/../bin/plugins/platforms
 QT       += opengl x11extras dbus
 QT       += core-private #xcb_qpa_lib-private
 greaterThan(QT_MAJOR_VERSION, 4) {
-    QT += widgets widgets-private
     # Qt >= 5.8
     greaterThan(QT_MINOR_VERSION, 7): QT += gui-private
     else: QT += platformsupport-private
