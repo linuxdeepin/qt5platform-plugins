@@ -36,16 +36,21 @@ public:
 QPlatformIntegration* DPlatformIntegrationPlugin::create(const QString& system, const QStringList& parameters, int &argc, char **argv)
 {
 #ifdef Q_OS_LINUX
+    bool loadDXcb = false;
+
     if (qEnvironmentVariableIsSet("D_DXCB_DISABLE")) {
-        return new DPlatformIntegrationParent(parameters, argc, argv);
+        loadDXcb = false;
+    } else if (system == "dxcb") {
+        loadDXcb = true;
+    } else if (QString(qgetenv("XDG_CURRENT_DESKTOP")).toLower().startsWith("deepin")) {
+        loadDXcb = true;
     }
 
-    if (system == "dxcb" || system == "xcb") {
-        return new DPlatformIntegration(parameters, argc, argv);
-    }
+    return loadDXcb ? new DPlatformIntegration(parameters, argc, argv)
+                    : new DPlatformIntegrationParent(parameters, argc, argv);
 #endif
 
-    return 0;
+    return nullptr;
 }
 
 QT_END_NAMESPACE
