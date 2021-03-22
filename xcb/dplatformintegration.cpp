@@ -1013,6 +1013,16 @@ void DPlatformIntegration::initialize()
 
     QXcbIntegration::initialize();
 
+    // 配置opengl渲染模块类型
+    QByteArray opengl_module_type = qgetenv("D_OPENGL_MODULE_TYPE");
+    if(!opengl_module_type.isEmpty()) {
+        QSurfaceFormat format = QSurfaceFormat::defaultFormat();
+        QSurfaceFormat::RenderableType module = opengl_module_type.contains("gles") ? QSurfaceFormat::OpenGLES :
+                                                                                      QSurfaceFormat::OpenGL;
+        format.setRenderableType(module);
+        QSurfaceFormat::setDefaultFormat(format);
+    }
+
     // 适配虚拟键盘
     if (DPlatformInputContextHook::instance()->isValid()) {
         VtableHook::overrideVfptrFun(inputContext(),
