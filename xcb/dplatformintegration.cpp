@@ -520,7 +520,7 @@ QStringList DPlatformIntegration::themeNames() const
     const QByteArray desktop_session = qgetenv("DESKTOP_SESSION");
 
     // 在lightdm环境中，无此环境变量
-    if (desktop_session.isEmpty() || desktop_session == "deepin")
+    if (desktop_session.isEmpty() || desktop_session.startsWith("deepin"))
         list.prepend("deepin");
 
     return list;
