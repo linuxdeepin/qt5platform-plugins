@@ -317,7 +317,7 @@ QPlatformWindow *DPlatformIntegration::createPlatformWindow(QWindow *window) con
     if (isNoTitlebar && DWMSupport::instance()->hasNoTitlebar()) {
         // 销毁旧的helper对象, 此处不用将mapped的值移除，后面会被覆盖
         if (DNoTitlebarWindowHelper *helper = DNoTitlebarWindowHelper::mapped.value(window)) {
-            helper->deleteLater();
+            delete helper;
         }
 
         QPlatformWindow *w = DPlatformIntegrationParent::createPlatformWindow(window);
