@@ -45,7 +45,13 @@ HEADERS += \
         $$PWD/dwaylandintegration.h
 
 qtHaveModule(waylandclient_private) : QT += waylandclient_private
-else: INCLUDEPATH += $$PWD/../qtwayland-dev
+else {
+    exists($$PWD/../qtwayland-dev/$$QT_VERSION) {
+        INCLUDEPATH += $$PWD/../qtwayland-dev/$$QT_VERSION
+    } else {
+        error(Not support Qt Version: $$QT_VERSION)
+    }
+}
 
 include($$PWD/../../src/src.pri)
 
