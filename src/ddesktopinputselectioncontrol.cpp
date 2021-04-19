@@ -245,6 +245,8 @@ void DDesktopInputSelectionControl::updateSelectionControlVisible()
 {
     Q_ASSERT(m_pApplicationEventMonitor);
     if (selectionControlVisible() && testHandleVisible()) {
+        if (m_pInputMethod->anchorRectangle().topLeft() == QPointF())
+            return;
         setEnabled(true);
         m_anchorSelectionHandle->show();
         m_cursorSelectionHandle->show();
