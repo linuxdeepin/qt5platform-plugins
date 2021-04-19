@@ -20,9 +20,10 @@
 
 #include "global.h"
 
-#include <QObject>
+#include <QMap>
 #include <QSize>
 #include <QPoint>
+#include <QObject>
 #include <QVector>
 #include <QPointer>
 #include <QScopedPointer>
@@ -116,11 +117,15 @@ private:
     bool m_cursorHandleVisible;
     bool m_eventFilterEnabled;
     bool m_selectionControlVisible;
+    bool m_toolTipControVisible;
     QPoint m_otherSelectionPoint;
     QVector<QMouseEvent *> m_eventQueue;
     QPoint m_distanceBetweenMouseAndCursor;
     QPoint m_handleDragStartedPosition;
     QSize m_fingerOptSize;
+
+    QMap<QObject*, QPointF> m_focusWindow;
+    bool tooptipClick;
 };
 
 DPP_END_NAMESPACE
