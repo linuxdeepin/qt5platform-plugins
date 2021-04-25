@@ -32,7 +32,6 @@ class DPlatformNativeInterfaceHook
 {
 public:
     static QFunctionPointer platformFunction(QPlatformNativeInterface *interface, const QByteArray &function);
-    static thread_local QHash<QByteArray, QFunctionPointer> functionCache;
 };
 
 DPP_END_NAMESPACE

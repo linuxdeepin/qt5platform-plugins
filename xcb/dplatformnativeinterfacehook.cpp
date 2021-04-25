@@ -48,107 +48,61 @@ static DeviceType _inputEventSourceDevice(const QInputEvent *event)
 
 static QFunctionPointer getFunction(const QByteArray &function)
 {
-    if (function == setWmBlurWindowBackgroundArea) {
-        return reinterpret_cast<QFunctionPointer>(&Utility::blurWindowBackground);
-    } else if (function == setWmBlurWindowBackgroundPathList) {
-        return reinterpret_cast<QFunctionPointer>(&Utility::blurWindowBackgroundByPaths);
-    } else if (function == setWmBlurWindowBackgroundMaskImage) {
-        return reinterpret_cast<QFunctionPointer>(&Utility::blurWindowBackgroundByImage);
-    } else if (function == setWmWallpaperParameter) {
-        return reinterpret_cast<QFunctionPointer>(&Utility::updateBackgroundWallpaper);
-    } else if (function == hasBlurWindow) {
-        return reinterpret_cast<QFunctionPointer>(&DWMSupport::Global::hasBlurWindow);
-    } else if (function == hasComposite) {
-        return reinterpret_cast<QFunctionPointer>(&DWMSupport::Global::hasComposite);
-    } else if (function == hasNoTitlebar) {
-        return reinterpret_cast<QFunctionPointer>(&DWMSupport::Global::hasNoTitlebar);
-    } else if (function == hasWindowAlpha) {
-        return reinterpret_cast<QFunctionPointer>(&DWMSupport::Global::hasWindowAlpha);
-    } else if (function == hasWallpaperEffect) {
-        return reinterpret_cast<QFunctionPointer>(&DWMSupport::Global::hasWallpaperEffect);
-    } else if (function == windowManagerName) {
-        return reinterpret_cast<QFunctionPointer>(&DWMSupport::Global::windowManagerName);
-    } else if (function == connectWindowManagerChangedSignal) {
-        return reinterpret_cast<QFunctionPointer>(&DWMSupport::connectWindowManagerChangedSignal);
-    } else if (function == connectHasBlurWindowChanged) {
-        return reinterpret_cast<QFunctionPointer>(&DWMSupport::connectHasBlurWindowChanged);
-    } else if (function == connectHasCompositeChanged) {
-        return reinterpret_cast<QFunctionPointer>(&DWMSupport::connectHasCompositeChanged);
-    } else if (function == connectHasNoTitlebarChanged) {
-        return reinterpret_cast<QFunctionPointer>(&DWMSupport::connectHasNoTitlebarChanged);
-    } else if (function == connectHasWallpaperEffectChanged) {
-        return reinterpret_cast<QFunctionPointer>(&DWMSupport::connectHasWallpaperEffectChanged);
-    } else if (function == getWindows) {
-        return reinterpret_cast<QFunctionPointer>(&Utility::getWindows);
-    } else if (function == windowFromPoint) {
-        return reinterpret_cast<QFunctionPointer>(&Utility::windowFromPoint);
-    } else if (function == getCurrentWorkspaceWindows) {
-        return reinterpret_cast<QFunctionPointer>(&Utility::getCurrentWorkspaceWindows);
-    } else if (function == connectWindowListChanged) {
-        return reinterpret_cast<QFunctionPointer>(&DWMSupport::connectWindowListChanged);
-    } else if (function == setMWMFunctions) {
-        return reinterpret_cast<QFunctionPointer>(&DWMSupport::setMWMFunctions);
-    } else if (function == getMWMFunctions) {
-        return reinterpret_cast<QFunctionPointer>(&DWMSupport::getMWMFunctions);
-    } else if (function == setMWMDecorations) {
-        return reinterpret_cast<QFunctionPointer>(&DWMSupport::setMWMDecorations);
-    } else if (function == getMWMDecorations) {
-        return reinterpret_cast<QFunctionPointer>(&DWMSupport::getMWMDecorations);
-    } else if (function == connectWindowMotifWMHintsChanged) {
-        return reinterpret_cast<QFunctionPointer>(&DWMSupport::connectWindowMotifWMHintsChanged);
-    } else if (function == popupSystemWindowMenu) {
-        return reinterpret_cast<QFunctionPointer>(&DWMSupport::popupSystemWindowMenu);
-    } else if (function == setWindowProperty) {
-        return reinterpret_cast<QFunctionPointer>(&DPlatformIntegration::setWindowProperty);
-    } else if (function == pluginVersion) {
-        return reinterpret_cast<QFunctionPointer>(&version);
-    } else if (function == inputEventSourceDevice) {
-        return reinterpret_cast<QFunctionPointer>(&_inputEventSourceDevice);
-    } else if (function == createGroupWindow) {
-        return reinterpret_cast<QFunctionPointer>(&Utility::createGroupWindow);
-    } else if (function == destoryGroupWindow) {
-        return reinterpret_cast<QFunctionPointer>(&Utility::destoryGroupWindow);
-    } else if (function == setWindowGroup) {
-        return reinterpret_cast<QFunctionPointer>(&Utility::setWindowGroup);
-    } else if (function == clientLeader) {
-        return reinterpret_cast<QFunctionPointer>(&Utility::clientLeader);
-    } else if (function == enableDxcb) {
-        return reinterpret_cast<QFunctionPointer>(&DPlatformIntegration::enableDxcb);
-    } else if (function == isEnableDxcb) {
-        return reinterpret_cast<QFunctionPointer>(&DPlatformIntegration::isEnableDxcb);
-    } else if (function == setEnableNoTitlebar) {
-        return reinterpret_cast<QFunctionPointer>(&DPlatformIntegration::setEnableNoTitlebar);
-    } else if (function == isEnableNoTitlebar) {
-        return reinterpret_cast<QFunctionPointer>(&DPlatformIntegration::isEnableNoTitlebar);
-    } else if (function == buildNativeSettings) {
-        return reinterpret_cast<QFunctionPointer>(&DPlatformIntegration::buildNativeSettings);
-    } else if (function == clearNativeSettings) {
-        return reinterpret_cast<QFunctionPointer>(&DPlatformIntegration::clearNativeSettings);
-    } else if (function == setWMClassName) {
-        return reinterpret_cast<QFunctionPointer>(&DPlatformIntegration::setWMClassName);
-    }
+    static QHash<QByteArray, QFunctionPointer> functionCache = {
+        {setWmBlurWindowBackgroundArea, reinterpret_cast<QFunctionPointer>(&Utility::blurWindowBackground)},
+        {setWmBlurWindowBackgroundPathList, reinterpret_cast<QFunctionPointer>(&Utility::blurWindowBackgroundByPaths)},
+        {setWmBlurWindowBackgroundMaskImage, reinterpret_cast<QFunctionPointer>(&Utility::blurWindowBackgroundByImage)},
+        {setWmWallpaperParameter, reinterpret_cast<QFunctionPointer>(&Utility::updateBackgroundWallpaper)},
+        {hasBlurWindow, reinterpret_cast<QFunctionPointer>(&DWMSupport::Global::hasBlurWindow)},
+        {hasComposite, reinterpret_cast<QFunctionPointer>(&DWMSupport::Global::hasComposite)},
+        {hasNoTitlebar, reinterpret_cast<QFunctionPointer>(&DWMSupport::Global::hasNoTitlebar)},
+        {hasWindowAlpha, reinterpret_cast<QFunctionPointer>(&DWMSupport::Global::hasWindowAlpha)},
+        {hasWallpaperEffect, reinterpret_cast<QFunctionPointer>(&DWMSupport::Global::hasWallpaperEffect)},
+        {windowManagerName, reinterpret_cast<QFunctionPointer>(&DWMSupport::Global::windowManagerName)},
+        {connectWindowManagerChangedSignal, reinterpret_cast<QFunctionPointer>(&DWMSupport::connectWindowManagerChangedSignal)},
+        {connectHasBlurWindowChanged, reinterpret_cast<QFunctionPointer>(&DWMSupport::connectHasBlurWindowChanged)},
+        {connectHasCompositeChanged, reinterpret_cast<QFunctionPointer>(&DWMSupport::connectHasCompositeChanged)},
+        {connectHasNoTitlebarChanged, reinterpret_cast<QFunctionPointer>(&DWMSupport::connectHasNoTitlebarChanged)},
+        {connectHasWallpaperEffectChanged, reinterpret_cast<QFunctionPointer>(&DWMSupport::connectHasWallpaperEffectChanged)},
+        {getWindows, reinterpret_cast<QFunctionPointer>(&Utility::getWindows)},
+        {windowFromPoint, reinterpret_cast<QFunctionPointer>(&Utility::windowFromPoint)},
+        {getCurrentWorkspaceWindows, reinterpret_cast<QFunctionPointer>(&Utility::getCurrentWorkspaceWindows)},
+        {connectWindowListChanged, reinterpret_cast<QFunctionPointer>(&DWMSupport::connectWindowListChanged)},
+        {setMWMFunctions, reinterpret_cast<QFunctionPointer>(&DWMSupport::setMWMFunctions)},
+        {getMWMFunctions, reinterpret_cast<QFunctionPointer>(&DWMSupport::getMWMFunctions)},
+        {setMWMDecorations, reinterpret_cast<QFunctionPointer>(&DWMSupport::setMWMDecorations)},
+        {getMWMDecorations, reinterpret_cast<QFunctionPointer>(&DWMSupport::getMWMDecorations)},
+        {connectWindowMotifWMHintsChanged, reinterpret_cast<QFunctionPointer>(&DWMSupport::connectWindowMotifWMHintsChanged)},
+        {popupSystemWindowMenu, reinterpret_cast<QFunctionPointer>(&DWMSupport::popupSystemWindowMenu)},
+        {setWindowProperty, reinterpret_cast<QFunctionPointer>(&DPlatformIntegration::setWindowProperty)},
+        {pluginVersion, reinterpret_cast<QFunctionPointer>(&version)},
+        {inputEventSourceDevice, reinterpret_cast<QFunctionPointer>(&_inputEventSourceDevice)},
+        {createGroupWindow, reinterpret_cast<QFunctionPointer>(&Utility::createGroupWindow)},
+        {destoryGroupWindow, reinterpret_cast<QFunctionPointer>(&Utility::destoryGroupWindow)},
+        {setWindowGroup, reinterpret_cast<QFunctionPointer>(&Utility::setWindowGroup)},
+        {clientLeader, reinterpret_cast<QFunctionPointer>(&Utility::clientLeader)},
+        {enableDxcb, reinterpret_cast<QFunctionPointer>(&DPlatformIntegration::enableDxcb)},
+        {isEnableDxcb, reinterpret_cast<QFunctionPointer>(&DPlatformIntegration::isEnableDxcb)},
+        {setEnableNoTitlebar, reinterpret_cast<QFunctionPointer>(&DPlatformIntegration::setEnableNoTitlebar)},
+        {isEnableNoTitlebar, reinterpret_cast<QFunctionPointer>(&DPlatformIntegration::isEnableNoTitlebar)},
+        {buildNativeSettings, reinterpret_cast<QFunctionPointer>(&DPlatformIntegration::buildNativeSettings)},
+        {clearNativeSettings, reinterpret_cast<QFunctionPointer>(&DPlatformIntegration::clearNativeSettings)},
+        {setWMClassName, reinterpret_cast<QFunctionPointer>(&DPlatformIntegration::setWMClassName)}
+    };
 
-    return nullptr;
+    return functionCache.value(function);
 }
 
-thread_local QHash<QByteArray, QFunctionPointer> DPlatformNativeInterfaceHook::functionCache;
 QFunctionPointer DPlatformNativeInterfaceHook::platformFunction(QPlatformNativeInterface *interface, const QByteArray &function)
 {
-    if (QFunctionPointer f = functionCache.value(function)) {
-        return f;
-    }
-
     QFunctionPointer f = getFunction(function);
 
-    if (f) {
-        functionCache.insert(function, f);
-        return f;
-    }
-
 #if QT_VERSION >= QT_VERSION_CHECK(5, 4, 0)
-    return static_cast<DPlatformNativeInterface*>(interface)->DPlatformNativeInterface::platformFunction(function);
+        if (!f) {
+            f = static_cast<DPlatformNativeInterface*>(interface)->DPlatformNativeInterface::platformFunction(function);
+        }
 #endif
-    return 0;
+    return f;
 }
 
 DPP_END_NAMESPACE
