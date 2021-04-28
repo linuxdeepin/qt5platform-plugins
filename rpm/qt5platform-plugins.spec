@@ -73,7 +73,7 @@ BuildRequires:  qt5-qtmultimedia-devel
 
 %prep
 %autosetup
-sed -i 's|wayland/wayland.pro|#wayland/wayland.pro' qt5platform-plugins.pro
+sed -i 's|wayland/wayland.pro|#wayland/wayland.pro|' qt5platform-plugins.pro
 
 %build
 # help find (and prefer) qt5 utilities, e.g. qmake, lrelease
