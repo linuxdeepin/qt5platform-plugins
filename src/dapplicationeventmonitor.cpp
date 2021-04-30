@@ -39,8 +39,10 @@ DApplicationEventMonitor::InputDeviceType DApplicationEventMonitor::lastInputDev
     return m_lastInputDeviceType;
 }
 
-bool DApplicationEventMonitor::eventFilter(QObject *watched, QEvent *event)
+DApplicationEventMonitor::InputDeviceType DApplicationEventMonitor::eventType(QEvent *event)
 {
+    Q_ASSERT(event);
+
     InputDeviceType last_input_device_type = None;
 
     switch (event->type()) {
@@ -78,6 +80,13 @@ bool DApplicationEventMonitor::eventFilter(QObject *watched, QEvent *event)
     default:
         break;
     }
+
+    return last_input_device_type;
+}
+
+bool DApplicationEventMonitor::eventFilter(QObject *watched, QEvent *event)
+{
+    auto last_input_device_type = eventType(event);
 
     if (last_input_device_type != None && last_input_device_type != m_lastInputDeviceType) {
         m_lastInputDeviceType = last_input_device_type;

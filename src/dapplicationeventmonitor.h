@@ -46,6 +46,9 @@ public:
 protected:
     bool eventFilter(QObject *watched, QEvent *event) override;
 
+private:
+    static InputDeviceType eventType(QEvent *type);
+
 signals:
     void lastInputDeviceTypeChanged();
 
