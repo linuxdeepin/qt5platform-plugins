@@ -42,8 +42,27 @@ DDesktopInputSelectionControl::DDesktopInputSelectionControl(QObject *parent, QI
     , m_cursorHandleVisible(false)
     , m_eventFilterEnabled(true)
     , m_selectionControlVisible(false)
+    , m_toolTipControVisible(false)
     , m_fingerOptSize(40, static_cast<int>(40 * 1.12)) // because a finger patch is slightly taller than its width
+    , m_tooptipClick(false)
 {
+    if (auto window = QGuiApplication::focusWindow()) {
+        window->installEventFilter(this);
+    }
+
+    connect(m_pInputMethod, &QInputMethod::anchorRectangleChanged, this, [ = ]{
+        QPointF point = anchorRectangle().topLeft();
+        QObject *widget = QGuiApplication::focusObject();
+
+        if (point.isNull() || (m_focusWindow.value(widget) == point)) {
+            return;
+        }
+
+        m_tooptipClick = false;
+        m_focusWindow[widget] = point;
+        widget->installEventFilter(this);
+    });
+
     connect(m_pInputMethod, &QInputMethod::cursorRectangleChanged, this, [this] {
         bool res = m_pInputMethod->cursorRectangle().topLeft() != m_pInputMethod->anchorRectangle().topLeft();
         if (res == m_selectionControlVisible) {
@@ -232,10 +251,13 @@ void DDesktopInputSelectionControl::createHandles()
 
     m_anchorSelectionHandle->resize(m_fingerOptSize);
     m_cursorSelectionHandle->resize(m_fingerOptSize);
+    connect(m_selectedTextTooltip.data(), &DSelectedTextTooltip::optAction,
+            this, &DDesktopInputSelectionControl::onOptAction);
 }
 
 void DDesktopInputSelectionControl::onWindowStateChanged(Qt::WindowState state)
 {
+    m_focusWindow.clear();
     m_anchorSelectionHandle->setVisible(state != Qt::WindowState::WindowMinimized);
     m_cursorSelectionHandle->setVisible(state != Qt::WindowState::WindowMinimized);
     m_selectedTextTooltip->setVisible(state != Qt::WindowState::WindowMinimized);
@@ -256,6 +278,7 @@ void DDesktopInputSelectionControl::updateSelectionControlVisible()
         m_anchorSelectionHandle->hide();
         m_cursorSelectionHandle->hide();
         m_selectedTextTooltip->hide();
+        m_tooptipClick = true;
     }
 }
 
@@ -306,40 +329,25 @@ void DDesktopInputSelectionControl::onFocusWindowChanged()
         m_anchorSelectionHandle->hide();
         m_cursorSelectionHandle->hide();
         m_selectedTextTooltip->hide();
+        m_focusWindow.clear();
     }
 }
 
 void DDesktopInputSelectionControl::setEnabled(bool val)
 {
     // This will typically be set when a input field gets focus (and having selection).
-    QWindow *focusWindow = QGuiApplication::focusWindow();
-
     if (val) {
         connect(this, &DDesktopInputSelectionControl::anchorRectangleChanged, this, &DDesktopInputSelectionControl::updateAnchorHandlePosition);
         connect(this, &DDesktopInputSelectionControl::cursorRectangleChanged, this, &DDesktopInputSelectionControl::updateCursorHandlePosition);
 
         connect(this, &DDesktopInputSelectionControl::anchorRectangleChanged, this, &DDesktopInputSelectionControl::updateTooltipPosition);
         connect(this, &DDesktopInputSelectionControl::cursorRectangleChanged, this, &DDesktopInputSelectionControl::updateTooltipPosition);
-
-        connect(m_selectedTextTooltip.data(), &DSelectedTextTooltip::optAction, this, &DDesktopInputSelectionControl::onOptAction);
-
-        if (focusWindow) {
-            focusWindow->installEventFilter(this);
-            connect(focusWindow, &QWindow::windowStateChanged, this, &DDesktopInputSelectionControl::onWindowStateChanged);
-        }
     } else {
         disconnect(this, &DDesktopInputSelectionControl::anchorRectangleChanged, this, &DDesktopInputSelectionControl::updateAnchorHandlePosition);
         disconnect(this, &DDesktopInputSelectionControl::cursorRectangleChanged, this, &DDesktopInputSelectionControl::updateCursorHandlePosition);
 
         disconnect(this, &DDesktopInputSelectionControl::anchorRectangleChanged, this, &DDesktopInputSelectionControl::updateTooltipPosition);
         disconnect(this, &DDesktopInputSelectionControl::cursorRectangleChanged, this, &DDesktopInputSelectionControl::updateTooltipPosition);
-
-        disconnect(m_selectedTextTooltip.data(), &DSelectedTextTooltip::optAction, this, &DDesktopInputSelectionControl::onOptAction);
-
-        if (focusWindow) {
-            focusWindow->removeEventFilter(this);
-            disconnect(focusWindow, &QWindow::windowStateChanged, this, &DDesktopInputSelectionControl::onWindowStateChanged);
-        }
     }
 
     updateVisibility();
@@ -430,10 +438,11 @@ void DDesktopInputSelectionControl::setApplicationEventMonitor(DApplicationEvent
 
 bool DDesktopInputSelectionControl::eventFilter(QObject *object, QEvent *event)
 {
+    Q_UNUSED(object)
     QWindow *focusWindow = QGuiApplication::focusWindow();
-    if (!m_cursorSelectionHandle || !m_eventFilterEnabled || object != focusWindow) {
+
+    if (!m_selectedTextTooltip)
         return false;
-    }
 
     const bool windowMoved = event->type() == QEvent::Move;
     const bool windowResized = event->type() == QEvent::Resize;
@@ -448,7 +457,50 @@ bool DDesktopInputSelectionControl::eventFilter(QObject *object, QEvent *event)
     }
 
     switch (event->type()) {
+    case QEvent::FocusOut: {
+        if (m_focusWindow.isEmpty())
+            break;
+        if (auto widget = m_focusWindow.key(m_focusWindow.first())) {
+            m_tooptipClick = true;
+            selectionControlVisible();
+            m_anchorSelectionHandle->hide();
+            m_cursorSelectionHandle->hide();
+            m_selectedTextTooltip->hide();
+            m_focusWindow.clear();
+            widget->removeEventFilter(this);
+        }
+        break;
+    }
+    case QEvent::ContextMenu: {
+        if (m_focusWindow.isEmpty())
+            break;
+        updateTooltipPosition();
+        m_selectedTextTooltip->show();
+        m_tooptipClick = false;
+        return true;
+    }
+    case QEvent::TouchEnd: {
+        QPointF point = anchorRectangle().topLeft();
+
+        if (m_anchorSelectionHandle && !m_anchorSelectionHandle->isVisible()) {
+
+            if (!m_tooptipClick) {
+                m_tooptipClick = true;
+                m_selectedTextTooltip->hide();
+                break;
+            }
+
+            if (m_focusWindow.key(point) && m_tooptipClick) {
+                updateTooltipPosition();
+                m_selectedTextTooltip->show();
+                m_tooptipClick = false;
+            }
+        }
+        break;
+    }
     case QEvent::MouseButtonPress: {
+        if (m_pInputMethod->queryFocusObject(Qt::InputMethodQuery::ImCurrentSelection, true).isNull())
+            break;
         QMouseEvent *me = static_cast<QMouseEvent *>(event);
         const QPoint mousePos = me->screenPos().toPoint();
 
