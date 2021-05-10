@@ -355,18 +355,19 @@ void DForeignPlatformWindow::updateWindowTypes()
     Qt::WindowFlags window_flags = 0;
 
     if (window_types & QXcbWindowFunctions::Normal)
-            window_flags |= Qt::Window;
-    else if (window_types & QXcbWindowFunctions::Desktop)
+        window_flags |= Qt::Window;
+    if (window_types & QXcbWindowFunctions::Desktop)
         window_flags |= Qt::Desktop;
-    else if (window_types & QXcbWindowFunctions::Dialog)
+    if (window_types & QXcbWindowFunctions::Dialog)
         window_flags |= Qt::Dialog;
-    else if (window_types & QXcbWindowFunctions::Utility)
+    if (window_types & QXcbWindowFunctions::Utility)
         window_flags |= Qt::Tool;
-    else if (window_types & QXcbWindowFunctions::Tooltip)
+    if (window_types & QXcbWindowFunctions::Tooltip)
         window_flags |= Qt::ToolTip;
-    else if (window_types & QXcbWindowFunctions::Splash)
+    if (window_types & QXcbWindowFunctions::Splash)
         window_flags |= Qt::SplashScreen;
-    else
+    // default: Qt::Widget, include dock
+    if (!window_flags)
         window_flags |= Qt::Widget;
 
     if (window_types & QXcbWindowFunctions::KdeOverride)
