@@ -441,8 +441,9 @@ bool DDesktopInputSelectionControl::eventFilter(QObject *object, QEvent *event)
     Q_UNUSED(object)
     QWindow *focusWindow = QGuiApplication::focusWindow();
 
-    if (!m_selectedTextTooltip)
-        return false;
+    if (!m_cursorSelectionHandle || !m_selectedTextTooltip
+            || !m_eventFilterEnabled || object != focusWindow)
+            return false;
 
     const bool windowMoved = event->type() == QEvent::Move;
     const bool windowResized = event->type() == QEvent::Resize;
@@ -499,8 +500,6 @@ bool DDesktopInputSelectionControl::eventFilter(QObject *object, QEvent *event)
         break;
     }
     case QEvent::MouseButtonPress: {
-        if (m_pInputMethod->queryFocusObject(Qt::InputMethodQuery::ImCurrentSelection, true).isNull())
-            break;
         QMouseEvent *me = static_cast<QMouseEvent *>(event);
         const QPoint mousePos = me->screenPos().toPoint();
 
