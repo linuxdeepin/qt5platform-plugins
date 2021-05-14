@@ -69,6 +69,7 @@
 #undef protected
 #include <qpa/qplatformnativeinterface.h>
 #include <qpa/qplatforminputcontext.h>
+#include <qpa/qplatformservices.h>
 #include <private/qpaintengine_raster_p.h>
 
 #include "im_interface.h"
@@ -1104,16 +1105,18 @@ void DPlatformIntegration::initialize()
         QObject::connect(qApp, &QGuiApplication::screenAdded, qApp, &watchScreenDPIChange);
     }
 
-    m_pApplicationEventMonitor.reset(new DApplicationEventMonitor);
+    if (QGuiApplicationPrivate::instance()->platformIntegration()->services()->desktopEnvironment().toLower().endsWith("tablet")) {
+        m_pApplicationEventMonitor.reset(new DApplicationEventMonitor);
 
-    QObject::connect(m_pApplicationEventMonitor.data(), &DApplicationEventMonitor::lastInputDeviceTypeChanged, qApp, [this] {
-        // 这里为了不重复对g_desktopInputSelectionControl 做初始化设定, 做一个exists判定
-        if (!m_pDesktopInputSelectionControl && m_pApplicationEventMonitor->lastInputDeviceType() == DApplicationEventMonitor::TouchScreen) {
-            m_pDesktopInputSelectionControl.reset(new DDesktopInputSelectionControl(nullptr, qApp->inputMethod()));
-            m_pDesktopInputSelectionControl->createHandles();
-            m_pDesktopInputSelectionControl->setApplicationEventMonitor(m_pApplicationEventMonitor.data());
-        }
-    });
+        QObject::connect(m_pApplicationEventMonitor.data(), &DApplicationEventMonitor::lastInputDeviceTypeChanged, qApp, [this] {
+            // 这里为了不重复对g_desktopInputSelectionControl 做初始化设定, 做一个exists判定
+            if (!m_pDesktopInputSelectionControl && m_pApplicationEventMonitor->lastInputDeviceType() == DApplicationEventMonitor::TouchScreen) {
+                m_pDesktopInputSelectionControl.reset(new DDesktopInputSelectionControl(nullptr, qApp->inputMethod()));
+                m_pDesktopInputSelectionControl->createHandles();
+                m_pDesktopInputSelectionControl->setApplicationEventMonitor(m_pApplicationEventMonitor.data());
+            }
+        });
+    }
 }
 
 #ifdef Q_OS_LINUX
