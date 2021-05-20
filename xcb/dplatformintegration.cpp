@@ -972,7 +972,11 @@ static void hookScreenGetWindow(QScreen *screen)
 
 static void watchScreenDPIChange(QScreen *screen)
 {
-    DPlatformIntegration::instance()->xSettings()->registerCallbackForProperty("Qt/DPI/" + screen->name().toLocal8Bit(), &DHighDpi::onDPIChanged, screen);
+    if (screen && screen->handle()) {
+        DPlatformIntegration::instance()->xSettings()->registerCallbackForProperty("Qt/DPI/" + screen->name().toLocal8Bit(), &DHighDpi::onDPIChanged, screen);
+    } else {
+        qWarning("screen or handle is nullptr!");
+    }
 }
 
 static void startDrag(QXcbDrag *drag)
