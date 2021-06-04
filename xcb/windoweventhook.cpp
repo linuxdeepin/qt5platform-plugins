@@ -47,25 +47,25 @@ void WindowEventHook::init(QXcbWindow *window, bool redirectContent)
     const Qt::WindowType &type = window->window()->type();
 
     if (redirectContent) {
-        VtableHook::overrideVfptrFun(window, &QXcbWindowEventListener::handleMapNotifyEvent,
+        VtableHook::overrideVfptrFun(window, &QXcbWindow::handleMapNotifyEvent,
                                      &WindowEventHook::handleMapNotifyEvent);
     }
 
-    VtableHook::overrideVfptrFun(window, &QXcbWindowEventListener::handleConfigureNotifyEvent,
+    VtableHook::overrideVfptrFun(window, &QXcbWindow::handleConfigureNotifyEvent,
                                  &WindowEventHook::handleConfigureNotifyEvent);
 
     if (type == Qt::Widget || type == Qt::Window || type == Qt::Dialog) {
-        VtableHook::overrideVfptrFun(window, &QXcbWindowEventListener::handleClientMessageEvent,
+        VtableHook::overrideVfptrFun(window, &QXcbWindow::handleClientMessageEvent,
                                      &WindowEventHook::handleClientMessageEvent);
-        VtableHook::overrideVfptrFun(window, &QXcbWindowEventListener::handleFocusInEvent,
+        VtableHook::overrideVfptrFun(window, &QXcbWindow::handleFocusInEvent,
                                      &WindowEventHook::handleFocusInEvent);
-        VtableHook::overrideVfptrFun(window, &QXcbWindowEventListener::handleFocusOutEvent,
+        VtableHook::overrideVfptrFun(window, &QXcbWindow::handleFocusOutEvent,
                                      &WindowEventHook::handleFocusOutEvent);
 #ifdef XCB_USE_XINPUT22
-        VtableHook::overrideVfptrFun(window, &QXcbWindowEventListener::handleXIEnterLeave,
+        VtableHook::overrideVfptrFun(window, &QXcbWindow::handleXIEnterLeave,
                                      &WindowEventHook::handleXIEnterLeave);
 #endif
-        VtableHook::overrideVfptrFun(window, &QPlatformWindow::windowEvent,
+        VtableHook::overrideVfptrFun(window, &QXcbWindow::windowEvent,
                                      &WindowEventHook::windowEvent);
     }
 
@@ -110,9 +110,8 @@ xcb_atom_t toXdndAction(const QXcbDrag *drag, Qt::DropAction a)
     }
 }
 
-void WindowEventHook::handleConfigureNotifyEvent(QXcbWindowEventListener *el, const xcb_configure_notify_event_t *event)
+void WindowEventHook::handleConfigureNotifyEvent(QXcbWindow *window, const xcb_configure_notify_event_t *event)
 {
-    QXcbWindow *window = static_cast<QXcbWindow*>(el);
     DPlatformWindowHelper *helper = DPlatformWindowHelper::mapped.value(window);
 
     if (helper) {
@@ -129,9 +128,8 @@ void WindowEventHook::handleConfigureNotifyEvent(QXcbWindowEventListener *el, co
     }
 }
 
-void WindowEventHook::handleMapNotifyEvent(QXcbWindowEventListener *el, const xcb_map_notify_event_t *event)
+void WindowEventHook::handleMapNotifyEvent(QXcbWindow *window, const xcb_map_notify_event_t *event)
 {
-    QXcbWindow *window = static_cast<QXcbWindow*>(el);
     window->QXcbWindow::handleMapNotifyEvent(event);
 
     if (DFrameWindow *frame = qobject_cast<DFrameWindow*>(window->window())) {
@@ -153,10 +151,8 @@ static Qt::DropAction toDropAction(QXcbConnection *c, xcb_atom_t a)
     return Qt::CopyAction;
 }
 
-void WindowEventHook::handleClientMessageEvent(QXcbWindowEventListener *el, const xcb_client_message_event_t *event)
+void WindowEventHook::handleClientMessageEvent(QXcbWindow *window, const xcb_client_message_event_t *event)
 {
-    QXcbWindow *window = static_cast<QXcbWindow*>(el);
-
     if (event->format != 32) {
         return window->QXcbWindow::handleClientMessageEvent(event);
     }
@@ -338,14 +334,13 @@ bool WindowEventHook::relayFocusToModalWindow(QWindow *w, QXcbConnection *connec
     return false;
 }
 
-void WindowEventHook::handleFocusInEvent(QXcbWindowEventListener *el, const xcb_focus_in_event_t *event)
+void WindowEventHook::handleFocusInEvent(QXcbWindow *window, const xcb_focus_in_event_t *event)
 {
     // Ignore focus events that are being sent only because the pointer is over
     // our window, even if the input focus is in a different window.
     if (event->detail == XCB_NOTIFY_DETAIL_POINTER)
         return;
 
-    QXcbWindow *window = static_cast<QXcbWindow*>(el);
     QWindow *w = static_cast<QWindowPrivate *>(QObjectPrivate::get(window->window()))->eventReceiver();
 
     if (DFrameWindow *frame = qobject_cast<DFrameWindow*>(w)) {
@@ -414,7 +409,7 @@ static bool focusInPeeker(QXcbConnection *connection, xcb_generic_event_t *event
     return false;
 }
 
-void WindowEventHook::handleFocusOutEvent(QXcbWindowEventListener *el, const xcb_focus_out_event_t *event)
+void WindowEventHook::handleFocusOutEvent(QXcbWindow *window, const xcb_focus_out_event_t *event)
 {
     // Ignore focus events
     if (event->mode == XCB_NOTIFY_MODE_GRAB) {
@@ -426,7 +421,6 @@ void WindowEventHook::handleFocusOutEvent(QXcbWindowEventListener *el, const xcb
     if (event->detail == XCB_NOTIFY_DETAIL_POINTER)
         return;
 
-    QXcbWindow *window = static_cast<QXcbWindow*>(el);
     QWindow *w = static_cast<QWindowPrivate *>(QObjectPrivate::get(window->window()))->eventReceiver();
 
     if (relayFocusToModalWindow(w, window->connection()))
@@ -485,9 +479,9 @@ static inline int fixed1616ToInt(FP1616 val)
     return int((qreal(val >> 16)) + (val & 0xFFFF) / (qreal)0xFFFF);
 }
 
-void WindowEventHook::handleXIEnterLeave(QXcbWindowEventListener *el, xcb_ge_event_t *event)
+void WindowEventHook::handleXIEnterLeave(QXcbWindow *window, xcb_ge_event_t *event)
 {
-    DQXcbWindow *me = reinterpret_cast<DQXcbWindow*>(static_cast<QXcbWindow*>(el));
+    DQXcbWindow *me = reinterpret_cast<DQXcbWindow *>(window);
 
     xXIEnterEvent *ev = reinterpret_cast<xXIEnterEvent *>(event);
 
@@ -558,9 +552,9 @@ void WindowEventHook::handleXIEnterLeave(QXcbWindowEventListener *el, xcb_ge_eve
 }
 
 #if QT_VERSION < QT_VERSION_CHECK(5, 12, 0)
-void WindowEventHook::windowEvent(QPlatformWindow *window, QEvent *event)
+void WindowEventHook::windowEvent(QXcbWindow *window, QEvent *event)
 #else
-bool WindowEventHook::windowEvent(QPlatformWindow *window, QEvent *event)
+bool WindowEventHook::windowEvent(QXcbWindow *window, QEvent *event)
 #endif
 {
     switch (event->type()) {
@@ -578,7 +572,7 @@ bool WindowEventHook::windowEvent(QPlatformWindow *window, QEvent *event)
         break;
     }
 
-    return static_cast<QXcbWindow*>(window)->QXcbWindow::windowEvent(event);
+    return window->QXcbWindow::windowEvent(event);
 }
 #endif
 

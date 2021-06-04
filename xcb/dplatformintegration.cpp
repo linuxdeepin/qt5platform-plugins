@@ -938,10 +938,10 @@ static void hookXcbCursor(QScreen *screen)
 }
 #endif
 
-static bool hookDragObjectEventFilter(QObject *drag, QObject *o, QEvent *e)
+static bool hookDragObjectEventFilter(QBasicDrag *drag, QObject *o, QEvent *e)
 {
     if (e->type() == QEvent::MouseMove) {
-        return static_cast<QBasicDrag*>(drag)->QBasicDrag::eventFilter(o, e);
+        return drag->QBasicDrag::eventFilter(o, e);
     }
 
     return VtableHook::callOriginalFun(drag, &QObject::eventFilter, o, e);
@@ -1091,7 +1091,7 @@ void DPlatformIntegration::initialize()
                                  this, &DPlatformIntegration::isWindowBlockedHandle);
 
     // FIXME(zccrs): 修复启动drag后鼠标从一块屏幕移动到另一块后图标窗口位置不对
-    VtableHook::overrideVfptrFun(static_cast<QBasicDrag*>(drag()), &QObject::eventFilter, &hookDragObjectEventFilter);
+    VtableHook::overrideVfptrFun(static_cast<QBasicDrag *>(drag()), &QBasicDrag::eventFilter, &hookDragObjectEventFilter);
 
     for (QScreen *s : qApp->screens()) {
         hookScreenGetWindow(s);
