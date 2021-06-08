@@ -64,7 +64,6 @@ public Q_SLOTS:
     void updateAnchorHandlePosition();
     void updateCursorHandlePosition();
     void updateTooltipPosition();
-    void updateVisibility();
     void onWindowStateChanged(Qt::WindowState state);
     void updateSelectionControlVisible();
     void onOptAction(int type);
@@ -89,10 +88,9 @@ private:
     QRectF anchorRectangle() const;
     QRectF cursorRectangle() const;
     QRectF keyboardRectangle() const;
-    bool animating() const;
-    bool selectionControlVisible() const;
     bool anchorRectIntersectsClipRect() const;
     bool cursorRectIntersectsClipRect() const;
+    void updateHandleFlags();
 
     void setSelectionOnFocusObject(const QPointF &anchorPos, const QPointF &cursorPos);
 
@@ -113,11 +111,10 @@ private:
 
     HandleState m_handleState;
     HandleType m_currentDragHandle;
+
+    bool m_eventFilterEnabled;
     bool m_anchorHandleVisible;
     bool m_cursorHandleVisible;
-    bool m_eventFilterEnabled;
-    bool m_selectionControlVisible;
-    bool m_toolTipControVisible;
     QPoint m_otherSelectionPoint;
     QVector<QMouseEvent *> m_eventQueue;
     QPoint m_distanceBetweenMouseAndCursor;
@@ -125,7 +122,7 @@ private:
     QSize m_fingerOptSize;
 
     QMap<QObject*, QPointF> m_focusWindow;
-    bool m_tooptipClick;
+    bool m_tooptipVisibleFlags;
 };
 
 DPP_END_NAMESPACE
