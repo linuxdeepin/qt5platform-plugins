@@ -37,9 +37,9 @@ DSelectedTextTooltip::DSelectedTextTooltip()
     setFormat(format);
 
     // 这里借用QLineEdit的翻译
-    m_textInfoVec.push_back({Cut, 0, qApp->translate("QLineEdit", "Cut")});
-    m_textInfoVec.push_back({Copy, 0, qApp->translate("QLineEdit", "Copy")});
-    m_textInfoVec.push_back({Paste, 0, qApp->translate("QLineEdit", "Paste")});
+    m_textInfoVec.push_back({Cut, 0, qApp->translate("QLineEdit", "Cu&t").split("(").at(0)});
+    m_textInfoVec.push_back({Copy, 0, qApp->translate("QLineEdit", "&Copy").split("(").at(0)});
+    m_textInfoVec.push_back({Paste, 0, qApp->translate("QLineEdit", "&Paste").split("(").at(0)});
     m_textInfoVec.push_back({SelectAll, 0, qApp->translate("QLineEdit", "Select All")});
 
     connect(qApp, &QGuiApplication::fontChanged, this, &DSelectedTextTooltip::onFontChanged);
