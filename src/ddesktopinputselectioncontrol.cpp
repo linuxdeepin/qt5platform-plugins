@@ -457,6 +457,9 @@ bool DDesktopInputSelectionControl::eventFilter(QObject *object, QEvent *event)
         break;
     }
     case QEvent::MouseButtonPress: {
+        if (anchorRectangle().topLeft().isNull())
+            break;
+
         QMouseEvent *me = static_cast<QMouseEvent *>(event);
         const QPoint mousePos = me->screenPos().toPoint();
 
@@ -511,6 +514,9 @@ bool DDesktopInputSelectionControl::eventFilter(QObject *object, QEvent *event)
         break;
     }
     case QEvent::MouseMove: {
+        if (anchorRectangle().topLeft().isNull())
+            break;
+
         QMouseEvent *me = static_cast<QMouseEvent *>(event);
         QPoint mousePos = me->screenPos().toPoint();
         if (m_handleState == HandleIsHeld) {
@@ -536,6 +542,9 @@ bool DDesktopInputSelectionControl::eventFilter(QObject *object, QEvent *event)
         break;
     }
     case QEvent::MouseButtonRelease: {
+        if (anchorRectangle().topLeft().isNull())
+            break;
+
         if (m_handleState == HandleIsMoving) {
             m_handleState = HandleIsReleased;
             qDeleteAll(m_eventQueue);
