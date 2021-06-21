@@ -80,7 +80,6 @@ protected:
     bool eventFilter(QObject *object, QEvent *event) override;
 
 private:
-    void setEnabled(bool val);
     void setHandleState(HandleState state);
     int anchorPosition() const;
     int cursorPosition() const;
@@ -115,6 +114,7 @@ private:
     bool m_eventFilterEnabled;
     bool m_anchorHandleVisible;
     bool m_cursorHandleVisible;
+    bool m_handleVisible;
     QPoint m_otherSelectionPoint;
     QVector<QMouseEvent *> m_eventQueue;
     QPoint m_distanceBetweenMouseAndCursor;
@@ -122,7 +122,6 @@ private:
     QSize m_fingerOptSize;
 
     QMap<QObject*, QPointF> m_focusWindow;
-    bool m_tooptipVisibleFlags;
 };
 
 DPP_END_NAMESPACE

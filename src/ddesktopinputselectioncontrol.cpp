@@ -30,6 +30,8 @@
 #include <QKeyEvent>
 #include <QDebug>
 
+#define EFFECTIVEWIDTH 10
+
 DPP_BEGIN_NAMESPACE
 
 DDesktopInputSelectionControl::DDesktopInputSelectionControl(QObject *parent, QInputMethod *inputMethod)
@@ -41,8 +43,8 @@ DDesktopInputSelectionControl::DDesktopInputSelectionControl(QObject *parent, QI
     , m_eventFilterEnabled(true)
     , m_anchorHandleVisible(false)
     , m_cursorHandleVisible(false)
+    , m_handleVisible(false)
     , m_fingerOptSize(40, static_cast<int>(40 * 1.12)) // because a finger patch is slightly taller than its width
-    , m_tooptipVisibleFlags(false)
 {
     if (auto window = QGuiApplication::focusWindow()) {
         window->installEventFilter(this);
@@ -51,25 +53,15 @@ DDesktopInputSelectionControl::DDesktopInputSelectionControl(QObject *parent, QI
     connect(m_pInputMethod, &QInputMethod::anchorRectangleChanged, this, [ = ]{
         QPointF point = anchorRectangle().topLeft();
         QObject *widget = QGuiApplication::focusObject();
+        updateSelectionControlVisible();
 
         if (point.isNull() || (m_focusWindow.value(widget) == point)) {
             return;
         }
 
-        m_tooptipVisibleFlags = false;
         m_focusWindow[widget] = point;
         widget->installEventFilter(this);
     });
-
-    connect(m_pInputMethod, &QInputMethod::cursorRectangleChanged, this, &DDesktopInputSelectionControl::selectionControlVisibleChanged);
-
-    connect(m_pInputMethod, &QInputMethod::anchorRectangleChanged, this, &DDesktopInputSelectionControl::anchorRectangleChanged);
-    connect(m_pInputMethod, &QInputMethod::cursorRectangleChanged, this, &DDesktopInputSelectionControl::cursorRectangleChanged);
-
-    connect(m_pInputMethod, &QInputMethod::cursorRectangleChanged, this, &DDesktopInputSelectionControl::cursorPositionChanged);
-    connect(m_pInputMethod, &QInputMethod::anchorRectangleChanged, this, &DDesktopInputSelectionControl::anchorPositionChanged);
-
-    connect(this, &DDesktopInputSelectionControl::selectionControlVisibleChanged, this, &DDesktopInputSelectionControl::updateSelectionControlVisible);
 
     connect(qApp, &QGuiApplication::focusWindowChanged, this, &DDesktopInputSelectionControl::onFocusWindowChanged);
 }
@@ -176,7 +168,7 @@ void DDesktopInputSelectionControl::updateTooltipPosition()
         QPoint topleft_point;
         QSize tooltip_size = m_selectedTextTooltip->size();
 
-        if (cursorRectangle().x() > anchorRectangle().x()) { // 从前往后选择
+        if (cursorRectangle().x() >= anchorRectangle().x()) { // 从前往后选择
             auto tmp_point = focusWindow->mapToGlobal(anchorHandleRect().topLeft());
             topleft_point = QPoint(tmp_point.x() + m_fingerOptSize.width() / 2, tmp_point.y() - tooltip_size.height());
         } else { //从后往前选择
@@ -230,25 +222,18 @@ void DDesktopInputSelectionControl::updateSelectionControlVisible()
 
     bool selectText = m_pInputMethod->queryFocusObject(Qt::ImCurrentSelection,true).toString().isNull();
 
-    if (!selectText) {
-        setEnabled(true);
+    if (!selectText && m_handleVisible) {
         m_anchorSelectionHandle->show();
         m_cursorSelectionHandle->show();
-        m_selectedTextTooltip->show();
+        m_selectedTextTooltip->hide();
         updateAnchorHandlePosition();
         updateCursorHandlePosition();
-        updateTooltipPosition();
     } else {
-        setEnabled(false);
         m_anchorSelectionHandle->hide();
         m_cursorSelectionHandle->hide();
-        if (m_tooptipVisibleFlags) {
-            updateHandleFlags();
-            return;
-        }
         m_selectedTextTooltip->hide();
+        m_handleVisible = false;
     }
-    m_tooptipVisibleFlags = false;
     updateHandleFlags();
 }
 
@@ -278,7 +263,9 @@ void DDesktopInputSelectionControl::onOptAction(int type)
         QKeyEvent key_event(QEvent::KeyPress, Qt::Key_A, Qt::ControlModifier);
         QCoreApplication::sendEvent(QGuiApplication::focusObject(), &key_event);
         // 更新handle的位置
+        m_handleVisible = true;
         updateSelectionControlVisible();
+        m_selectedTextTooltip->show();
         break;
     }
     default:
@@ -293,24 +280,6 @@ void DDesktopInputSelectionControl::onFocusWindowChanged()
         m_cursorSelectionHandle->hide();
         m_selectedTextTooltip->hide();
         m_focusWindow.clear();
-    }
-}
-
-void DDesktopInputSelectionControl::setEnabled(bool val)
-{
-    // This will typically be set when a input field gets focus (and having selection).
-    if (val) {
-        connect(this, &DDesktopInputSelectionControl::anchorRectangleChanged, this, &DDesktopInputSelectionControl::updateAnchorHandlePosition);
-        connect(this, &DDesktopInputSelectionControl::cursorRectangleChanged, this, &DDesktopInputSelectionControl::updateCursorHandlePosition);
-
-        connect(this, &DDesktopInputSelectionControl::anchorRectangleChanged, this, &DDesktopInputSelectionControl::updateTooltipPosition);
-        connect(this, &DDesktopInputSelectionControl::cursorRectangleChanged, this, &DDesktopInputSelectionControl::updateTooltipPosition);
-    } else {
-        disconnect(this, &DDesktopInputSelectionControl::anchorRectangleChanged, this, &DDesktopInputSelectionControl::updateAnchorHandlePosition);
-        disconnect(this, &DDesktopInputSelectionControl::cursorRectangleChanged, this, &DDesktopInputSelectionControl::updateCursorHandlePosition);
-
-        disconnect(this, &DDesktopInputSelectionControl::anchorRectangleChanged, this, &DDesktopInputSelectionControl::updateTooltipPosition);
-        disconnect(this, &DDesktopInputSelectionControl::cursorRectangleChanged, this, &DDesktopInputSelectionControl::updateTooltipPosition);
     }
 }
 
@@ -399,7 +368,12 @@ bool DDesktopInputSelectionControl::eventFilter(QObject *object, QEvent *event)
     QWindow *focusWindow = QGuiApplication::focusWindow();
 
     if (!m_eventFilterEnabled || focusWindow != object) {
-        if (QEvent::FocusOut != event->type()) {
+        switch (event->type()) {
+        case QEvent::FocusOut:
+        case QEvent::ContextMenu:
+        case QEvent::MouseButtonDblClick:
+            break;
+        default:
             return false;
         }
     }
@@ -408,22 +382,18 @@ bool DDesktopInputSelectionControl::eventFilter(QObject *object, QEvent *event)
         if (!m_anchorSelectionHandle || !m_cursorSelectionHandle || !m_selectedTextTooltip) {
             createHandles();
         }
-
-        if (m_pInputMethod) {
-            updateSelectionControlVisible();
-        }
     }
 
     switch (event->type()) {
     case QEvent::FocusOut: {
         if (m_focusWindow.isEmpty())
             break;
+        updateSelectionControlVisible();
 
         if (auto widget = m_focusWindow.key(m_focusWindow.first())) {
             m_focusWindow.clear();
             widget->removeEventFilter(this);
             m_selectedTextTooltip->hide();
-            m_tooptipVisibleFlags = false;
         }
         break;
     }
@@ -432,7 +402,6 @@ bool DDesktopInputSelectionControl::eventFilter(QObject *object, QEvent *event)
             break;
         m_selectedTextTooltip->show();
         updateTooltipPosition();
-        m_tooptipVisibleFlags = false;
         return true;
     }
     case QEvent::TouchBegin: {
@@ -441,10 +410,22 @@ bool DDesktopInputSelectionControl::eventFilter(QObject *object, QEvent *event)
         if (point.isNull() || m_anchorHandleVisible || m_cursorHandleVisible)
             break;
 
+        QTouchEvent *touchEvent = static_cast<QTouchEvent *>(event);
+        QList<QTouchEvent::TouchPoint> tpList = touchEvent->touchPoints();
+        QTouchEvent::TouchPoint tp = tpList.first();
+        QPointF touchPos = tp.lastPos();
+
+        // 有效点击位置
+        QRectF effectiveRect = anchorRectangle();
+        effectiveRect.setWidth(effectiveRect.width() + EFFECTIVEWIDTH);
+        effectiveRect.setX(effectiveRect.x() - EFFECTIVEWIDTH / 2);
+
+        if (!effectiveRect.contains(touchPos.toPoint()))
+            return false;
+
         QObject *focusWidget = QGuiApplication::focusObject();
         if (m_focusWindow.key(point) == focusWidget) {
             if (m_anchorSelectionHandle && !m_anchorSelectionHandle->isVisible()) {
-                m_tooptipVisibleFlags = true;
                 if (m_selectedTextTooltip->isVisible()) {
                     m_selectedTextTooltip->hide();
                 } else {
@@ -454,6 +435,11 @@ bool DDesktopInputSelectionControl::eventFilter(QObject *object, QEvent *event)
             }
         }
 
+        break;
+    }
+    case QEvent::MouseButtonDblClick: {
+        m_handleVisible = false;
+        updateSelectionControlVisible();
         break;
     }
     case QEvent::MouseButtonPress: {
@@ -517,6 +503,8 @@ bool DDesktopInputSelectionControl::eventFilter(QObject *object, QEvent *event)
         if (anchorRectangle().topLeft().isNull())
             break;
 
+        m_handleVisible = true;
+
         QMouseEvent *me = static_cast<QMouseEvent *>(event);
         QPoint mousePos = me->screenPos().toPoint();
         if (m_handleState == HandleIsHeld) {
@@ -544,6 +532,8 @@ bool DDesktopInputSelectionControl::eventFilter(QObject *object, QEvent *event)
     case QEvent::MouseButtonRelease: {
         if (anchorRectangle().topLeft().isNull())
             break;
+
+        m_handleVisible = false;
 
         if (m_handleState == HandleIsMoving) {
             m_handleState = HandleIsReleased;
