@@ -52,6 +52,7 @@ signals:
     void optAction(OptionType type);
 
 private:
+    void updateColor();
     OptionType getOptionType(const QPoint &pos) const;
 
     struct OptionTextInfo {
@@ -61,6 +62,11 @@ private:
     };
 
     QVector<OptionTextInfo> m_textInfoVec;
+
+    QColor m_backgroundColor;
+    QColor m_dividerColor;
+    QColor m_borderColor;
+
 };
 
 DPP_END_NAMESPACE
