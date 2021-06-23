@@ -24,6 +24,7 @@
 #include <sys/mman.h>
 #include <unistd.h>
 #include <dlfcn.h>
+#include <mutex>
 
 QT_BEGIN_NAMESPACE
 QFunctionPointer qt_linux_find_symbol_sys(const char *symbol);
@@ -36,6 +37,7 @@ DPP_BEGIN_NAMESPACE
 QMap<quintptr**, quintptr*> VtableHook::objToOriginalVfptr;
 QMap<const void*, quintptr*> VtableHook::objToGhostVfptr;
 QMap<const void*, quintptr> VtableHook::objDestructFun;
+static std::once_flag exitFlag;
 
 bool VtableHook::copyVtable(quintptr **obj)
 {
@@ -85,6 +87,14 @@ bool VtableHook::clearGhostVtable(const void *obj)
     }
 
     return false;
+}
+
+void VtableHook::clearAllGhostVtable()
+{
+    const QList<const void *> _objects = objToGhostVfptr.keys();
+
+    for (const void *_obj : _objects)
+        clearGhostVtable(_obj);
 }
 
 /*!
@@ -202,6 +212,9 @@ bool VtableHook::ensureVtable(const void *obj, std::function<void ()> destoryObj
     // 覆盖析构函数, 用于在对象析构时自动清理虚表
     new_vtable[index] = reinterpret_cast<quintptr>(&autoCleanVtable);
 
+    // TODO: 由于未知原因,有的虚表会自动还原，导致虚析构不能正常HOOK，无法释放new出来的新虚表数组
+    // 这里在程序退出时进行统一释放。后面知道详细原因再进行修改。
+    std::call_once(exitFlag, std::bind(atexit, clearAllGhostVtable));
     return true;
 }
 

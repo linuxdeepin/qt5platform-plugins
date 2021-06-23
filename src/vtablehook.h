@@ -288,6 +288,7 @@ public:
 private:
     static bool copyVtable(quintptr **obj);
     static bool clearGhostVtable(const void *obj);
+    static void clearAllGhostVtable();
 
     template<typename T>
     static void _destory_helper(const T *obj) {
