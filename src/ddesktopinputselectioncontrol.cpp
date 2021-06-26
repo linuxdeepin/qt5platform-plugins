@@ -31,6 +31,9 @@
 #include <QDebug>
 
 #define EFFECTIVEWIDTH 10
+#define STATUSBARHEIGHT 40
+
+
 
 DPP_BEGIN_NAMESPACE
 
@@ -180,7 +183,10 @@ void DDesktopInputSelectionControl::updateTooltipPosition()
             topleft_point.setX(m_fingerOptSize.width() / 2);
         }
 
-        if (topleft_point.y() < 0) {
+        // 因窗管增加了40px的标题栏高度,
+        // 应用程序高度减少40px,屏幕不变
+        // 此处将40px处当作屏幕0
+        if (topleft_point.y() < STATUSBARHEIGHT) {
             auto margins = 0;
             if (m_anchorSelectionHandle->isVisible()) {
                 auto anchorPosY = m_anchorSelectionHandle->position().y();
@@ -188,7 +194,7 @@ void DDesktopInputSelectionControl::updateTooltipPosition()
                 margins = anchorPosY > cursorPosY ? anchorPosY : cursorPosY;
             }
 
-            topleft_point.setY(margins + tooltip_size.height());
+            topleft_point.setY(margins + tooltip_size.height() + STATUSBARHEIGHT);
         }
 
         m_selectedTextTooltip->setPosition(topleft_point);
