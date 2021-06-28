@@ -80,9 +80,12 @@ DDesktopInputSelectionControl::~DDesktopInputSelectionControl()
  */
 QRect DDesktopInputSelectionControl::handleRectForCursorRect(const QRectF &cursorRect) const
 {
+    // TODO 平板下默认1.5倍缩放，缩放再度调整时(2 3期)细节可能有问题故使用此临时方案。
+    const int margin = static_cast<int>(m_cursorSelectionHandle->devicePixelRatio()*2);
     const int topMargin = (m_fingerOptSize.height() - m_handleImageSize.height()) / 2;
-    QPoint pos(int(cursorRect.x() + (cursorRect.width() - m_fingerOptSize.width()) / 2),
-               int(cursorRect.bottom()) - topMargin);
+    // 增加1px间隔
+    QPoint pos(int(cursorRect.x() + (cursorRect.width() - m_fingerOptSize.width()) / 2) + margin + 1,
+               int(cursorRect.bottom()) - topMargin + margin);
 
     // 当从后往前选中时，为了防止光标被文字覆盖，这里把光标绘制在顶部
     if (cursorRectangle().y() < anchorRectangle().y()) {
@@ -98,8 +101,11 @@ QRect DDesktopInputSelectionControl::handleRectForCursorRect(const QRectF &curso
 
 QRect DDesktopInputSelectionControl::handleRectForAnchorRect(const QRectF &anchorRect) const
 {
+    // TODO 平板下默认1.5倍缩放，缩放再度调整时(2 3期)细节可能有问题故使用此临时方案。
+    const int margin = static_cast<int>(m_anchorSelectionHandle->devicePixelRatio()*2);
     const int topMargin = (m_fingerOptSize.height() - m_handleImageSize.height()) / 2;
-    QPoint pos(int(anchorRect.x() + (anchorRect.width() - m_fingerOptSize.width()) / 2),
+    // 增加1px间隔
+    QPoint pos(int(anchorRect.x() + (anchorRect.width() - m_fingerOptSize.width()) / 2) + margin - 1,
                int(anchorRect.top()) - topMargin - m_handleImageSize.height());
 
     // 当从后往前选中时，把anchor光标绘制底部，和cursor的处理保持一致
