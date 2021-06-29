@@ -933,8 +933,9 @@ static void overrideChangeCursor(QPlatformCursor *cursorHandle, QCursor * cursor
 
 static void hookXcbCursor(QScreen *screen)
 {
-    if (screen && screen->handle())
-        VtableHook::overrideVfptrFun(screen->handle()->cursor(), &QPlatformCursor::changeCursor, &overrideChangeCursor);
+    // 解决切换光标主题，光标没有适配当前主题，显示错乱的问题
+    // if (screen && screen->handle())
+    //      VtableHook::overrideVfptrFun(screen->handle()->cursor(), &QPlatformCursor::changeCursor, &overrideChangeCursor);
 }
 #endif
 
