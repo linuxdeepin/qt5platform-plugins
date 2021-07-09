@@ -168,8 +168,17 @@ void DDesktopInputSelectionControl::updateAnchorHandlePosition()
 
     if (QWindow *focusWindow = QGuiApplication::focusWindow()) {
         QPoint pos = focusWindow->mapToGlobal(anchorHandleRect().topLeft());
-        pos.setY(getInputRectangleY(pos));
 
+        if (m_pInputMethod) {
+            QRect rect = m_pInputMethod->queryFocusObject(Qt::ImInputItemClipRectangle, true).toRect();
+            QRect boardRect = m_pInputMethod->keyboardRectangle().toRect();
+
+            if (m_pInputMethod->isVisible() && (pos.y()+ anchorHandleRect().height() > m_pInputMethod->keyboardRectangle().y())) {
+                pos.setY(pos.y() - (pos.y() - boardRect.y()) - rect.height()*2 - m_anchorSelectionHandle->height() / 4);
+            }
+        }
+
+//        pos.setY(getInputRectangleY(pos));
         m_anchorSelectionHandle->setPosition(pos);
     }
 }
@@ -183,8 +192,15 @@ void DDesktopInputSelectionControl::updateCursorHandlePosition()
 
     if (QWindow *focusWindow = QGuiApplication::focusWindow()) {
         QPoint pos = focusWindow->mapToGlobal(cursorHandleRect().topLeft());
-        pos.setY(getInputRectangleY(pos));
 
+        if (m_pInputMethod) {
+            QRect rect = m_pInputMethod->queryFocusObject(Qt::ImInputItemClipRectangle, true).toRect();
+            if (m_pInputMethod->isVisible() && (pos.y() + rect.height() > m_pInputMethod->keyboardRectangle().y())) {
+                QRect boardRect = QGuiApplication::inputMethod()->keyboardRectangle().toRect();
+                pos.setY(pos.y() - (pos.y() - boardRect.y()) - rect.height() - m_cursorSelectionHandle->height() / 4 + EFFECTIVEWIDTH/2);
+            }
+        }
+//        pos.setY(getInputRectangleY(pos));
         m_cursorSelectionHandle->setPosition(pos);
     }
 }
@@ -416,6 +432,12 @@ bool DDesktopInputSelectionControl::eventFilter(QObject *object, QEvent *event)
         default:
             return false;
         }
+    }
+
+    if (QGuiApplication::inputMethod() && !QGuiApplication::inputMethod()->isVisible()
+            && m_anchorSelectionHandle && m_anchorSelectionHandle) {
+        updateAnchorHandlePosition();
+        updateCursorHandlePosition();
     }
 
     if (!m_focusWindow.isEmpty()) {
