@@ -63,6 +63,7 @@ DDesktopInputSelectionControl::DDesktopInputSelectionControl(QObject *parent, QI
 
         m_focusWindow[widget] = point;
         widget->installEventFilter(this);
+        m_selectedTextTooltip->hide();
     });
 
     connect(qApp, &QGuiApplication::focusWindowChanged, this, &DDesktopInputSelectionControl::onFocusWindowChanged);
@@ -287,7 +288,6 @@ void DDesktopInputSelectionControl::updateSelectionControlVisible()
     } else {
         m_anchorSelectionHandle->hide();
         m_cursorSelectionHandle->hide();
-        m_selectedTextTooltip->hide();
         m_handleVisible = false;
     }
     updateHandleFlags();
