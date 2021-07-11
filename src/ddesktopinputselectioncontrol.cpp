@@ -139,6 +139,26 @@ QRect DDesktopInputSelectionControl::cursorHandleRect() const
     return handleRectForCursorRect(cursorRectangle());
 }
 
+static int getInputRectangleY(const QPoint &pos)
+{
+    // 保证handle不会超出TextEdit类输入框
+    int posY = pos.y();
+    QRect rect = QGuiApplication::inputMethod()->queryFocusObject(Qt::ImInputItemClipRectangle, true).toRect();
+
+    if (QWindow *focusWindow = QGuiApplication::focusWindow()) {
+        QPoint point = focusWindow->mapToGlobal(rect.topLeft());
+        rect.moveTo(point);
+
+        if (pos.y() < rect.y()) {
+            posY = rect.y();
+        } else if (pos.y() > rect.y() + rect.height()) {
+            posY = rect.y() + rect.height();
+        }
+    }
+
+    return posY;
+}
+
 void DDesktopInputSelectionControl::updateAnchorHandlePosition()
 {
     if (anchorRectangle().topLeft().isNull()) {
@@ -147,7 +167,9 @@ void DDesktopInputSelectionControl::updateAnchorHandlePosition()
     }
 
     if (QWindow *focusWindow = QGuiApplication::focusWindow()) {
-        const QPoint pos = focusWindow->mapToGlobal(anchorHandleRect().topLeft());
+        QPoint pos = focusWindow->mapToGlobal(anchorHandleRect().topLeft());
+        pos.setY(getInputRectangleY(pos));
+
         m_anchorSelectionHandle->setPosition(pos);
     }
 }
@@ -160,7 +182,9 @@ void DDesktopInputSelectionControl::updateCursorHandlePosition()
     }
 
     if (QWindow *focusWindow = QGuiApplication::focusWindow()) {
-        const QPoint pos = focusWindow->mapToGlobal(cursorHandleRect().topLeft());
+        QPoint pos = focusWindow->mapToGlobal(cursorHandleRect().topLeft());
+        pos.setY(getInputRectangleY(pos));
+
         m_cursorSelectionHandle->setPosition(pos);
     }
 }
