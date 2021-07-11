@@ -29,11 +29,10 @@
 #include <QMouseEvent>
 #include <QKeyEvent>
 #include <QDebug>
+#include <QScreen>
 
 #define EFFECTIVEWIDTH 10
 #define STATUSBARHEIGHT 40
-
-
 
 DPP_BEGIN_NAMESPACE
 
@@ -187,7 +186,12 @@ void DDesktopInputSelectionControl::updateTooltipPosition()
 
         if (topleft_point.x() < 0) {
             topleft_point.setX(m_fingerOptSize.width() / 2);
+        } else {
+            int windowW = QGuiApplication::primaryScreen()->availableGeometry().width();
+            int topX = topleft_point.x() + m_selectedTextTooltip->width();
+            topleft_point.setX(topX > windowW ? windowW - m_selectedTextTooltip->width() - EFFECTIVEWIDTH : topleft_point.x());
         }
+
 
         // 因窗管增加了40px的标题栏高度,
         // 应用程序高度减少40px,屏幕不变
