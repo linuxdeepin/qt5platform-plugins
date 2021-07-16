@@ -435,7 +435,8 @@ bool DDesktopInputSelectionControl::eventFilter(QObject *object, QEvent *event)
     }
 
     if (QGuiApplication::inputMethod() && !QGuiApplication::inputMethod()->isVisible()
-            && m_anchorSelectionHandle && m_anchorSelectionHandle) {
+            && m_anchorSelectionHandle && m_anchorSelectionHandle
+            && m_anchorSelectionHandle->isVisible() && m_cursorSelectionHandle->isVisible()) {
         updateAnchorHandlePosition();
         updateCursorHandlePosition();
     }
