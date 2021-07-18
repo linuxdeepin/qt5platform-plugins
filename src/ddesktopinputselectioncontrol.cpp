@@ -248,6 +248,15 @@ void DDesktopInputSelectionControl::updateTooltipPosition()
             topleft_point.setY(margins + tooltip_size.height() + STATUSBARHEIGHT);
         }
 
+        if (m_pInputMethod) {
+            // 跟随虚拟键盘顶起改变位置
+            QRect rect = m_pInputMethod->inputItemClipRectangle().toRect();
+            if (m_pInputMethod->isVisible() && (topleft_point.y() + tooltip_size.height() > m_pInputMethod->keyboardRectangle().y())) {
+                QRect boardRect = QGuiApplication::inputMethod()->keyboardRectangle().toRect();
+                topleft_point.setY(topleft_point.y() - (topleft_point.y() - boardRect.y()) - rect.height() - tooltip_size.height()*2);
+            }
+        }
+
         m_selectedTextTooltip->setPosition(topleft_point);
     }
 }
@@ -439,6 +448,11 @@ bool DDesktopInputSelectionControl::eventFilter(QObject *object, QEvent *event)
             && m_anchorSelectionHandle->isVisible() && m_cursorSelectionHandle->isVisible()) {
         updateAnchorHandlePosition();
         updateCursorHandlePosition();
+    }
+
+    if (QGuiApplication::inputMethod() && !QGuiApplication::inputMethod()->isVisible()
+            && m_selectedTextTooltip && m_selectedTextTooltip->isVisible()) {
+        updateTooltipPosition();
     }
 
     if (!m_focusWindow.isEmpty()) {
