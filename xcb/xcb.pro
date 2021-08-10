@@ -71,6 +71,7 @@ isEmpty(INSTALL_PATH) {
 }
 
 DBUS_INTERFACES += ../misc/com.deepin.im.xml
+DBUS_INTERFACES += ../misc/org.freedesktop.DBus.xml
 
 message($$target.path)
 

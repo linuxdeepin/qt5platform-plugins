@@ -103,6 +103,7 @@ private:
 private:
     // handle the DFrameWindow modal blocked state
     bool isWindowBlockedHandle(QWindow *window, QWindow **blockingWindow);
+    void inputContextHookFunc();
 
     DPlatformBackingStoreHelper *m_storeHelper;
     DPlatformOpenGLContextHelper *m_contextHelper;

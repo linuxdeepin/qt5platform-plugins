@@ -73,6 +73,7 @@
 #include <private/qpaintengine_raster_p.h>
 
 #include "im_interface.h"
+#include "dbus_interface.h"
 
 // https://www.freedesktop.org/wiki/Specifications/XSettingsRegistry/
 #define XSETTINGS_CURSOR_BLINK QByteArrayLiteral("Net/CursorBlink")
@@ -1029,27 +1030,6 @@ void DPlatformIntegration::initialize()
         QSurfaceFormat::setDefaultFormat(format);
     }
 
-    // 适配虚拟键盘
-    if (DPlatformInputContextHook::instance()->isValid()) {
-        VtableHook::overrideVfptrFun(inputContext(),
-                                    &QPlatformInputContext::showInputPanel,
-                                    &DPlatformInputContextHook::showInputPanel);
-        VtableHook::overrideVfptrFun(inputContext(),
-                                    &QPlatformInputContext::hideInputPanel,
-                                    &DPlatformInputContextHook::hideInputPanel);
-        VtableHook::overrideVfptrFun(inputContext(),
-                                    &QPlatformInputContext::isInputPanelVisible,
-                                    &DPlatformInputContextHook::isInputPanelVisible);
-        VtableHook::overrideVfptrFun(inputContext(),
-                                    &QPlatformInputContext::keyboardRect,
-                                    &DPlatformInputContextHook::keyboardRect);
-
-        QObject::connect(DPlatformInputContextHook::instance(), &ComDeepinImInterface::geometryChanged,
-                             inputContext(), &QPlatformInputContext::emitKeyboardRectChanged);
-        QObject::connect(DPlatformInputContextHook::instance(), &ComDeepinImInterface::imActiveChanged,
-                             inputContext(), &QPlatformInputContext::emitInputPanelVisibleChanged);
-    }
-
 #ifdef Q_OS_LINUX
     m_eventFilter = new XcbNativeEventFilter(defaultConnection());
     qApp->installNativeEventFilter(m_eventFilter);
@@ -1121,6 +1101,26 @@ void DPlatformIntegration::initialize()
                 m_pDesktopInputSelectionControl->setApplicationEventMonitor(m_pApplicationEventMonitor.data());
             }
         });
+
+        // 适配虚拟键盘
+        if (DPlatformInputContextHook::instance()->isValid()) {
+            inputContextHookFunc();
+        } else {
+            // 虚拟键盘服务未启动时,开始监听DBUS
+            // 待虚拟键盘启动后 Hook QPlatformInputContext函数
+            // 该连接将一直存在防止使用中虚拟键盘服务重启
+            OrgFreedesktopDBusInterface *interface = new OrgFreedesktopDBusInterface("org.freedesktop.DBus", "/org/freedesktop/DBus", QDBusConnection::sessionBus(), qApp);
+            QObject::connect(interface, &OrgFreedesktopDBusInterface::NameOwnerChanged, qApp, [ = ](const QString &in0, const QString &in1, const QString &in2){
+                Q_UNUSED(in1)
+                Q_UNUSED(in2)
+
+                if (in0 == "com.deepin.im") {
+                    inputContextHookFunc();
+                    QObject::disconnect(interface, &OrgFreedesktopDBusInterface::NameOwnerChanged, nullptr, nullptr);
+                    interface->deleteLater();
+                }
+            });
+        }
     }
 }
 
@@ -1193,6 +1193,29 @@ bool DPlatformIntegration::isWindowBlockedHandle(QWindow *window, QWindow **bloc
     }
 
     return VtableHook::callOriginalFun(qApp->d_func(), &QGuiApplicationPrivate::isWindowBlocked, window, blockingWindow);
+}
+
+void DPlatformIntegration::inputContextHookFunc()
+{
+//    if (!VtableHook::hasVtable(inputContext())) {
+        VtableHook::overrideVfptrFun(inputContext(),
+                                    &QPlatformInputContext::showInputPanel,
+                                    &DPlatformInputContextHook::showInputPanel);
+        VtableHook::overrideVfptrFun(inputContext(),
+                                    &QPlatformInputContext::hideInputPanel,
+                                    &DPlatformInputContextHook::hideInputPanel);
+        VtableHook::overrideVfptrFun(inputContext(),
+                                    &QPlatformInputContext::isInputPanelVisible,
+                                    &DPlatformInputContextHook::isInputPanelVisible);
+        VtableHook::overrideVfptrFun(inputContext(),
+                                    &QPlatformInputContext::keyboardRect,
+                                    &DPlatformInputContextHook::keyboardRect);
+
+        QObject::connect(DPlatformInputContextHook::instance(), &ComDeepinImInterface::geometryChanged,
+                             inputContext(), &QPlatformInputContext::emitKeyboardRectChanged);
+        QObject::connect(DPlatformInputContextHook::instance(), &ComDeepinImInterface::imActiveChanged,
+                             inputContext(), &QPlatformInputContext::emitInputPanelVisibleChanged);
+//    }
 }
 
 DPP_END_NAMESPACE
