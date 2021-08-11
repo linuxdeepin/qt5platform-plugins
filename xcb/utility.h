@@ -59,7 +59,8 @@ public:
 
     // 在触摸屏下移动窗口时，调用 startWindowSystemMove后，窗管无法grab触摸屏的touch update事件
     // 导致窗口无法移动。此处跟deepin-wm配合，使用其它方式通知窗管鼠标位置更新了
-    static void updateMousePointForWindowMove(quint32 WId);
+    // TODO: kwin适配udpate之后没有结束move状态，新增一个finished参数，当传入true时通知kwin结束
+    static void updateMousePointForWindowMove(quint32 WId, bool finished = false);
 
     static void showWindowSystemMenu(quint32 WId, QPoint globalPos = QPoint());
     static void setFrameExtents(WId wid, const QMargins &margins);

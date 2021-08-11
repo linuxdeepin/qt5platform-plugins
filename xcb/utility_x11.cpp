@@ -175,7 +175,7 @@ void Utility::cancelWindowMoveResize(quint32 WId)
     sendMoveResizeMessage(WId, _NET_WM_MOVERESIZE_CANCEL);
 }
 
-void Utility::updateMousePointForWindowMove(quint32 WId)
+void Utility::updateMousePointForWindowMove(quint32 WId, bool finished/* = false*/)
 {
     xcb_client_message_event_t xev;
     const QPoint &globalPos = qApp->primaryScreen()->handle()->cursor()->pos();
@@ -186,7 +186,8 @@ void Utility::updateMousePointForWindowMove(quint32 WId)
     xev.format = 32;
     xev.data.data32[0] = globalPos.x();
     xev.data.data32[1] = globalPos.y();
-    xev.data.data32[2] = 0;
+    // fix touch screen moving dtk window : 0 update position, 1 moving finished and clear moving state
+    xev.data.data32[2] = finished ? 1 : 0;
     xev.data.data32[3] = 0;
     xev.data.data32[4] = 0;
 
@@ -322,6 +323,8 @@ void Utility::sendMoveResizeMessage(quint32 WId, uint32_t action, QPoint globalP
     if (globalPos.isNull()) {
         globalPos = qApp->primaryScreen()->handle()->cursor()->pos();
     }
+
+    qDebug() << Q_FUNC_INFO << globalPos;
 
     xcb_client_message_event_t xev;
 
