@@ -891,6 +891,7 @@ static xcb_cursor_t overrideCreateFontCursor(QXcbCursor *xcb_cursor, QCursor *c,
     return cursor;
 }
 
+#ifdef D_ENABLE_CURSOR_HOOK
 static void overrideChangeCursor(QPlatformCursor *cursorHandle, QCursor * cursor, QWindow * widget)
 {
     QXcbWindow *w = 0;
@@ -935,10 +936,11 @@ static void overrideChangeCursor(QPlatformCursor *cursorHandle, QCursor * cursor
 static void hookXcbCursor(QScreen *screen)
 {
     // 解决切换光标主题，光标没有适配当前主题，显示错乱的问题
-    // if (screen && screen->handle())
-    //      VtableHook::overrideVfptrFun(screen->handle()->cursor(), &QPlatformCursor::changeCursor, &overrideChangeCursor);
+    if (screen && screen->handle())
+         VtableHook::overrideVfptrFun(screen->handle()->cursor(), &QPlatformCursor::changeCursor, &overrideChangeCursor);
 }
-#endif
+#endif // D_ENABLE_CURSOR_HOOK
+#endif // Q_OS_LINUX
 
 static bool hookDragObjectEventFilter(QBasicDrag *drag, QObject *o, QEvent *e)
 {
@@ -1058,11 +1060,13 @@ void DPlatformIntegration::initialize()
         }
 #endif
 
+#ifdef D_ENABLE_CURSOR_HOOK
         for (QScreen *s : qApp->screens()) {
             hookXcbCursor(s);
         }
 
         QObject::connect(qApp, &QGuiApplication::screenAdded, qApp, &hookXcbCursor);
+#endif // D_ENABLE_CURSOR_HOOK
     }
 
     VtableHook::overrideVfptrFun(xcbConnection()->drag(), &QXcbDrag::startDrag, &startDrag);
