@@ -19,6 +19,7 @@
 #include <QDebug>
 #include <qpa/qplatformnativeinterface.h>
 #include <private/qguiapplication_p.h>
+#include <QtWaylandClientVersion>
 
 // 用于窗口设置和dwayland相关的特殊属性的前缀
 // 以_d_dwayland_开头的属性需要做特殊处理，一般是用于和kwayland的交互
@@ -41,7 +42,7 @@ static QPointer<DShellSurfaceManager> dde_wayland;
 
 inline static ::wl_surface *getWindowWLSurface(QWaylandWindow *window)
 {
-#if QT_VERSION >= QT_VERSION_CHECK(5, 14, 0)
+#if QTWAYLANDCLIENT_VERSION >= QT_VERSION_CHECK(5, 14, 0)
     return window->wlSurface();
 #else
     return window->object();

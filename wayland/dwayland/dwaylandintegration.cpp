@@ -35,6 +35,7 @@
 #include <private/qguiapplication_p.h>
 
 #include <wayland-cursor.h>
+#include <QtWaylandClientVersion>
 
 DPP_BEGIN_NAMESPACE
 
@@ -51,7 +52,7 @@ static void onXSettingsChanged(xcb_connection_t *connection, const QByteArray &n
     quint64 type = reinterpret_cast<quint64>(handle);
 
     switch (type) {
-#if QT_VERSION < QT_VERSION_CHECK(5, 13, 0)
+#if QTWAYLANDCLIENT_VERSION  < QT_VERSION_CHECK(5, 13, 0)
     case Gtk_CursorThemeName:
         const QByteArray &cursor_name = DWaylandInterfaceHook::globalSettings()->setting(name).toByteArray();
         const auto &cursor_map = DWaylandIntegration::instance()->display()->mCursorThemesBySize;
