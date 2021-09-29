@@ -324,8 +324,6 @@ void Utility::sendMoveResizeMessage(quint32 WId, uint32_t action, QPoint globalP
         globalPos = qApp->primaryScreen()->handle()->cursor()->pos();
     }
 
-    qDebug() << Q_FUNC_INFO << globalPos;
-
     xcb_client_message_event_t xev;
 
     xev.response_type = XCB_CLIENT_MESSAGE;
