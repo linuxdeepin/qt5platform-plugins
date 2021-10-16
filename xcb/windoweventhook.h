@@ -40,7 +40,7 @@ public:
     static void handleXIEnterLeave(QXcbWindow *window, xcb_ge_event_t *event);
 #endif
 #if QT_VERSION < QT_VERSION_CHECK(5, 12, 0)
-    static void windowEvent(QXcbWindow *window, QEvent *event);
+    static void windowEvent(QPlatformWindow *window, QEvent *event);
 #else
     static bool windowEvent(QXcbWindow *window, QEvent *event);
 #endif
