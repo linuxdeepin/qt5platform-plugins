@@ -65,8 +65,13 @@ void WindowEventHook::init(QXcbWindow *window, bool redirectContent)
         VtableHook::overrideVfptrFun(window, &QXcbWindow::handleXIEnterLeave,
                                      &WindowEventHook::handleXIEnterLeave);
 #endif
+#if QT_VERSION < QT_VERSION_CHECK(5, 12, 0)
         VtableHook::overrideVfptrFun(window, &QPlatformWindow::windowEvent,
                                      &WindowEventHook::windowEvent);
+#else
+        VtableHook::overrideVfptrFun(window, &QXcbWindow::windowEvent,
+                                     &WindowEventHook::windowEvent);
+#endif
     }
 
     if (type == Qt::Window) {
@@ -562,7 +567,7 @@ void WindowEventHook::handleXIEnterLeave(QXcbWindow *window, xcb_ge_event_t *eve
 
 void WindowEventHook::windowEvent(QPlatformWindow *window, QEvent *event)
 #else
-bool WindowEventHook::windowEvent(QPlatformWindow *window, QEvent *event)
+bool WindowEventHook::windowEvent(QXcbWindow *window, QEvent *event)
 #endif
 {
     switch (event->type()) {
