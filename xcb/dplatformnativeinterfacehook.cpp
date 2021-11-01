@@ -87,7 +87,9 @@ static QFunctionPointer getFunction(const QByteArray &function)
         {isEnableNoTitlebar, reinterpret_cast<QFunctionPointer>(&DPlatformIntegration::isEnableNoTitlebar)},
         {buildNativeSettings, reinterpret_cast<QFunctionPointer>(&DPlatformIntegration::buildNativeSettings)},
         {clearNativeSettings, reinterpret_cast<QFunctionPointer>(&DPlatformIntegration::clearNativeSettings)},
-        {setWMClassName, reinterpret_cast<QFunctionPointer>(&DPlatformIntegration::setWMClassName)}
+        {setWMClassName, reinterpret_cast<QFunctionPointer>(&DPlatformIntegration::setWMClassName)},
+        {splitWindowOnScreen, reinterpret_cast<QFunctionPointer>(&Utility::splitWindowOnScreen)},
+        {supportForSplittingWindow, reinterpret_cast<QFunctionPointer>(&Utility::supportForSplittingWindow)}
     };
 
     return functionCache.value(function);

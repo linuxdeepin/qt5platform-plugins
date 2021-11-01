@@ -472,6 +472,34 @@ void Utility::setNoTitlebar(quint32 WId, bool on)
     }
 }
 
+void Utility::splitWindowOnScreen(quint32 WId, quint32 type)
+{
+    xcb_client_message_event_t xev;
+
+    xev.response_type = XCB_CLIENT_MESSAGE;
+    xev.type = internAtom("_DEEPIN_SPLIT_WINDOW", false);
+    xev.window = WId;
+    xev.format = 32;
+    xev.data.data32[0] = type; /* 1: 左 2: 右 15: 全屏 */
+    xev.data.data32[1] = type < 15 ? 1 : 0; /* 1: 左右 0: 全屏 */
+
+    xcb_send_event(QX11Info::connection(), false, QX11Info::appRootWindow(QX11Info::appScreen()),
+                   SubstructureNotifyMask, (const char *)&xev);
+    xcb_flush(QX11Info::connection());
+}
+
+bool Utility::supportForSplittingWindow(quint32 WId)
+{
+    auto propAtom = internAtom("_DEEPIN_NET_SUPPORTED");
+    QByteArray data = windowProperty(WId, propAtom, XCB_ATOM_CARDINAL, 4);
+
+    bool supported = false;
+    if (const char *cdata = data.constData())
+        supported = *(reinterpret_cast<const quint8 *>(cdata));
+
+    return supported;
+}
+
 bool Utility::setEnableBlurWindow(const quint32 WId, bool enable)
 {
     if (!DXcbWMSupport::instance()->hasBlurWindow() || !DXcbWMSupport::instance()->isKwin())
