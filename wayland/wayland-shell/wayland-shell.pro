@@ -5,11 +5,12 @@
 #-------------------------------------------------
 
 QT       += KWaylandClient
+LIBS     += -lKF5WaylandClient
 CONFIG += link_pkgconfig plugin
-PKGCONFIG += Qt5WaylandClient dde-wayland-client
+PKGCONFIG += Qt5WaylandClient
 
 # Qt >= 5.8
-greaterThan(QT_MINOR_VERSION, 7): QT += gui-private
+greaterThan(QT_MINOR_VERSION, 7): QT += gui-private widgets-private
 else: QT += platformsupport-private
 
 TARGET = kwayland-shell
@@ -42,20 +43,16 @@ isEmpty(VERSION) {
 
 SOURCES += \
         $$PWD/qt5dwaylandplugin.cpp \
-        $$PWD/main.cpp
+        $$PWD/main.cpp \
+    dwaylandshellmanager.cpp
 
 HEADERS += \
         $$PWD/qt5dwaylandplugin.h \
-        $$PWD/qt5dwayland-plugin_global.h
+        $$PWD/qt5dwayland-plugin_global.h \
+    dwaylandshellmanager.h
 
 qtHaveModule(waylandclient_private) : QT += waylandclient_private
-else {
-    exists($$PWD/../qtwayland-dev/$$QT_VERSION) {
-        INCLUDEPATH += $$PWD/../qtwayland-dev/$$QT_VERSION
-    } else {
-        error(Not support Qt Version: $$QT_VERSION)
-    }
-}
+else: INCLUDEPATH += $$PWD/../qtwayland-dev
 
 include($$PWD/../../src/src.pri)
 

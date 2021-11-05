@@ -38,20 +38,16 @@ isEmpty(VERSION) {
 SOURCES += \
         $$PWD/dwaylandinterfacehook.cpp \
         $$PWD/main.cpp \
-        $$PWD/dwaylandintegration.cpp
+        $$PWD/dwaylandintegration.cpp \
+        $$PWD/dhighdpi.cpp
 
 HEADERS += \
         $$PWD/dwaylandinterfacehook.h \
-        $$PWD/dwaylandintegration.h
+        $$PWD/dwaylandintegration.h \
+        $$PWD/dhighdpi.h
 
 qtHaveModule(waylandclient_private) : QT += waylandclient_private
-else {
-    exists($$PWD/../qtwayland-dev/$$QT_VERSION) {
-        INCLUDEPATH += $$PWD/../qtwayland-dev/$$QT_VERSION
-    } else {
-        error(Not support Qt Version: $$QT_VERSION)
-    }
-}
+else: INCLUDEPATH += $$PWD/../qtwayland-dev
 
 include($$PWD/../../src/src.pri)
 

@@ -21,11 +21,12 @@
 #include "dwaylandinterfacehook.h"
 #include "dxcbxsettings.h"
 #include "dnativesettings.h"
+#include "dhighdpi.h"
 
 #include <xcb/xcb.h>
 #include <qpa/qplatformnativeinterface.h>
 #include <private/qguiapplication_p.h>
-
+#include <QtWaylandClientVersion>
 DPP_BEGIN_NAMESPACE
 
 
@@ -89,7 +90,7 @@ QFunctionPointer DWaylandInterfaceHook::platformFunction(QPlatformNativeInterfac
         return f;
     }
 
-#if QT_VERSION >= QT_VERSION_CHECK(5, 4, 0)
+#if QTWAYLANDCLIENT_VERSION >= QT_VERSION_CHECK(5, 4, 0)
     return static_cast<QtWaylandClient::QWaylandNativeInterface*>(interface)->QtWaylandClient::QWaylandNativeInterface::platformFunction(function);
 #endif
 
@@ -98,6 +99,13 @@ QFunctionPointer DWaylandInterfaceHook::platformFunction(QPlatformNativeInterfac
 
 void DWaylandInterfaceHook::init()
 {
+    static bool isInit = false;
+
+    if (isInit && xcb_connection) {
+        return;
+    }
+
+    isInit = true;
     int primary_screen_number = 0;
     xcb_connection = xcb_connect(qgetenv("DISPLAY"), &primary_screen_number);
 
@@ -136,10 +144,15 @@ void DWaylandInterfaceHook::clearNativeSettings(quint32 settingWindow)
 
 DXcbXSettings *DWaylandInterfaceHook::globalSettings()
 {
-    if (Q_LIKELY(m_xsettings))
+    if (Q_LIKELY(m_xsettings)) {
         return m_xsettings;
+    }
 
+    if (!xcb_connection) {
+        init();
+    }
     m_xsettings = new DXcbXSettings(xcb_connection);
+
     return m_xsettings;
 }
 

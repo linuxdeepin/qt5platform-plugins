@@ -28,6 +28,7 @@
 #include <QtWaylandClient/private/qwaylanddisplay_p.h>
 #include <QtWaylandClient/private/qwaylandscreen_p.h>
 #include <QtWaylandClient/private/qwaylandcursor_p.h>
+#include <QtWaylandClient/private/qwaylandinputdevice_p.h>
 #undef private
 
 #include <QDebug>
@@ -37,11 +38,41 @@
 #include <wayland-cursor.h>
 #include <QtWaylandClientVersion>
 
+#define XSETTINGS_DOUBLE_CLICK_TIME QByteArrayLiteral("Net/DoubleClickTime")
+
 DPP_BEGIN_NAMESPACE
 
+#define XSETTINGS_CURSOR_THEME_NAME QByteArrayLiteral("Gtk/CursorThemeName")
+#define XSETTINGS_PRIMARY_MONITOR_NAME QByteArrayLiteral("Gdk/PrimaryMonitorName")
+
 enum XSettingType:quint64 {
-    Gtk_CursorThemeName
+    Gtk_CursorThemeName,
+    Gdk_PrimaryMonitorName
 };
+
+static void overrideChangeCursor(QPlatformCursor *cursorHandle, QCursor * cursor, QWindow * widget)
+{
+    if (!(widget && widget->handle()))
+        return;
+
+    if (widget->property(disableOverrideCursor).toBool())
+        return;
+
+    // qtwayland里面判断了，如果没有设置环境变量，就用默认大小32, 这里通过设在环境变量将大小设置我们需要的24
+    static bool xcursorSizeIsSet = qEnvironmentVariableIsSet("XCURSOR_SIZE");
+    if (!xcursorSizeIsSet) {
+        qputenv("XCURSOR_SIZE", QByteArray::number(24 * qApp->devicePixelRatio()));
+    }
+
+    VtableHook::callOriginalFun(cursorHandle, &QPlatformCursor::changeCursor, cursor, widget);
+
+    // 调用changeCursor后，控制中心窗口的光标没有及时更新，这里强制刷新一下
+    for (auto *inputDevice : DWaylandIntegration::instance()->display()->inputDevices()) {
+        if (inputDevice->pointer()) {
+            inputDevice->pointer()->updateCursor();
+        }
+    }
+}
 
 static void onXSettingsChanged(xcb_connection_t *connection, const QByteArray &name, const QVariant &property, void *handle)
 {
@@ -52,17 +83,24 @@ static void onXSettingsChanged(xcb_connection_t *connection, const QByteArray &n
     quint64 type = reinterpret_cast<quint64>(handle);
 
     switch (type) {
-#if QTWAYLANDCLIENT_VERSION  < QT_VERSION_CHECK(5, 13, 0)
     case Gtk_CursorThemeName:
         const QByteArray &cursor_name = DWaylandInterfaceHook::globalSettings()->setting(name).toByteArray();
-        const auto &cursor_map = DWaylandIntegration::instance()->display()->mCursorThemesBySize;
 
+#if QTWAYLANDCLIENT_VERSION < QT_VERSION_CHECK(5, 13, 0)
+        const auto &cursor_map = DWaylandIntegration::instance()->display()->mCursorThemesBySize;
+#elif QTWAYLANDCLIENT_VERSION < QT_VERSION_CHECK(5, 16, 0)
+        const auto &cursor_map = DWaylandIntegration::instance()->display()->mCursorThemes;
+#endif
         // 处理光标主题变化
         for (auto cursor = cursor_map.constBegin(); cursor != cursor_map.constEnd(); ++cursor) {
             QtWaylandClient::QWaylandCursorTheme *ct = cursor.value();
             // 根据大小记载新的主题
-            auto theme = wl_cursor_theme_load(cursor_name.constData(), cursor.key(), DWaylandIntegration::instance()->display()->shm()->object());
 
+#if QTWAYLANDCLIENT_VERSION < QT_VERSION_CHECK(5, 13, 0)
+            auto theme = wl_cursor_theme_load(cursor_name.constData(), cursor.key(), DWaylandIntegration::instance()->display()->shm()->object());
+#elif QTWAYLANDCLIENT_VERSION < QT_VERSION_CHECK(5, 16, 0)
+            auto theme = wl_cursor_theme_load(cursor_name.constData(), cursor.key().second, DWaylandIntegration::instance()->display()->shm()->object());
+#endif
             // 如果新主题创建失败则不更新数据
             if (!theme)
                 continue;
@@ -87,8 +125,39 @@ static void onXSettingsChanged(xcb_connection_t *connection, const QByteArray &n
         }
 
         break;
-#endif
+
     }
+}
+
+static void onPrimaryScreenChanged(xcb_connection_t *connection, const QByteArray &name, const QVariant &property, void *handle)
+{
+    Q_UNUSED(connection)
+    Q_UNUSED(property)
+
+    quint64 type = reinterpret_cast<quint64>(handle);
+    switch (type) {
+    case Gdk_PrimaryMonitorName:
+    {
+        // 如果设置的主屏与当前获取的主屏一样，则不处理
+        const QString &primaryScreenName = DWaylandInterfaceHook::globalSettings()->setting(name).toString();
+        if (QGuiApplication::primaryScreen()->model().startsWith(primaryScreenName))
+            break;
+
+        // 设置新的主屏
+        auto screens = DWaylandIntegration::instance()->display()->screens();
+        for (auto screen : screens) {
+            if (screen->model().startsWith(primaryScreenName)) {
+#if QT_VERSION >= QT_VERSION_CHECK(5, 12, 0)
+                QWindowSystemInterface::handlePrimaryScreenChanged(screen);
+#endif
+            }
+        }
+        break;
+    }
+    default:
+        break;
+    }
+    qDebug() << "primary screen info:" << QGuiApplication::primaryScreen()->model() << QGuiApplication::primaryScreen()->geometry();
 }
 
 DWaylandIntegration *DWaylandIntegration::m_instance = nullptr;
@@ -109,9 +178,18 @@ void DWaylandIntegration::initialize()
     QWaylandIntegration::initialize();
     // 覆盖wayland的平台函数接口，用于向上层返回一些必要的与平台相关的函数供其使用
     VtableHook::overrideVfptrFun(nativeInterface(), &QPlatformNativeInterface::platformFunction, &DWaylandInterfaceHook::platformFunction);
-
+    // hook qtwayland的改变光标的函数，用于设置环境变量并及时更新
+    for (QScreen *screen : qApp->screens()) {
+        //在没有屏幕的时候，qtwayland会创建一个虚拟屏幕，此时不能调用screen->handle()->cursor()
+        if (screen && screen->handle() && screen->handle()->cursor()) {
+             VtableHook::overrideVfptrFun(screen->handle()->cursor(), &QPlatformCursor::changeCursor, &overrideChangeCursor);
+        }
+    }
     // 监听xsettings的信号，用于更新程序状态（如更新光标主题）
-    DWaylandInterfaceHook::globalSettings()->registerCallbackForProperty("Gtk/CursorThemeName", onXSettingsChanged, reinterpret_cast<void*>(XSettingType::Gtk_CursorThemeName));
+    DWaylandInterfaceHook::globalSettings()->registerCallbackForProperty(XSETTINGS_CURSOR_THEME_NAME, onXSettingsChanged, reinterpret_cast<void*>(XSettingType::Gtk_CursorThemeName));
+    // 处理主屏设置，并监听xsettings的信号用于更新
+    onPrimaryScreenChanged(nullptr, XSETTINGS_PRIMARY_MONITOR_NAME, QVariant(), reinterpret_cast<void*>(XSettingType::Gdk_PrimaryMonitorName));
+    DWaylandInterfaceHook::globalSettings()->registerCallbackForProperty(XSETTINGS_PRIMARY_MONITOR_NAME, onPrimaryScreenChanged, reinterpret_cast<void*>(XSettingType::Gdk_PrimaryMonitorName));
 }
 
 QStringList DWaylandIntegration::themeNames() const
@@ -120,10 +198,31 @@ QStringList DWaylandIntegration::themeNames() const
     const QByteArray desktop_session = qgetenv("DESKTOP_SESSION");
 
     // 在lightdm环境中，无此环境变量。默认使用deepin平台主题
-    if (desktop_session.isEmpty() || desktop_session.startsWith("deepin"))
+    if (desktop_session.isEmpty() || desktop_session == "deepin")
         list.prepend("deepin");
 
     return list;
 }
+
+#define GET_VALID_XSETTINGS(key) { \
+    auto value = DWaylandInterfaceHook::globalSettings()->setting(key); \
+    if (value.isValid()) return value; \
+}
+
+QVariant DWaylandIntegration::styleHint(QPlatformIntegration::StyleHint hint) const
+{
+#ifdef Q_OS_LINUX
+    switch ((int)hint) {
+    case MouseDoubleClickInterval:
+        GET_VALID_XSETTINGS(XSETTINGS_DOUBLE_CLICK_TIME);
+        break;
+    default:
+        break;
+    }
+#endif
+
+    return QtWaylandClient::QWaylandIntegration::styleHint(hint);
+}
+
 
 DPP_END_NAMESPACE
