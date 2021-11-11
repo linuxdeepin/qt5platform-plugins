@@ -1,6 +1,7 @@
 #include "dwaylandshellmanager.h"
 #include <QtWaylandClientVersion>
 #include <QLoggingCategory>
+#include "global.h"
 #ifndef QT_DEBUG
 Q_LOGGING_CATEGORY(dwlp, "dtk.wayland.plugin" , QtInfoMsg);
 #else
@@ -10,6 +11,7 @@ Q_LOGGING_CATEGORY(dwlp, "dtk.wayland.plugin");
 DPP_USE_NAMESPACE
 
 #define _DWAYALND_ "_d_dwayland_"
+#define CHECK_PREFIX(key) (key.startsWith(_DWAYALND_) || key.startsWith("_d_"))
 
 namespace QtWaylandClient {
 
@@ -104,7 +106,7 @@ void DWaylandShellManager::sendProperty(QWaylandShellSurface *self, const QStrin
         return;
     }
 
-    if (!name.startsWith(QStringLiteral(_DWAYALND_)))
+    if (!CHECK_PREFIX(name))
         return VtableHook::callOriginalFun(self, &QWaylandShellSurface::sendProperty, name, value);
 
     auto *ksurface = ensureKWaylandSurface(self);
@@ -118,14 +120,23 @@ void DWaylandShellManager::sendProperty(QWaylandShellSurface *self, const QStrin
         return;
     }
 
-    // 将QMenu的窗口设置为tooltop层级
-    if (QStringLiteral(_DWAYALND_ "window-menu") == name) {
+    // 将popup的窗口设置为tooltop层级, 包括qmenu，combobox弹出窗口
+    {
         QWaylandWindow *wayland_window = self->window();
         if (wayland_window) {
             if (wayland_window->window()->type() == Qt::Popup)
                 ksurface->setRole(KWayland::Client::PlasmaShellSurface::Role::ToolTip);
         }
     }
+
+#ifdef D_DEEPIN_KWIN
+    // 禁止窗口移动接口适配。
+    typedef KWayland::Client::PlasmaShellSurface::Role KRole;
+    if (!name.compare(enableSystemMove)) {
+        ksurface->setRole(value.toBool() ? KRole::Normal : KRole::StandAlone);
+        return;
+    }
+#endif
 
     if (QStringLiteral(_DWAYALND_ "dockstrut") == name) {
         setDockStrut(self, value);
@@ -232,7 +243,7 @@ QWaylandShellSurface *DWaylandShellManager::createShellSurface(QWaylandShellInte
 
     if (window->window()) {
         for (const QByteArray &pname : window->window()->dynamicPropertyNames()) {
-            if (Q_LIKELY(!pname.startsWith(QByteArrayLiteral(_DWAYALND_))))
+            if (Q_LIKELY(!CHECK_PREFIX(pname)))
                 continue;
             // 将窗口自定义属性记录到wayland window property中
             window->sendProperty(pname, window->window()->property(pname.constData()));
@@ -267,7 +278,7 @@ void DWaylandShellManager::createKWaylandShell(KWayland::Client::Registry *regis
             const QVariantMap &properites = lw_window->properties();
             // 当kwayland_shell被创建后，找到以_d_dwayland_开头的扩展属性将其设置一遍
             for (auto p = properites.constBegin(); p != properites.constEnd(); ++p) {
-                if (p.key().startsWith(QStringLiteral(_DWAYALND_)))
+                if (CHECK_PREFIX(p.key()))
                     sendProperty(lw_window->shellSurface(), p.key(), p.value());
             }
         }
