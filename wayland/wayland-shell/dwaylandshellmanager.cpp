@@ -322,6 +322,13 @@ void DWaylandShellManager::createDDEPointer(KWayland::Client::Registry *registry
     //create dde pointer
     Q_ASSERT(kwayland_dde_seat);
 
+
+    Q_ASSERT(registry && registry->parent());
+    if (!registry || registry->parent()) {
+        qCritical() << (registry ? "registy->parent()" : "registry") << "is null";
+        return;
+    }
+
     kwayland_dde_pointer = kwayland_dde_seat->createDDePointer(registry->parent());
     Q_ASSERT(kwayland_dde_pointer);
 
