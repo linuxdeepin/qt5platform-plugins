@@ -29,6 +29,8 @@ static QPointer<KWayland::Client::DDEShell> ddeShell = nullptr;
 static QPointer<KWayland::Client::DDESeat> kwayland_dde_seat;
 static QPointer<KWayland::Client::DDEPointer> kwayland_dde_pointer;
 static QPointer<KWayland::Client::Strut> kwayland_strut;
+static QPointer<KWayland::Client::DDEKeyboard> kwayland_dde_keyboard;
+static QWaylandWindow *current_window;
 
 inline static wl_surface *getWindowWLSurface(QWaylandWindow *window)
 {
@@ -206,6 +208,8 @@ QWaylandShellSurface *DWaylandShellManager::createShellSurface(QWaylandShellInte
 {
     auto surface = VtableHook::callOriginalFun(self, &QWaylandShellIntegration::createShellSurface, window);
 
+    current_window = window;
+
     VtableHook::overrideVfptrFun(surface, &QWaylandShellSurface::sendProperty, DWaylandShellManager::sendProperty);
     VtableHook::overrideVfptrFun(surface, &QWaylandShellSurface::wantsDecorations, DWaylandShellManager::disableClientDecorations);
     VtableHook::overrideVfptrFun(window, &QPlatformWindow::setGeometry, DWaylandShellManager::setGeometry);
@@ -315,6 +319,35 @@ void DWaylandShellManager::createStrut(KWayland::Client::Registry *registry, qui
 {
     kwayland_strut = registry->createStrut(name, version, registry->parent());
     Q_ASSERT_X(kwayland_strut, "strut", "Registry create strut failed.");
+}
+
+void DWaylandShellManager::handleKeyEvent(quint32 key, KWayland::Client::DDEKeyboard::KeyState state, quint32 time)
+{
+    if (current_window && current_window->window() && !current_window->window()->isActive()) {
+        QEvent::Type type = state == KWayland::Client::DDEKeyboard::KeyState::Pressed ? QEvent::KeyPress : QEvent::KeyRelease;
+        qCDebug(dwlp) << __func__ << " key " << key << " state " << (int)state << " time " << time;
+        QWindowSystemInterface::handleKeyEvent(current_window->window(), time, type, key, Qt::NoModifier, QString());
+    }
+}
+
+void DWaylandShellManager::createDDEKeyboard(KWayland::Client::Registry *registry)
+{
+    //create dde keyboard
+    Q_ASSERT(kwayland_dde_seat);
+
+    kwayland_dde_keyboard = kwayland_dde_seat->createDDEKeyboard(registry->parent());
+    Q_ASSERT(kwayland_dde_keyboard);
+
+    //刷新时间队列，等待kwin反馈消息
+    auto display = reinterpret_cast<wl_display *>(QGuiApplication::platformNativeInterface()->nativeResourceForWindow("display", nullptr));
+    if (display) {
+        wl_display_roundtrip(display);
+    }
+
+    QObject::connect(kwayland_dde_keyboard, &KWayland::Client::DDEKeyboard::keyChanged,
+            [] (quint32 key, KWayland::Client::DDEKeyboard::KeyState state, quint32 time) {
+        handleKeyEvent(key, state, time);
+    });
 }
 
 void DWaylandShellManager::createDDEPointer(KWayland::Client::Registry *registry)

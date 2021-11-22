@@ -17,6 +17,7 @@
 #include <KWayland/Client/server_decoration.h>
 #include <KWayland/Client/ddeshell.h>
 #include <KWayland/Client/ddeseat.h>
+#include <KWayland/Client/ddekeyboard.h>
 #include <KWayland/Client/strut.h>
 
 #include <QGuiApplication>
@@ -42,6 +43,7 @@ public:
     static void createServerDecoration(QWaylandWindow *window);
     static void setGeometry(QPlatformWindow *self, const QRect &rect);
     static void pointerEvent(const QPointF &pointF);
+    static void handleKeyEvent(quint32 key, KWayland::Client::DDEKeyboard::KeyState state, quint32 time);
     static QWaylandShellSurface *createShellSurface(QWaylandShellIntegration *self, QWaylandWindow *window);
     static void createKWaylandShell(KWayland::Client::Registry *registry, quint32 name, quint32 version);
     static void createKWaylandSSD(KWayland::Client::Registry *registry, quint32 name, quint32 version);
@@ -49,6 +51,7 @@ public:
     static void createDDESeat(KWayland::Client::Registry *registry, quint32 name, quint32 version);
     static void createStrut(KWayland::Client::Registry *registry, quint32 name, quint32 version);
     static void createDDEPointer(KWayland::Client::Registry *registry);
+    static void createDDEKeyboard(KWayland::Client::Registry *registry);
     static void handleGeometryChange(QWaylandWindow *window);
     static void handleWindowStateChanged(QWaylandWindow *window);
     static void setWindowStaysOnTop(QWaylandShellSurface *surface, const bool state);
