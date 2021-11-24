@@ -136,6 +136,11 @@ QDpi DHighDpi::logicalDpi(QtWaylandClient::QWaylandScreen *s)
        oldDpi =  QDpi(d, d);
     }
 
+#if QT_VERSION < QT_VERSION_CHECK(5, 14, 0)
+    // QWaylandScreen 没有实现 pixelDensity，为了不影响兼容性，不能采用 hook pixelDensity 的方式
+    QHighDpiScaling::setScreenFactor(s->screen(), d / 96.0);
+#endif
+
     return QDpi(d, d);
 }
 
