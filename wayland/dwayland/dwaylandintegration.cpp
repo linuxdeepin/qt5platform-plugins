@@ -1,9 +1,9 @@
 /*
- * Copyright (C) 2020 ~ 2020 Deepin Technology Co., Ltd.
+ * Copyright (C) 2017 ~ 2019 Uniontech Technology Co., Ltd.
  *
- * Author:     zccrs <zccrs@live.com>
+ * Author:     WangPeng <wangpenga@uniontech.com>
  *
- * Maintainer: zccrs <zhangjide@deepin.com>
+ * Maintainer: AlexOne  <993381@qq.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by

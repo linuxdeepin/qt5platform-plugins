@@ -90,6 +90,22 @@ static KWayland::Client::DDEShellSurface *ensureDDEShellSurface(QWaylandShellSur
 
     if (!dde_shell_surface) {
         dde_shell_surface = createDDESurface(self->window());
+
+        if (!dde_shell_surface)
+            return nullptr;
+
+        const auto &dynamicPropertyNames = self->window()->window()->dynamicPropertyNames();
+        const QWindow *target = self->window()->window();
+        if (dynamicPropertyNames.contains(noTitlebar)) {
+            dde_shell_surface->requestNoTitleBarProperty(target->property(noTitlebar).toBool());
+        }
+        if (dynamicPropertyNames.contains(windowRadius)) {
+            bool ok = false;
+            const qreal &radius  = self->window()->window()->property(windowRadius).toInt(&ok);
+            if (ok) {
+                dde_shell_surface->requestWindowRadiusProperty({radius, radius});
+            }
+        }
     }
 
     return dde_shell_surface;

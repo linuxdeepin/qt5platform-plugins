@@ -39,11 +39,13 @@ SOURCES += \
         $$PWD/dwaylandinterfacehook.cpp \
         $$PWD/main.cpp \
         $$PWD/dwaylandintegration.cpp \
+        $$PWD/dnotitlebarwindowhelper_wl.cpp \
         $$PWD/dhighdpi.cpp
 
 HEADERS += \
         $$PWD/dwaylandinterfacehook.h \
         $$PWD/dwaylandintegration.h \
+        $$PWD/dnotitlebarwindowhelper_wl.h \
         $$PWD/dhighdpi.h
 
 qtHaveModule(waylandclient_private) : QT += waylandclient_private
