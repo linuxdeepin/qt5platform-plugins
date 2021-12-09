@@ -312,7 +312,7 @@ QWaylandShellSurface *DWaylandShellManager::createShellSurface(QWaylandShellInte
 
             // 如果子窗口为QMenu,将窗口设在为tooltip的role
             if (widgetWin->widget()->inherits("QMenu")) {
-                window->sendProperty(_DWAYALND_ "window-menu", "");
+                window->sendProperty(_DWAYALND_ "window-type", "menu");
             }
         }
     }
