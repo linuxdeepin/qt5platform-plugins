@@ -147,7 +147,7 @@ void DWaylandShellManager::sendProperty(QWaylandShellSurface *self, const QStrin
         QWaylandWindow *wayland_window = self->window();
         if (wayland_window) {
             if (wayland_window->window()->type() == Qt::Popup)
-                ksurface->setRole(KWayland::Client::PlasmaShellSurface::Role::ToolTip);
+                ksurface->setRole(KWayland::Client::PlasmaShellSurface::Role::Override);
         }
     }
 
