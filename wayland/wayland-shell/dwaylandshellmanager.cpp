@@ -31,9 +31,11 @@ static QPointer<KWayland::Client::DDEShell> ddeShell = nullptr;
 
 //kwayland
 static QPointer<KWayland::Client::DDESeat> kwayland_dde_seat;
+static QPointer<KWayland::Client::DDETouch> kwayland_dde_touch;
 static QPointer<KWayland::Client::DDEPointer> kwayland_dde_pointer;
 static QPointer<KWayland::Client::Strut> kwayland_strut;
 static QPointer<KWayland::Client::DDEKeyboard> kwayland_dde_keyboard;
+static QPointer<KWayland::Client::FakeInput> kwayland_dde_fake_input;
 static QPointer<QWaylandWindow> current_window;
 
 inline static wl_surface *getWindowWLSurface(QWaylandWindow *window)
@@ -218,13 +220,15 @@ void DWaylandShellManager::setGeometry(QPlatformWindow *self, const QRect &rect)
     }
 }
 
-void DWaylandShellManager::pointerEvent(const QPointF &pointF)
+void DWaylandShellManager::pointerEvent(const QPointF &pointF, QEvent::Type type)
 {
     for (QScreen *screen : qApp->screens()) {
         if (screen && screen->handle() && screen->handle()->cursor()) {
-            //cursor()->pointerEvent中只用到pointF这个参数
-            const QMouseEvent event(QEvent::Move, QPointF(), QPointF(), pointF, Qt::NoButton, Qt::NoButton, Qt::NoModifier);
-            screen->handle()->cursor()->pointerEvent(event);
+            // cursor()->pointerEvent 中只用到 event.globalPos(), 即 pointF 这个参数
+            if (type == QEvent::MouseButtonPress || type == QEvent::MouseButtonRelease || type == QEvent::Move) {
+                const QMouseEvent event(type, QPointF(), QPointF(), pointF, Qt::LeftButton, Qt::LeftButton, Qt::NoModifier);
+                screen->handle()->cursor()->pointerEvent(event);
+            }
         }
     }
 }
@@ -373,6 +377,18 @@ void DWaylandShellManager::createDDEKeyboard(KWayland::Client::Registry *registr
     });
 }
 
+void DWaylandShellManager::createDDEFakeInput(KWayland::Client::Registry *registry)
+{
+    kwayland_dde_fake_input = registry->createFakeInput(registry->interface(KWayland::Client::Registry::Interface::FakeInput).name,
+                                                        registry->interface(KWayland::Client::Registry::Interface::FakeInput).version);
+    if (!kwayland_dde_fake_input || !kwayland_dde_fake_input->isValid()) {
+        qInfo() << "fake input create failed.";
+        return;
+    }
+    // 打开设置光标位置的开关
+    kwayland_dde_fake_input->authenticate("dtk", QString("set cursor pos"));
+}
+
 void DWaylandShellManager::createDDEPointer(KWayland::Client::Registry *registry)
 {
     //create dde pointer
@@ -398,11 +414,52 @@ void DWaylandShellManager::createDDEPointer(KWayland::Client::Registry *registry
     }
 
     //更新一次全局坐标
-    pointerEvent(kwayland_dde_pointer->getGlobalPointerPos());
+    pointerEvent(kwayland_dde_pointer->getGlobalPointerPos(), QEvent::Move);
 
+    // mouse move
+    static bool isTouchMotion = false;
     QObject::connect(kwayland_dde_pointer, &KWayland::Client::DDEPointer::motion,
             [] (const QPointF &posF) {
-        pointerEvent(posF);
+        if (isTouchMotion)
+            return;
+        pointerEvent(posF, QEvent::Move);
+    });
+
+    // 适配触屏
+    // 1.25倍的缩放还是需要单独处理
+    static QPointF releasePos;
+    kwayland_dde_touch = kwayland_dde_seat->createDDETouch(registry->parent());
+    QObject::connect(kwayland_dde_touch, &KWayland::Client::DDETouch::touchDown, [=] (int32_t kwaylandId, const QPointF &pos) {
+        if (kwaylandId != 0) {
+            return;
+        }
+        releasePos = pos;
+
+        setCursorPoint(pos);
+        pointerEvent(pos, QEvent::MouseButtonPress);
+    });
+    QObject::connect(kwayland_dde_touch, &KWayland::Client::DDETouch::touchMotion, [=] (int32_t kwaylandId, const QPointF &pos) {
+        if (kwaylandId != 0) {
+            return;
+        }
+        isTouchMotion = true;
+        pointerEvent(pos, QEvent::Move);
+        setCursorPoint(pos);
+        releasePos = pos;
+    });
+    QObject::connect(kwayland_dde_touch, &KWayland::Client::DDETouch::touchUp, [=] (int32_t kwaylandId) {
+        if (kwaylandId != 0) {
+            return;
+        }
+
+        // 和 motion 的最后一个位置相等, 无需再更新
+        if (isTouchMotion) {
+            isTouchMotion = false;
+            return;
+        }
+
+        setCursorPoint(releasePos);
+        pointerEvent(releasePos, QEvent::MouseButtonRelease);
     });
 }
 
@@ -557,6 +614,22 @@ void DWaylandShellManager::setDockStrut(QWaylandShellSurface *surface, const QVa
     }
 
     kwayland_strut->setStrutPartial(getWindowWLSurface(surface->window()), dockStrut);
+}
+
+/*
+ * @brief setCursorPoint  设置光标在屏幕中的绝对位置
+ * @param pos
+ */
+void DWaylandShellManager::setCursorPoint(QPointF pos) {
+    if (!kwayland_dde_fake_input) {
+        qInfo() << "kwayland_dde_fake_input is nullptr";
+        return;
+    }
+    if (!kwayland_dde_fake_input->isValid()) {
+        qInfo() << "kwayland_dde_fake_input is invalid";
+        return;
+    }
+    kwayland_dde_fake_input->requestPointerMoveAbsolute(pos);
 }
 
 bool DWaylandShellManager::disableClientDecorations(QWaylandShellSurface *surface)
