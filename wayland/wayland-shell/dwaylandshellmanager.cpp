@@ -229,54 +229,6 @@ void DWaylandShellManager::pointerEvent(const QPointF &pointF)
     }
 }
 
-static bool windowEvent(QWindow *w, QEvent *event)
-{
-    bool is_mouse_move = event->type() == QEvent::MouseMove && static_cast<QMouseEvent*>(event)->buttons() == Qt::LeftButton;
-
-    // 记住是否可以move
-#define _d_windowMoving "_d_windowMoving"
-
-    auto isMovable = [=] {
-        return w->property(_d_windowMoving).toBool();
-    };
-
-    if (event->type() == QEvent::MouseButtonRelease) {
-        w->setProperty(_d_windowMoving, false);
-    }
-
-    // bool ret = VtableHook::callOriginalFun(w, &QWindow::event, event);
-    VtableHook::callOriginalFun(w, &QWindow::event, event);
-
-    // workaround for kwin: Qt receives no release event when kwin finishes MOVE operation,
-    // which makes app hang in windowMoving state. when a press happens, there's no sense of
-    // keeping the moving state, we can just reset ti back to normal.
-    if (event->type() == QEvent::MouseButtonPress) {
-        w->setProperty(_d_windowMoving, false);
-    }
-
-    if (is_mouse_move && !event->isAccepted()
-            && w->geometry().contains(static_cast<QMouseEvent*>(event)->globalPos())) {
-        if (!isMovable()) {
-            w->setProperty(_d_windowMoving, true);
-
-            event->accept();
-            if (w->handle()) {
-                // qApp->primaryScreen()->handle()->cursor()->pos() -> QCursor::pos() 看起来更靠谱一些
-#if QT_VERSION < QT_VERSION_CHECK(5, 11, 0)
-                return false;
-#endif
-#if QT_VERSION < QT_VERSION_CHECK(5, 15, 0)
-                return static_cast<QtWaylandClient::QWaylandWindow *>(w->handle())->startSystemMove(QCursor::pos());
-#endif
-#if QT_VERSION > QT_VERSION_CHECK(5, 14, 9)
-                return static_cast<QtWaylandClient::QWaylandWindow *>(w->handle())->startSystemMove();
-#endif
-            }
-        }
-    }
-    return false;
-}
-
 QWaylandShellSurface *DWaylandShellManager::createShellSurface(QWaylandShellIntegration *self, QWaylandWindow *window)
 {
     auto surface = VtableHook::callOriginalFun(self, &QWaylandShellIntegration::createShellSurface, window);
@@ -286,15 +238,6 @@ QWaylandShellSurface *DWaylandShellManager::createShellSurface(QWaylandShellInte
     VtableHook::overrideVfptrFun(window, &QPlatformWindow::setGeometry, DWaylandShellManager::setGeometry);
     VtableHook::overrideVfptrFun(window, &QPlatformWindow::requestActivateWindow, DWaylandShellManager::requestActivateWindow);
     VtableHook::overrideVfptrFun(window, &QPlatformWindow::frameMargins, DWaylandShellManager::frameMargins);
-
-    QWindow *w = window->window();
-    if (w) {
-        const QVariant &v = window->window()->property(enableSystemMove);
-        bool m_enableSystemMove = !v.isValid() || v.toBool();
-        if (m_enableSystemMove) {
-            VtableHook::overrideVfptrFun(w, &QWindow::event, &windowEvent);
-        }
-    }
 
     if (ddeShell) {
         QObject::connect(window, &QWaylandWindow::shellSurfaceCreated, [window] {

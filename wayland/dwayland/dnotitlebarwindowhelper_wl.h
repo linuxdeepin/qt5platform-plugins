@@ -48,8 +48,21 @@ public:
     static void setWindowProperty(QWindow *window, const char *name, const QVariant &value);
     static void popupSystemWindowMenu(quintptr wid);
 
+private slots:
+    // update properties
+    Q_SLOT void updateEnableSystemMoveFromProperty();
+
+private:
+    bool windowEvent(QEvent *event);
+    bool isEnableSystemMove();
+    static void startMoveWindow(QWindow *window);
+
 private:
     QWindow *m_window;
+    bool m_windowMoving = false;
+
+    // properties
+    bool m_enableSystemMove = true;
 
 public:
     static QHash<const QWindow*, DNoTitlebarWlWindowHelper*> mapped;

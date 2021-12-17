@@ -54,6 +54,8 @@ DNoTitlebarWlWindowHelper::DNoTitlebarWlWindowHelper(QWindow *window)
     }
 
     mapped[window] = this;
+
+    updateEnableSystemMoveFromProperty();
 }
 
 DNoTitlebarWlWindowHelper::~DNoTitlebarWlWindowHelper()
@@ -146,6 +148,70 @@ void DNoTitlebarWlWindowHelper::popupSystemWindowMenu(quintptr wid)
     if (QtWaylandClient::QWaylandShellSurface *s = wl_window->shellSurface()) {
         auto wl_integration = static_cast<QtWaylandClient::QWaylandIntegration *>(QGuiApplicationPrivate::platformIntegration());
         s->showWindowMenu(wl_integration->display()->defaultInputDevice());
+    }
+}
+
+
+void DNoTitlebarWlWindowHelper::updateEnableSystemMoveFromProperty()
+{
+    const QVariant &v = m_window->property(enableSystemMove);
+
+    m_enableSystemMove = !v.isValid() || v.toBool();
+
+    if (m_enableSystemMove) {
+        VtableHook::overrideVfptrFun(m_window, &QWindow::event, this, &DNoTitlebarWlWindowHelper::windowEvent);
+    } else if (VtableHook::hasVtable(m_window)) {
+        VtableHook::resetVfptrFun(m_window, &QWindow::event);
+    }
+}
+
+bool DNoTitlebarWlWindowHelper::windowEvent(QEvent *event)
+{
+    QWindow *w = this->window();
+    DNoTitlebarWlWindowHelper *self = mapped.value(w);
+    bool is_mouse_move = event->type() == QEvent::MouseMove && static_cast<QMouseEvent*>(event)->buttons() == Qt::LeftButton;
+
+    if (event->type() == QEvent::MouseButtonRelease) {
+        self->m_windowMoving = false;
+    }
+
+    bool ret = VtableHook::callOriginalFun(w, &QWindow::event, event);
+
+    // workaround for kwin: Qt receives no release event when kwin finishes MOVE operation,
+    // which makes app hang in windowMoving state. when a press happens, there's no sense of
+    // keeping the moving state, we can just reset ti back to normal.
+    if (event->type() == QEvent::MouseButtonPress) {
+        self->m_windowMoving = false;
+    }
+
+    if (is_mouse_move && !event->isAccepted()
+            && w->geometry().contains(static_cast<QMouseEvent*>(event)->globalPos())) {
+        if (!self->m_windowMoving && self->isEnableSystemMove()) {
+            self->m_windowMoving = true;
+
+            event->accept();
+            startMoveWindow(w);
+        }
+    }
+
+    return ret;
+}
+
+bool DNoTitlebarWlWindowHelper::isEnableSystemMove(/*quint32 winId*/)
+{
+    return m_enableSystemMove;
+}
+
+void DNoTitlebarWlWindowHelper::startMoveWindow(QWindow *window)
+{
+    // QWaylandWindow::startSystemMove
+    if (window && window->handle()) {
+#if QT_VERSION < QT_VERSION_CHECK(5, 15, 0)
+                static_cast<QtWaylandClient::QWaylandWindow *>(window->handle())->startSystemMove(QCursor::pos());
+#endif
+#if QT_VERSION > QT_VERSION_CHECK(5, 14, 9)
+                return static_cast<QtWaylandClient::QWaylandWindow *>(window->handle())->startSystemMove();
+#endif
     }
 }
 
