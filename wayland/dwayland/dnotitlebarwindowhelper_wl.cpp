@@ -87,7 +87,17 @@ void DNoTitlebarWlWindowHelper::setWindowProperty(QWindow *window, const char *n
         }
     }
 
+
+    if(!window || !window->handle())
+        return;
+
     window->setProperty(name, value);
+
+    QtWaylandClient::QWaylandWindow *wl_window = static_cast<QtWaylandClient::QWaylandWindow *>(window->handle());
+    if (!wl_window->shellSurface())
+        return;
+
+    wl_window->sendProperty(name, wl_window->property(name));
 
     if (DNoTitlebarWlWindowHelper *self = mapped.value(window)) {
         // 本地设置无效时不可更新窗口属性，否则会导致setProperty函数被循环调用
