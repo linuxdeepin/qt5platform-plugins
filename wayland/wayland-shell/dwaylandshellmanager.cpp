@@ -34,7 +34,7 @@ static QPointer<KWayland::Client::DDESeat> kwayland_dde_seat;
 static QPointer<KWayland::Client::DDEPointer> kwayland_dde_pointer;
 static QPointer<KWayland::Client::Strut> kwayland_strut;
 static QPointer<KWayland::Client::DDEKeyboard> kwayland_dde_keyboard;
-static QWaylandWindow *current_window;
+static QPointer<QWaylandWindow> current_window;
 
 inline static wl_surface *getWindowWLSurface(QWaylandWindow *window)
 {
@@ -158,6 +158,11 @@ void DWaylandShellManager::sendProperty(QWaylandShellSurface *self, const QStrin
         ksurface->setRole(value.toBool() ? KRole::Normal : KRole::StandAlone);
         return;
     }
+
+    if (QStringLiteral(_DWAYALND_ "global_keyevent") == name && value.toBool()) {
+        current_window = self->window();
+    }
+
 #endif
 
     if (QStringLiteral(_DWAYALND_ "dockstrut") == name) {
@@ -275,8 +280,6 @@ static bool windowEvent(QWindow *w, QEvent *event)
 QWaylandShellSurface *DWaylandShellManager::createShellSurface(QWaylandShellIntegration *self, QWaylandWindow *window)
 {
     auto surface = VtableHook::callOriginalFun(self, &QWaylandShellIntegration::createShellSurface, window);
-
-    current_window = window;
 
     VtableHook::overrideVfptrFun(surface, &QWaylandShellSurface::sendProperty, DWaylandShellManager::sendProperty);
     VtableHook::overrideVfptrFun(surface, &QWaylandShellSurface::wantsDecorations, DWaylandShellManager::disableClientDecorations);
