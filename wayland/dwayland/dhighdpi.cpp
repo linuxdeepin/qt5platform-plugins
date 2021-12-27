@@ -100,10 +100,8 @@ bool DHighDpi::overrideBackingStore()
 
 QDpi DHighDpi::logicalDpi(QtWaylandClient::QWaylandScreen *s)
 {
-    static bool isFirstGetDpi = true;
-
-    if (!isFirstGetDpi) {
-        return oldDpi;
+    if (screenFactorMap.contains(s)) {
+        return {screenFactorMap[s], screenFactorMap[s]};
     }
 
     static bool dpi_env_set = qEnvironmentVariableIsSet("QT_FONT_DPI");
@@ -131,9 +129,8 @@ QDpi DHighDpi::logicalDpi(QtWaylandClient::QWaylandScreen *s)
 
     qreal d = dpi / 1024.0;
 
-    if (isFirstGetDpi) {
-        isFirstGetDpi = false;
-       oldDpi =  QDpi(d, d);
+    if (!screenFactorMap.contains(s)) {
+        screenFactorMap[s] = d;
     }
 
 #if QT_VERSION < QT_VERSION_CHECK(5, 14, 0)
