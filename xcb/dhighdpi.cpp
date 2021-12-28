@@ -59,9 +59,7 @@ void DHighDpi::init()
             // 可以禁用此行为
             || qEnvironmentVariableIsSet("D_DXCB_DISABLE_OVERRIDE_HIDPI")
             // 无有效的xsettings时禁用
-            || !DXcbXSettings::getOwner()
-            || (qEnvironmentVariableIsSet("QT_SCALE_FACTOR_ROUNDING_POLICY")
-                && qgetenv("QT_SCALE_FACTOR_ROUNDING_POLICY") != "PassThrough")) {
+            || !DXcbXSettings::getOwner()) {
         // init函数可能会被重复调用, 此处应该清理VtableHook
         if (active) {
 #if QT_VERSION < QT_VERSION_CHECK(5, 14, 0)
