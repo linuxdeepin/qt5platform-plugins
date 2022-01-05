@@ -394,14 +394,12 @@ void DWaylandShellManager::createDDEPointer(KWayland::Client::Registry *registry
     //create dde pointer
     Q_ASSERT(kwayland_dde_seat);
 
-
-    Q_ASSERT(registry && registry->parent());
-    if (!registry || registry->parent()) {
-        qCritical() << (registry ? "registy->parent()" : "registry") << "is null";
+    if (!registry) {
+        qCritical() << "registry is null";
         return;
     }
 
-    kwayland_dde_pointer = kwayland_dde_seat->createDDePointer(registry->parent());
+    kwayland_dde_pointer = kwayland_dde_seat->createDDePointer();
     Q_ASSERT(kwayland_dde_pointer);
 
     //向kwin发送获取全局坐标请求
@@ -428,7 +426,7 @@ void DWaylandShellManager::createDDEPointer(KWayland::Client::Registry *registry
     // 适配触屏
     // 1.25倍的缩放还是需要单独处理
     static QPointF releasePos;
-    kwayland_dde_touch = kwayland_dde_seat->createDDETouch(registry->parent());
+    kwayland_dde_touch = kwayland_dde_seat->createDDETouch();
     QObject::connect(kwayland_dde_touch, &KWayland::Client::DDETouch::touchDown, [=] (int32_t kwaylandId, const QPointF &pos) {
         if (kwaylandId != 0) {
             return;
