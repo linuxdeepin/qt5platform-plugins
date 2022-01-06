@@ -77,7 +77,7 @@ void DNoTitlebarWlWindowHelper::setWindowProperty(QWindow *window, const char *n
 {
     const QVariant &old_value = window->property(name);
 
-    if (old_value == value)
+    if (old_value.isValid() && old_value == value)
         return;
 
     if (value.typeName() == QByteArray("QPainterPath")) {
@@ -89,17 +89,19 @@ void DNoTitlebarWlWindowHelper::setWindowProperty(QWindow *window, const char *n
         }
     }
 
-
-    if(!window || !window->handle())
+    if(!window)
         return;
 
     window->setProperty(name, value);
 
-    QtWaylandClient::QWaylandWindow *wl_window = static_cast<QtWaylandClient::QWaylandWindow *>(window->handle());
-    if (!wl_window->shellSurface())
-        return;
+    if(window->handle()) {
+        QtWaylandClient::QWaylandWindow *wl_window = static_cast<QtWaylandClient::QWaylandWindow *>(window->handle());
 
-    wl_window->sendProperty(name, wl_window->property(name));
+        if (wl_window->shellSurface())
+            wl_window->sendProperty(name, value);
+        else
+            qWarning() << __FUNCTION__ <<"shellSurface not created";
+    }
 
     if (DNoTitlebarWlWindowHelper *self = mapped.value(window)) {
         // 本地设置无效时不可更新窗口属性，否则会导致setProperty函数被循环调用
