@@ -92,22 +92,6 @@ static KWayland::Client::DDEShellSurface *ensureDDEShellSurface(QWaylandShellSur
 
     if (!dde_shell_surface) {
         dde_shell_surface = createDDESurface(self->window());
-
-        if (!dde_shell_surface)
-            return nullptr;
-
-        const auto &dynamicPropertyNames = self->window()->window()->dynamicPropertyNames();
-        const QWindow *target = self->window()->window();
-        if (dynamicPropertyNames.contains(noTitlebar)) {
-            dde_shell_surface->requestNoTitleBarProperty(target->property(noTitlebar).toBool());
-        }
-        if (dynamicPropertyNames.contains(windowRadius)) {
-            bool ok = false;
-            const qreal &radius  = self->window()->window()->property(windowRadius).toInt(&ok);
-            if (ok) {
-                dde_shell_surface->requestWindowRadiusProperty({radius, radius});
-            }
-        }
     }
 
     return dde_shell_surface;
@@ -142,6 +126,25 @@ void DWaylandShellManager::sendProperty(QWaylandShellSurface *self, const QStrin
             send_property_window_list << self->window();
         }
         return;
+    }
+
+    auto *dde_shell_surface = ensureDDEShellSurface(self);
+    if (dde_shell_surface) {
+        if (!name.compare(noTitlebar)) {
+            qCDebug(dwlp()) << "### requestNoTitleBar" << value;
+            dde_shell_surface->requestNoTitleBarProperty(value.toBool());
+        }
+        if (!name.compare(windowRadius)) {
+            bool ok = false;
+            qreal radius  = value.toInt(&ok);
+            if (self->window() && self->window()->screen())
+                radius *= self->window()->screen()->devicePixelRatio();
+            qCDebug(dwlp()) << "### requestWindowRadius" << radius << value;
+            if (ok)
+                dde_shell_surface->requestWindowRadiusProperty({radius, radius});
+             else
+                qCWarning(dwlp) << "invalid property" << name << value;
+        }
     }
 
     // 将popup的窗口设置为tooltop层级, 包括qmenu，combobox弹出窗口
