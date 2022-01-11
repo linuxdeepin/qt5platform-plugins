@@ -537,10 +537,15 @@ void DWaylandShellManager::handleWindowStateChanged(QWaylandWindow *window)
     if (!ddeShellSurface)
         return;
 
+#define d_oldState QStringLiteral("_d_oldState")
+    window->setProperty(d_oldState, Qt::WindowNoState);
 #define STATE_CHANGED(sig) \
     QObject::connect(ddeShellSurface, &KCDFace::sig, window, [window, ddeShellSurface](){\
         qCDebug(dwlp) << "==== "#sig ;\
-        QWindowSystemInterface::handleWindowStateChanged(window->window(), getwindowStates(ddeShellSurface)); \
+        const Qt::WindowStates &newState = getwindowStates(ddeShellSurface); \
+        const int &oldState = window->property(d_oldState).toInt(); \
+        QWindowSystemInterface::handleWindowStateChanged(window->window(), newState, oldState); \
+        window->setProperty(d_oldState, static_cast<int>(newState)); \
     })
 
     STATE_CHANGED(minimizedChanged);
