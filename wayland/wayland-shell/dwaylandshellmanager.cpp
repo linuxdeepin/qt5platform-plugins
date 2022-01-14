@@ -269,7 +269,11 @@ QWaylandShellSurface *DWaylandShellManager::createShellSurface(QWaylandShellInte
             }
         }
     }
-
+    // TODO: 这里对dialog特殊处理，dialog不需要设置固定的位置，否则里面的坐标会发生偏移导致点击偏移
+    // 但是这不是问题的根本原因，还需要进一步分析
+    if (window->window()->objectName() == QByteArrayLiteral("Dtk::Widget::DAbstractDialogClassWindow")) {
+        bSetPosition = false;
+    }
     if (bSetPosition) {
         //QWaylandWindow对应surface的geometry，如果使用QWindow会导致缩放后surface坐标错误。
         window->sendProperty(_DWAYALND_ "window-position", window->geometry().topLeft());
