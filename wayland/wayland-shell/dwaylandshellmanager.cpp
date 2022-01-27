@@ -166,6 +166,10 @@ void DWaylandShellManager::sendProperty(QWaylandShellSurface *self, const QStrin
 
     if (QStringLiteral(_DWAYALND_ "global_keyevent") == name && value.toBool()) {
         current_window = self->window();
+        // 只有关心全局键盘事件才连接, 并且随窗口销毁而断开
+        QObject::connect(kwayland_dde_keyboard, &KWayland::Client::DDEKeyboard::keyChanged,
+                         current_window, &DWaylandShellManager::handleKeyEvent,
+                         Qt::ConnectionType::UniqueConnection);
     }
 
 #endif
@@ -357,7 +361,7 @@ void DWaylandShellManager::createStrut(KWayland::Client::Registry *registry, qui
 
 void DWaylandShellManager::handleKeyEvent(quint32 key, KWayland::Client::DDEKeyboard::KeyState state, quint32 time)
 {
-    if (current_window && current_window->window() && !current_window->window()->isActive()) {
+    if (current_window && current_window->window() && !current_window->isActive()) {
         QEvent::Type type = state == KWayland::Client::DDEKeyboard::KeyState::Pressed ? QEvent::KeyPress : QEvent::KeyRelease;
         qCDebug(dwlp) << __func__ << " key " << key << " state " << (int)state << " time " << time;
         QWindowSystemInterface::handleKeyEvent(current_window->window(), time, type, key, Qt::NoModifier, QString());
@@ -377,11 +381,6 @@ void DWaylandShellManager::createDDEKeyboard(KWayland::Client::Registry *registr
     if (display) {
         wl_display_roundtrip(display);
     }
-
-    QObject::connect(kwayland_dde_keyboard, &KWayland::Client::DDEKeyboard::keyChanged,
-            [] (quint32 key, KWayland::Client::DDEKeyboard::KeyState state, quint32 time) {
-        handleKeyEvent(key, state, time);
-    });
 }
 
 void DWaylandShellManager::createDDEFakeInput(KWayland::Client::Registry *registry)
