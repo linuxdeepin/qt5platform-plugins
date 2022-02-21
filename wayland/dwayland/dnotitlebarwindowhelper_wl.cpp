@@ -212,7 +212,7 @@ void DNoTitlebarWlWindowHelper::startMoveWindow(QWindow *window)
                 static_cast<QtWaylandClient::QWaylandWindow *>(window->handle())->startSystemMove(QCursor::pos());
 #endif
 #if QT_VERSION > QT_VERSION_CHECK(5, 14, 9)
-                return static_cast<QtWaylandClient::QWaylandWindow *>(window->handle())->startSystemMove();
+                static_cast<QtWaylandClient::QWaylandWindow *>(window->handle())->startSystemMove();
 #endif
     }
 }
