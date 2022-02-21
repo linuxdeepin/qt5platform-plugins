@@ -13,6 +13,9 @@ PKGCONFIG += Qt5WaylandClient
 greaterThan(QT_MINOR_VERSION, 7): QT += gui-private widgets-private
 else: QT += platformsupport-private
 
+# xkb
+QT += xkbcommon_support-private
+
 TARGET = kwayland-shell
 TEMPLATE = lib
 
