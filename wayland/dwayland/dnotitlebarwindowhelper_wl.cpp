@@ -123,18 +123,6 @@ void DNoTitlebarWlWindowHelper::setWindowProperty(QWindow *window, const char *n
 
 void DNoTitlebarWlWindowHelper::popupSystemWindowMenu(quintptr wid)
 {
-    auto fromQtWinId = [](WId id) {
-        QWindow *window = nullptr;
-
-        for (auto win : qApp->allWindows()) {
-            if (win->winId() == id) {
-                window = win;
-                break;
-            }
-        }
-        return window;
-    };
-
     QWindow *window = fromQtWinId(wid);
     if(!window || !window->handle())
         return;

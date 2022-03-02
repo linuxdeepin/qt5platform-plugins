@@ -145,6 +145,24 @@ void DWaylandShellManager::sendProperty(QWaylandShellSurface *self, const QStrin
              else
                 qCWarning(dwlp) << "invalid property" << name << value;
         }
+        if (!name.compare(splitWindowOnScreen)) {
+            using KWayland::Client::DDEShellSurface;
+            bool ok = false;
+            qreal leftOrRight  = value.toInt(&ok);
+            if (ok) {
+                dde_shell_surface->requestSplitWindow((DDEShellSurface::SplitType)leftOrRight);
+                qCInfo(dwlp) << "requestSplitWindow value: " << leftOrRight;
+            } else {
+                qCWarning(dwlp) << "invalid property: " << name << value;
+            }
+            self->window()->window()->setProperty(splitWindowOnScreen, 0);
+        }
+        if (!name.compare(supportForSplittingWindow)) {
+            if (self->window() && self->window()->window()) {
+                self->window()->window()->setProperty(supportForSplittingWindow, dde_shell_surface->isSplitable());
+            }
+            return;
+        }
     }
 
     // 将popup的窗口设置为tooltop层级, 包括qmenu，combobox弹出窗口
