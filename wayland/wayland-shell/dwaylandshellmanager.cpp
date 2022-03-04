@@ -521,8 +521,8 @@ typedef KWayland::Client::DDEShellSurface KCDFace;
 Qt::WindowStates getwindowStates(KCDFace *surface)
 {
     Qt::WindowStates state = Qt::WindowNoState;
-    if (surface->isActive())
-        state |= Qt::WindowActive;
+//    if (surface->isActive())
+//        state |= Qt::WindowActive;
     if (surface->isFullscreen())
         state |= Qt::WindowFullScreen;
     if (surface->isMinimized())
@@ -554,7 +554,12 @@ void DWaylandShellManager::handleWindowStateChanged(QWaylandWindow *window)
     STATE_CHANGED(minimizedChanged);
     STATE_CHANGED(maximizedChanged);
     STATE_CHANGED(fullscreenChanged);
-    STATE_CHANGED(activeChanged);
+
+    //    STATE_CHANGED(activeChanged);
+    QObject::connect(ddeShellSurface, &KCDFace::activeChanged, window, [window, ddeShellSurface](){
+        QWindow *w = ddeShellSurface->isActive() ? window->window() : nullptr;
+        QWindowSystemInterface::handleWindowActivated(w, Qt::FocusReason::ActiveWindowFocusReason);
+    });
 
 #define SYNC_FLAG(sig, enableFunc, flag) \
     QObject::connect(ddeShellSurface, &KCDFace::sig, window, [window, ddeShellSurface](){ \
