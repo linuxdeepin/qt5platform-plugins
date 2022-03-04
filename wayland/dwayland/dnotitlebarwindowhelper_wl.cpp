@@ -99,18 +99,11 @@ void DNoTitlebarWlWindowHelper::setWindowProperty(QWindow *window, const char *n
 
         if (wl_window->shellSurface())
             wl_window->sendProperty(name, value);
-        else
-            qWarning() << __FUNCTION__ <<"shellSurface not created";
     }
 
     if (DNoTitlebarWlWindowHelper *self = mapped.value(window)) {
-        // 本地设置无效时不可更新窗口属性，否则会导致setProperty函数被循环调用
-        // if (!self->m_nativeSettingsValid) {
-        //     return;
-        // }
 
         QByteArray name_array(name);
-
         if (!name_array.startsWith("_d_"))
             return;
 
@@ -118,6 +111,9 @@ void DNoTitlebarWlWindowHelper::setWindowProperty(QWindow *window, const char *n
         name_array[3] = name_array.at(3) & ~0x20;
 
         const QByteArray slot_name = "update" + name_array.mid(3) + "FromProperty";
+
+        if (self->metaObject()->indexOfSlot(slot_name + QByteArray("()")) < 0)
+            return;
 
         if (!QMetaObject::invokeMethod(self, slot_name.constData(), Qt::DirectConnection)) {
             qWarning() << "Failed to update property:" << slot_name;
