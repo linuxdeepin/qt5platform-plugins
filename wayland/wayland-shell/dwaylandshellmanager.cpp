@@ -266,15 +266,11 @@ QWaylandShellSurface *DWaylandShellManager::createShellSurface(QWaylandShellInte
             if (!widgetWin->widget()->testAttribute(Qt::WA_Moved)) {
                 bSetPosition = false;
             }
-            // TODO: 这里对dialog特殊处理，dialog不需要设置固定的位置，否则里面的坐标会发生偏移导致点击偏移
-            // 但是这不是问题的根本原因，还需要进一步分析
-            if (widgetWin->widget()->property("DAbstractDialog").toBool()) {
-                bSetPosition = false;
-            }
 
-            // 如果子窗口为QMenu,将窗口设在为tooltip的role
-            if (widgetWin->widget()->inherits("QMenu")) {
-                window->sendProperty(_DWAYALND_ "window-type", "menu");
+            // 1. dabstractdialog 的 showevent 中会主动move到屏幕居中的位置, 即 setAttribute(Qt::WA_Moved)。
+            // 2. 有 parent(ddialog dlg(this)) 的 window 窗管会主动调整位置，没有设置parent的才需要插件调整位置 如 ddialog dlg;
+            if (window->transientParent()) {
+                bSetPosition = false;
             }
         }
     }
