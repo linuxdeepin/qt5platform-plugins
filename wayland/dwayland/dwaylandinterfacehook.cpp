@@ -18,14 +18,17 @@
 #include "QtWaylandClient/private/qwaylandnativeinterface_p.h"
 #undef private
 
+#include "dnotitlebarwindowhelper_wl.h"
+
 #include "dwaylandinterfacehook.h"
 #include "dxcbxsettings.h"
 #include "dnativesettings.h"
+#include "dhighdpi.h"
 
 #include <xcb/xcb.h>
 #include <qpa/qplatformnativeinterface.h>
 #include <private/qguiapplication_p.h>
-
+#include <QtWaylandClientVersion>
 DPP_BEGIN_NAMESPACE
 
 
@@ -68,6 +71,20 @@ static QFunctionPointer getFunction(const QByteArray &function)
         return reinterpret_cast<QFunctionPointer>(&DWaylandInterfaceHook::buildNativeSettings);
     } else if (function == clearNativeSettings) {
         return reinterpret_cast<QFunctionPointer>(&DWaylandInterfaceHook::clearNativeSettings);
+    } else if (function == setEnableNoTitlebar) {
+        return reinterpret_cast<QFunctionPointer>(&DWaylandInterfaceHook::setEnableNoTitlebar);
+    } else if (function == isEnableNoTitlebar) {
+        return reinterpret_cast<QFunctionPointer>(&DWaylandInterfaceHook::isEnableNoTitlebar);
+    } else if (function == setWindowRadius) {
+        return reinterpret_cast<QFunctionPointer>(&DWaylandInterfaceHook::setWindowRadius);
+    } else if (function == setWindowProperty) {
+        return reinterpret_cast<QFunctionPointer>(&DWaylandInterfaceHook::setWindowProperty);
+    } else if (function == popupSystemWindowMenu) {
+        return reinterpret_cast<QFunctionPointer>(&DWaylandInterfaceHook::popupSystemWindowMenu);
+    } else if (function == enableDwayland) {
+        return reinterpret_cast<QFunctionPointer>(&DWaylandInterfaceHook::enableDwayland);
+    } else if (function == isEnableDwayland) {
+        return reinterpret_cast<QFunctionPointer>(&DWaylandInterfaceHook::isEnableDwayland);
     }
 
     return nullptr;
@@ -89,7 +106,7 @@ QFunctionPointer DWaylandInterfaceHook::platformFunction(QPlatformNativeInterfac
         return f;
     }
 
-#if QT_VERSION >= QT_VERSION_CHECK(5, 4, 0)
+#if QTWAYLANDCLIENT_VERSION >= QT_VERSION_CHECK(5, 4, 0)
     return static_cast<QtWaylandClient::QWaylandNativeInterface*>(interface)->QtWaylandClient::QWaylandNativeInterface::platformFunction(function);
 #endif
 
@@ -98,6 +115,13 @@ QFunctionPointer DWaylandInterfaceHook::platformFunction(QPlatformNativeInterfac
 
 void DWaylandInterfaceHook::init()
 {
+    static bool isInit = false;
+
+    if (isInit && xcb_connection) {
+        return;
+    }
+
+    isInit = true;
     int primary_screen_number = 0;
     xcb_connection = xcb_connect(qgetenv("DISPLAY"), &primary_screen_number);
 
@@ -134,12 +158,100 @@ void DWaylandInterfaceHook::clearNativeSettings(quint32 settingWindow)
 #endif
 }
 
+bool DWaylandInterfaceHook::setEnableNoTitlebar(QWindow *window, bool enable)
+{
+    if (enable) {
+        if (DNoTitlebarWlWindowHelper::mapped.value(window))
+            return true;
+        if (window->type() == Qt::Desktop)
+            return false;
+        window->setProperty(noTitlebar, true);
+        Q_UNUSED(new DNoTitlebarWlWindowHelper(window))
+        return true;
+    } else {
+        if (auto helper = DNoTitlebarWlWindowHelper::mapped.value(window)) {
+            helper->deleteLater();
+        }
+        window->setProperty(noTitlebar, false);
+    }
+
+    return true;
+}
+
+bool DWaylandInterfaceHook::isEnableNoTitlebar(QWindow *window)
+{
+    return window->property(noTitlebar).toBool();
+}
+
+bool DWaylandInterfaceHook::setWindowRadius(QWindow *window, int windowRadius)
+{
+    if (!window)
+        return false;
+    return window->setProperty("_d_windowRadius", QVariant{windowRadius});
+}
+
+void DWaylandInterfaceHook::setWindowProperty(QWindow *window, const char *name, const QVariant &value)
+{
+    DNoTitlebarWlWindowHelper::setWindowProperty(window, name, value);
+}
+
+void DWaylandInterfaceHook::popupSystemWindowMenu(WId wid)
+{
+    DNoTitlebarWlWindowHelper::popupSystemWindowMenu(wid);
+}
+
+bool DWaylandInterfaceHook::enableDwayland(QWindow *window)
+{
+    static bool xwayland = QByteArrayLiteral("wayland") == qgetenv("XDG_SESSION_TYPE")
+            && !qEnvironmentVariableIsEmpty("WAYLAND_DISPLAY");
+
+    if (xwayland) {
+        // for xwayland
+        return false;
+    }
+
+    if (window->type() == Qt::Desktop)
+        return false;
+
+    QPlatformWindow *xw = static_cast<QPlatformWindow*>(window->handle());
+
+    if (!xw) {
+        window->setProperty(useDwayland, true);
+
+        return true;
+    }
+    if (DNoTitlebarWlWindowHelper::mapped.value(window))
+        return true;
+
+    if (xw->isExposed())
+        return false;
+
+#ifndef USE_NEW_IMPLEMENTING
+    return false;
+#endif
+
+    window->setProperty(useDwayland, true);
+    // window->setProperty("_d_dwayland_TransparentBackground", window->format().hasAlpha());
+
+    return true;
+}
+
+bool DWaylandInterfaceHook::isEnableDwayland(const QWindow *window)
+{
+    return window->property(useDwayland).toBool();
+}
+
 DXcbXSettings *DWaylandInterfaceHook::globalSettings()
 {
-    if (Q_LIKELY(m_xsettings))
+    if (Q_LIKELY(m_xsettings)) {
         return m_xsettings;
+    }
 
+    if (!xcb_connection) {
+        init();
+    }
     m_xsettings = new DXcbXSettings(xcb_connection);
+
     return m_xsettings;
 }
 

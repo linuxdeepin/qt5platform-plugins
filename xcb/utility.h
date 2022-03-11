@@ -76,6 +76,8 @@ public:
     static void clearWindowProperty(quint32 WId, xcb_atom_t propAtom);
 
     static void setNoTitlebar(quint32 WId, bool on);
+    static void splitWindowOnScreen(quint32 WId, quint32 type);
+    static bool supportForSplittingWindow(quint32 WId);
 
     struct BlurArea {
         qint32 x;

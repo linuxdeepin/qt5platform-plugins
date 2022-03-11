@@ -31,6 +31,7 @@
 #define DEFINE_CONST_CHAR(Name) const char Name[] = "_d_" #Name
 
 DEFINE_CONST_CHAR(useDxcb);
+DEFINE_CONST_CHAR(useDwayland);
 DEFINE_CONST_CHAR(useNativeDxcb);
 DEFINE_CONST_CHAR(redirectContent);
 DEFINE_CONST_CHAR(netWmStates);
@@ -92,11 +93,16 @@ DEFINE_CONST_CHAR(setWindowGroup);
 DEFINE_CONST_CHAR(clientLeader);
 DEFINE_CONST_CHAR(enableDxcb);
 DEFINE_CONST_CHAR(isEnableDxcb);
+DEFINE_CONST_CHAR(enableDwayland);
+DEFINE_CONST_CHAR(isEnableDwayland);
 DEFINE_CONST_CHAR(setEnableNoTitlebar);
+DEFINE_CONST_CHAR(setWindowRadius);
 DEFINE_CONST_CHAR(isEnableNoTitlebar);
 DEFINE_CONST_CHAR(buildNativeSettings);
 DEFINE_CONST_CHAR(clearNativeSettings);
 DEFINE_CONST_CHAR(setWMClassName);
+DEFINE_CONST_CHAR(splitWindowOnScreen);
+DEFINE_CONST_CHAR(supportForSplittingWindow);
 
 // others
 DEFINE_CONST_CHAR(WmWindowTypes);

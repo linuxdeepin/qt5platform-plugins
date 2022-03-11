@@ -232,13 +232,13 @@ void Utility::setFrameExtents(WId wid, const QMargins &margins)
         return;
     }
 
-    int32_t datas[4];
-    datas[0] = int32_t(margins.left());
-    datas[1] = int32_t(margins.right());
-    datas[2] = int32_t(margins.top());
-    datas[3] = int32_t(margins.bottom());
+    int32_t data[4];
+    data[0] = int32_t(margins.left());
+    data[1] = int32_t(margins.right());
+    data[2] = int32_t(margins.top());
+    data[3] = int32_t(margins.bottom());
 
-    xcb_change_property_checked(QX11Info::connection(), XCB_PROP_MODE_REPLACE, xcb_window_t(wid), frameExtents, XCB_ATOM_CARDINAL, 32, 4, datas);
+    xcb_change_property_checked(QX11Info::connection(), XCB_PROP_MODE_REPLACE, xcb_window_t(wid), frameExtents, XCB_ATOM_CARDINAL, 32, 4, data);
 }
 
 static QVector<xcb_rectangle_t> qregion2XcbRectangles(const QRegion &region)
@@ -470,6 +470,34 @@ void Utility::setNoTitlebar(quint32 WId, bool on)
     } else {
         clearWindowProperty(WId, _deepin_force_decorate);
     }
+}
+
+void Utility::splitWindowOnScreen(quint32 WId, quint32 type)
+{
+    xcb_client_message_event_t xev;
+
+    xev.response_type = XCB_CLIENT_MESSAGE;
+    xev.type = internAtom("_DEEPIN_SPLIT_WINDOW", false);
+    xev.window = WId;
+    xev.format = 32;
+    xev.data.data32[0] = type; /* 1: 左 2: 右 15: 全屏 */
+    xev.data.data32[1] = type < 15 ? 1 : 0; /* 1: 左右 0: 全屏 */
+
+    xcb_send_event(QX11Info::connection(), false, QX11Info::appRootWindow(QX11Info::appScreen()),
+                   SubstructureNotifyMask, (const char *)&xev);
+    xcb_flush(QX11Info::connection());
+}
+
+bool Utility::supportForSplittingWindow(quint32 WId)
+{
+    auto propAtom = internAtom("_DEEPIN_NET_SUPPORTED");
+    QByteArray data = windowProperty(WId, propAtom, XCB_ATOM_CARDINAL, 4);
+
+    bool supported = false;
+    if (const char *cdata = data.constData())
+        supported = *(reinterpret_cast<const quint8 *>(cdata));
+
+    return supported;
 }
 
 bool Utility::setEnableBlurWindow(const quint32 WId, bool enable)

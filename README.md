@@ -41,6 +41,14 @@ qt5dxcb-plugin is the Qt platform integration plugin for Deepin Desktop Environm
 1. Make sure you have installed all dependencies.
 
 2. Build:
+
+Support disabling some modules, add CONFIG+=<val> when executing qmake.
+
+val:
+
+- DISABLE_WAYLAND
+- DISABLE_XCB
+
 ```
 $ cd qt5dxcb-plugin
 $ mkdir build

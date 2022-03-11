@@ -36,6 +36,7 @@ public:
 
     void initialize() override;
     QStringList themeNames() const override;
+    QVariant styleHint(StyleHint hint) const override;
 
 private:
     static DWaylandIntegration *m_instance;

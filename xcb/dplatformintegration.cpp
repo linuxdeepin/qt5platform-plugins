@@ -891,10 +891,9 @@ static xcb_cursor_t overrideCreateFontCursor(QXcbCursor *xcb_cursor, QCursor *c,
     return cursor;
 }
 
-#ifdef D_ENABLE_CURSOR_HOOK
 static void overrideChangeCursor(QPlatformCursor *cursorHandle, QCursor * cursor, QWindow * widget)
 {
-    QXcbWindow *w = 0;
+    QXcbWindow *w = nullptr;
     if (widget && widget->handle())
         w = static_cast<QXcbWindow *>(widget->handle());
     else
@@ -904,6 +903,7 @@ static void overrideChangeCursor(QPlatformCursor *cursorHandle, QCursor * cursor
     if (widget->property(disableOverrideCursor).toBool())
         return;
 
+#ifdef D_ENABLE_CURSOR_HOOK
     // set cursor size scale
     static bool xcursrSizeIsSet = qEnvironmentVariableIsSet("XCURSOR_SIZE");
 
@@ -929,6 +929,7 @@ static void overrideChangeCursor(QPlatformCursor *cursorHandle, QCursor * cursor
         xcb_flush(DPlatformIntegration::xcbConnection()->xcb_connection());
 #endif
     }
+#endif // D_ENABLE_CURSOR_HOOK
 
     VtableHook::callOriginalFun(cursorHandle, &QPlatformCursor::changeCursor, cursor, widget);
 }
@@ -939,7 +940,6 @@ static void hookXcbCursor(QScreen *screen)
     if (screen && screen->handle())
          VtableHook::overrideVfptrFun(screen->handle()->cursor(), &QPlatformCursor::changeCursor, &overrideChangeCursor);
 }
-#endif // D_ENABLE_CURSOR_HOOK
 #endif // Q_OS_LINUX
 
 static bool hookDragObjectEventFilter(QBasicDrag *drag, QObject *o, QEvent *e)
@@ -1060,13 +1060,13 @@ void DPlatformIntegration::initialize()
         }
 #endif
 
-#ifdef D_ENABLE_CURSOR_HOOK
+//#ifdef D_ENABLE_CURSOR_HOOK
         for (QScreen *s : qApp->screens()) {
             hookXcbCursor(s);
         }
 
         QObject::connect(qApp, &QGuiApplication::screenAdded, qApp, &hookXcbCursor);
-#endif // D_ENABLE_CURSOR_HOOK
+//#endif // D_ENABLE_CURSOR_HOOK
     }
 
     VtableHook::overrideVfptrFun(xcbConnection()->drag(), &QXcbDrag::startDrag, &startDrag);

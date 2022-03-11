@@ -33,6 +33,8 @@
 #include <QMetaProperty>
 #include <QScreen>
 #include <qpa/qplatformwindow.h>
+#include <QGuiApplication>
+#include <QStyleHints>
 
 #define _DEEPIN_SCISSOR_WINDOW "_DEEPIN_SCISSOR_WINDOW"
 Q_DECLARE_METATYPE(QPainterPath)
@@ -461,6 +463,28 @@ void DNoTitlebarWindowHelper::updateAutoInputMaskByClipPathFromProperty()
 bool DNoTitlebarWindowHelper::windowEvent(QEvent *event)
 {
     QWindow *w = this->window();
+
+    // get touch begin position
+    static bool isTouchDown = false;
+    static QPointF touchBeginPosition;
+    if (event->type() == QEvent::TouchBegin) {
+        isTouchDown = true;
+    }
+    if (event->type() == QEvent::TouchEnd || event->type() == QEvent::MouseButtonRelease) {
+        isTouchDown = false;
+    }
+    if (isTouchDown && event->type() == QEvent::MouseButtonPress) {
+        touchBeginPosition = static_cast<QMouseEvent*>(event)->globalPos();
+    }
+    // add some redundancy to distinguish trigger between system menu and system move
+    if (event->type() == QEvent::MouseMove) {
+        QPointF currentPos = static_cast<QMouseEvent*>(event)->globalPos();
+        QPointF delta = touchBeginPosition  - currentPos;
+        if (delta.manhattanLength() < QGuiApplication::styleHints()->startDragDistance()) {
+            return VtableHook::callOriginalFun(w, &QWindow::event, event);
+        }
+    }
+
     DNoTitlebarWindowHelper *self = mapped.value(w);
     quint32 winId = self->m_windowID;
     bool is_mouse_move = event->type() == QEvent::MouseMove && static_cast<QMouseEvent*>(event)->buttons() == Qt::LeftButton;
