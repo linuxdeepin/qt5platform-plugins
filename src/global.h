@@ -59,6 +59,7 @@ DEFINE_CONST_CHAR(popupSystemWindowMenu);
 DEFINE_CONST_CHAR(groupLeader);
 DEFINE_CONST_CHAR(noTitlebar);
 DEFINE_CONST_CHAR(enableGLPaint);
+DEFINE_CONST_CHAR(windowInWorkSpace);
 
 // functions
 DEFINE_CONST_CHAR(setWmBlurWindowBackgroundArea);
