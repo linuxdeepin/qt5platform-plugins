@@ -563,7 +563,12 @@ void DWaylandShellManager::handleWindowStateChanged(QWaylandWindow *window)
         window->window()->setFlag(flag, enableFunc);\
     })
 
-    SYNC_FLAG(keepAboveChanged, ddeShellSurface->isKeepAbove(), Qt::WindowStaysOnTopHint);
+//    SYNC_FLAG(keepAboveChanged, ddeShellSurface->isKeepAbove(), Qt::WindowStaysOnTopHint);
+    QObject::connect(ddeShellSurface, &KCDFace::keepAboveChanged, window, [window, ddeShellSurface](){ \
+        bool isKeepAbove = ddeShellSurface->isKeepAbove();
+        qCDebug(dwlp) << "==== keepAboveChanged" << isKeepAbove;
+        window->window()->setProperty(_DWAYALND_ "staysontop", isKeepAbove);
+    });
     SYNC_FLAG(keepBelowChanged, ddeShellSurface->isKeepBelow(), Qt::WindowStaysOnBottomHint);
     SYNC_FLAG(minimizeableChanged, ddeShellSurface->isMinimizeable(), Qt::WindowMinimizeButtonHint);
     SYNC_FLAG(maximizeableChanged, ddeShellSurface->isMinimizeable(), Qt::WindowMaximizeButtonHint);
