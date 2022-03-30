@@ -16,6 +16,7 @@ SOURCES += \
     $$PWD/dnativesettings.cpp \
     $$PWD/dopenglpaintdevice.cpp \
     $$PWD/dxcbxsettings.cpp \
+    $$PWD/global.cpp \
     $$PWD/vtablehook.cpp \
     $$PWD/dplatformsettings.cpp \
     $$PWD/ddesktopinputselectioncontrol.cpp \

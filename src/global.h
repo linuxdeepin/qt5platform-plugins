@@ -18,6 +18,8 @@
 #ifndef GLOBAL_H
 #define GLOBAL_H
 
+#include <qwindowdefs.h>
+
 #define MOUSE_MARGINS 10
 
 #define DPP_BEGIN_NAMESPACE namespace deepin_platform_plugin {
@@ -115,5 +117,8 @@ enum DeviceType {
     TouchapdDevice,
     MouseDevice
 };
+
+class QWindow;
+QWindow * fromQtWinId(WId id);
 
 #endif // GLOBAL_H

@@ -21,6 +21,7 @@
 #include "global.h"
 
 #include <QtGlobal>
+#include <qwindowdefs.h>
 
 QT_BEGIN_NAMESPACE
 class QObject;
@@ -46,11 +47,13 @@ public:
     static void clearNativeSettings(quint32 settingWindow);
     static bool setEnableNoTitlebar(QWindow *window, bool enable);
     static bool isEnableNoTitlebar(QWindow *window);
-    static bool setWindowRadius(QWindow *window, int windowRadius);
+    static bool setWindowRadius(QWindow *window, int value);
     static void setWindowProperty(QWindow *window, const char *name, const QVariant &value);
     static void popupSystemWindowMenu(quintptr wid);
     static bool enableDwayland(QWindow *window);
     static bool isEnableDwayland(const QWindow *window);
+    static void splitWindowOnScreen(WId wid, quint32 type);
+    static bool supportForSplittingWindow(WId wid);
     static DXcbXSettings *globalSettings();
 
 private:

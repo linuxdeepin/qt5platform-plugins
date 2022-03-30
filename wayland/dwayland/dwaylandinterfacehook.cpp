@@ -29,6 +29,16 @@
 #include <qpa/qplatformnativeinterface.h>
 #include <private/qguiapplication_p.h>
 #include <QtWaylandClientVersion>
+
+#include <QDebug>
+#include <QLoggingCategory>
+
+#ifndef QT_DEBUG
+Q_LOGGING_CATEGORY(dwli, "dtk.wayland.interface" , QtInfoMsg);
+#else
+Q_LOGGING_CATEGORY(dwli, "dtk.wayland.interface");
+#endif
+
 DPP_BEGIN_NAMESPACE
 
 
@@ -85,6 +95,10 @@ static QFunctionPointer getFunction(const QByteArray &function)
         return reinterpret_cast<QFunctionPointer>(&DWaylandInterfaceHook::enableDwayland);
     } else if (function == isEnableDwayland) {
         return reinterpret_cast<QFunctionPointer>(&DWaylandInterfaceHook::isEnableDwayland);
+    } else if (function == splitWindowOnScreen) {
+        return reinterpret_cast<QFunctionPointer>(&DWaylandInterfaceHook::splitWindowOnScreen);
+    } else if (function == supportForSplittingWindow) {
+        return reinterpret_cast<QFunctionPointer>(&DWaylandInterfaceHook::supportForSplittingWindow);
     }
 
     return nullptr;
@@ -183,11 +197,11 @@ bool DWaylandInterfaceHook::isEnableNoTitlebar(QWindow *window)
     return window->property(noTitlebar).toBool();
 }
 
-bool DWaylandInterfaceHook::setWindowRadius(QWindow *window, int windowRadius)
+bool DWaylandInterfaceHook::setWindowRadius(QWindow *window, int value)
 {
     if (!window)
         return false;
-    return window->setProperty("_d_windowRadius", QVariant{windowRadius});
+    return window->setProperty(windowRadius, QVariant{value});
 }
 
 void DWaylandInterfaceHook::setWindowProperty(QWindow *window, const char *name, const QVariant &value)
@@ -239,6 +253,34 @@ bool DWaylandInterfaceHook::enableDwayland(QWindow *window)
 bool DWaylandInterfaceHook::isEnableDwayland(const QWindow *window)
 {
     return window->property(useDwayland).toBool();
+}
+
+void DWaylandInterfaceHook::splitWindowOnScreen(WId wid, quint32 type)
+{
+    QWindow *window = fromQtWinId(wid);
+    if(!window || !window->handle())
+        return;
+    // 1 left,2 right,15 fullscreen
+    if (type == 15) {
+        if (window->windowStates().testFlag(Qt::WindowMaximized)) {
+            window->showNormal();
+        } else {
+            window->showMaximized();
+        }
+    } else if (type == 1 || type == 2) {
+        DNoTitlebarWlWindowHelper::setWindowProperty(window, ::splitWindowOnScreen, type);
+    } else {
+        qCWarning(dwli) << "invalid split type: " << type;
+    }
+}
+
+bool DWaylandInterfaceHook::supportForSplittingWindow(WId wid)
+{
+    QWindow *window = fromQtWinId(wid);
+    if(!window || !window->handle())
+        return false;
+    DNoTitlebarWlWindowHelper::setWindowProperty(window, ::supportForSplittingWindow, false);
+    return window->property(::supportForSplittingWindow).toBool();
 }
 
 DXcbXSettings *DWaylandInterfaceHook::globalSettings()
