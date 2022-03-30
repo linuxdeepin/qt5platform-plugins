@@ -2,10 +2,13 @@
 #include <qwindow.h>
 #undef protected
 
+#include <QtXkbCommonSupport/private/qxkbcommon_p.h>
+#include <qpa/qplatforminputcontext.h>
 #include "dwaylandshellmanager.h"
 #include <QtWaylandClientVersion>
 #include <QLoggingCategory>
 #include "global.h"
+
 #ifndef QT_DEBUG
 Q_LOGGING_CATEGORY(dwlp, "dtk.wayland.plugin" , QtInfoMsg);
 #else
@@ -37,6 +40,70 @@ static QPointer<KWayland::Client::Strut> kwayland_strut;
 static QPointer<KWayland::Client::DDEKeyboard> kwayland_dde_keyboard;
 static QPointer<KWayland::Client::FakeInput> kwayland_dde_fake_input;
 static QPointer<QWaylandWindow> current_window;
+
+//#if QT_CONFIG(xkbcommon)
+QXkbCommon::ScopedXKBKeymap mXkbKeymap;
+QXkbCommon::ScopedXKBState mXkbState;
+uint32_t mNativeModifiers = 0;
+
+// from qtwayland...
+void handleKey(QWindow *window, ulong timestamp, QEvent::Type type, int key, Qt::KeyboardModifiers modifiers,
+               quint32 nativeScanCode, quint32 nativeVirtualKey, quint32 nativeModifiers,
+               const QString &text, bool autorepeat = false, ushort count = 1)
+{
+    QPlatformInputContext *inputContext = QGuiApplicationPrivate::platformIntegration()->inputContext();
+    bool filtered = false;
+
+    QWaylandDisplay *display = static_cast<QWaylandIntegration *>(QGuiApplicationPrivate::platformIntegration())->display();
+    if (inputContext && display && !display->usingInputContextFromCompositor()) {
+        QKeyEvent event(type, key, modifiers, nativeScanCode, nativeVirtualKey,
+                        nativeModifiers, text, autorepeat, count);
+        event.setTimestamp(timestamp);
+        filtered = inputContext->filterEvent(&event);
+    }
+
+    if (!filtered) {
+        if (type == QEvent::KeyPress && key == Qt::Key_Menu) {
+            auto cursor = window->screen()->handle()->cursor();
+            if (cursor) {
+                const QPoint globalPos = cursor->pos();
+                const QPoint pos = window->mapFromGlobal(globalPos);
+                QWindowSystemInterface::handleContextMenuEvent(window, false, pos, globalPos, modifiers);
+            }
+        }
+
+        QWindowSystemInterface::handleExtendedKeyEvent(window, timestamp, type, key, modifiers,
+                nativeScanCode, nativeVirtualKey, nativeModifiers, text, autorepeat, count);
+    }
+}
+
+bool createDefaultKeymap()
+{
+//    QWaylandDisplay *display = static_cast<QWaylandIntegration *>(QGuiApplicationPrivate::platformIntegration())->display();
+//    struct xkb_context *ctx = display->xkbContext();
+    auto ctx = xkb_context_new(XKB_CONTEXT_NO_FLAGS);
+    if (!ctx)
+        return false;
+
+    struct xkb_rule_names names;
+    names.rules = "evdev";
+    names.model = "pc105";
+    names.layout = "us";
+    names.variant = "";
+    names.options = "";
+
+    mXkbKeymap.reset(xkb_keymap_new_from_names(ctx, &names, XKB_KEYMAP_COMPILE_NO_FLAGS));
+    if (mXkbKeymap)
+        mXkbState.reset(xkb_state_new(mXkbKeymap.get()));
+
+    if (!mXkbKeymap || !mXkbState) {
+        qCWarning(dwlp, "failed to create default keymap");
+        return false;
+    }
+
+    return true;
+}
+// #endif //QT_CONFIG(xkbcommon)
 
 inline static wl_surface *getWindowWLSurface(QWaylandWindow *window)
 {
@@ -145,24 +212,6 @@ void DWaylandShellManager::sendProperty(QWaylandShellSurface *self, const QStrin
              else
                 qCWarning(dwlp) << "invalid property" << name << value;
         }
-        if (!name.compare(splitWindowOnScreen)) {
-            using KWayland::Client::DDEShellSurface;
-            bool ok = false;
-            qreal leftOrRight  = value.toInt(&ok);
-            if (ok) {
-                dde_shell_surface->requestSplitWindow((DDEShellSurface::SplitType)leftOrRight);
-                qCInfo(dwlp) << "requestSplitWindow value: " << leftOrRight;
-            } else {
-                qCWarning(dwlp) << "invalid property: " << name << value;
-            }
-            self->window()->window()->setProperty(splitWindowOnScreen, 0);
-        }
-        if (!name.compare(supportForSplittingWindow)) {
-            if (self->window() && self->window()->window()) {
-                self->window()->window()->setProperty(supportForSplittingWindow, dde_shell_surface->isSplitable());
-            }
-            return;
-        }
     }
 
     // 将popup的窗口设置为tooltop层级, 包括qmenu，combobox弹出窗口
@@ -188,6 +237,10 @@ void DWaylandShellManager::sendProperty(QWaylandShellSurface *self, const QStrin
         QObject::connect(kwayland_dde_keyboard, &KWayland::Client::DDEKeyboard::keyChanged,
                          current_window, &DWaylandShellManager::handleKeyEvent,
                          Qt::ConnectionType::UniqueConnection);
+        QObject::connect(kwayland_dde_keyboard, &KWayland::Client::DDEKeyboard::modifiersChanged,
+                         current_window, &DWaylandShellManager::handleModifiersChanged,
+                         Qt::ConnectionType::UniqueConnection);
+
     }
 
 #endif
@@ -377,9 +430,36 @@ void DWaylandShellManager::handleKeyEvent(quint32 key, KWayland::Client::DDEKeyb
 {
     if (current_window && current_window->window() && !current_window->isActive()) {
         QEvent::Type type = state == KWayland::Client::DDEKeyboard::KeyState::Pressed ? QEvent::KeyPress : QEvent::KeyRelease;
-        qCDebug(dwlp) << __func__ << " key " << key << " state " << (int)state << " time " << time;
-        QWindowSystemInterface::handleKeyEvent(current_window->window(), time, type, key, Qt::NoModifier, QString());
+//        qCDebug(dwlp) << __func__ << " key " << key << " state " << (int)state << " time " << time;
+
+//#if QT_CONFIG(xkbcommon)
+        if ((!mXkbKeymap || !mXkbState) && !createDefaultKeymap())
+            return;
+
+        auto code = key + 8; // map to wl_keyboard::keymap_format::keymap_format_xkb_v1
+        xkb_keysym_t sym = xkb_state_key_get_one_sym(mXkbState.get(), code);
+        Qt::KeyboardModifiers modifiers = QXkbCommon::modifiers(mXkbState.get());
+        QString text = QXkbCommon::lookupString(mXkbState.get(), code);
+
+        int qtkey = QXkbCommon::keysymToQtKey(sym, modifiers, mXkbState.get(), code);
+         qCDebug(dwlp) << __func__ << "type" << type << "qtkey" << qtkey << "mNativeModifiers" << mNativeModifiers <<
+                          "modifiers" << modifiers << "text" << text;
+        handleKey(current_window->window(), time, type, qtkey, modifiers, code, sym, mNativeModifiers, text);
+//#endif
     }
+}
+
+void DWaylandShellManager::handleModifiersChanged(quint32 depressed, quint32 latched, quint32 locked, quint32 group)
+{
+    qCDebug(dwlp) << __func__ << " depressed " << depressed <<
+                     " latched " << latched <<
+                     " locked " << locked <<
+                     " group " << group;
+    if (mXkbState)
+        xkb_state_update_mask(mXkbState.get(),
+                              depressed, latched, locked,
+                              0, 0, group);
+    mNativeModifiers = depressed | latched | locked;
 }
 
 void DWaylandShellManager::createDDEKeyboard(KWayland::Client::Registry *registry)
@@ -581,12 +661,7 @@ void DWaylandShellManager::handleWindowStateChanged(QWaylandWindow *window)
         window->window()->setFlag(flag, enableFunc);\
     })
 
-    // SYNC_FLAG(keepAboveChanged, ddeShellSurface->isKeepAbove(), Qt::WindowStaysOnTopHint);
-    QObject::connect(ddeShellSurface, &KCDFace::keepAboveChanged, window, [window, ddeShellSurface](){ \
-        bool isKeepAbove = ddeShellSurface->isKeepAbove();
-        qCDebug(dwlp) << "==== keepAboveChanged" << isKeepAbove;
-        window->window()->setProperty(_DWAYALND_ "staysontop", isKeepAbove);
-    });
+    SYNC_FLAG(keepAboveChanged, ddeShellSurface->isKeepAbove(), Qt::WindowStaysOnTopHint);
     SYNC_FLAG(keepBelowChanged, ddeShellSurface->isKeepBelow(), Qt::WindowStaysOnBottomHint);
     SYNC_FLAG(minimizeableChanged, ddeShellSurface->isMinimizeable(), Qt::WindowMinimizeButtonHint);
     SYNC_FLAG(maximizeableChanged, ddeShellSurface->isMinimizeable(), Qt::WindowMaximizeButtonHint);
