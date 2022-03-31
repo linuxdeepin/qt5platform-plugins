@@ -45,6 +45,7 @@ public:
     static void setGeometry(QPlatformWindow *self, const QRect &rect);
     static void pointerEvent(const QPointF &pointF, QEvent::Type type);
     static void handleKeyEvent(quint32 key, KWayland::Client::DDEKeyboard::KeyState state, quint32 time);
+    static void handleModifiersChanged(quint32 depressed, quint32 latched, quint32 locked, quint32 group);
     static QWaylandShellSurface *createShellSurface(QWaylandShellIntegration *self, QWaylandWindow *window);
     static void createKWaylandShell(KWayland::Client::Registry *registry, quint32 name, quint32 version);
     static void createKWaylandSSD(KWayland::Client::Registry *registry, quint32 name, quint32 version);
