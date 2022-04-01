@@ -212,6 +212,24 @@ void DWaylandShellManager::sendProperty(QWaylandShellSurface *self, const QStrin
              else
                 qCWarning(dwlp) << "invalid property" << name << value;
         }
+        if (!name.compare(splitWindowOnScreen)) {
+            using KWayland::Client::DDEShellSurface;
+            bool ok = false;
+            qreal leftOrRight  = value.toInt(&ok);
+            if (ok) {
+                dde_shell_surface->requestSplitWindow(DDEShellSurface::SplitType(leftOrRight));
+                qCDebug(dwlp) << "requestSplitWindow value: " << leftOrRight;
+            } else {
+                qCWarning(dwlp) << "invalid property: " << name << value;
+            }
+            self->window()->window()->setProperty(splitWindowOnScreen, 0);
+        }
+        if (!name.compare(supportForSplittingWindow)) {
+            if (self->window() && self->window()->window()) {
+                self->window()->window()->setProperty(supportForSplittingWindow, dde_shell_surface->isSplitable());
+            }
+            return;
+        }
     }
 
     // 将popup的窗口设置为tooltop层级, 包括qmenu，combobox弹出窗口
@@ -661,7 +679,12 @@ void DWaylandShellManager::handleWindowStateChanged(QWaylandWindow *window)
         window->window()->setFlag(flag, enableFunc);\
     })
 
-    SYNC_FLAG(keepAboveChanged, ddeShellSurface->isKeepAbove(), Qt::WindowStaysOnTopHint);
+//    SYNC_FLAG(keepAboveChanged, ddeShellSurface->isKeepAbove(), Qt::WindowStaysOnTopHint);
+    QObject::connect(ddeShellSurface, &KCDFace::keepAboveChanged, window, [window, ddeShellSurface](){ \
+        bool isKeepAbove = ddeShellSurface->isKeepAbove();
+        qCDebug(dwlp) << "==== keepAboveChanged" << isKeepAbove;
+        window->window()->setProperty(_DWAYALND_ "staysontop", isKeepAbove);
+    });
     SYNC_FLAG(keepBelowChanged, ddeShellSurface->isKeepBelow(), Qt::WindowStaysOnBottomHint);
     SYNC_FLAG(minimizeableChanged, ddeShellSurface->isMinimizeable(), Qt::WindowMinimizeButtonHint);
     SYNC_FLAG(maximizeableChanged, ddeShellSurface->isMinimizeable(), Qt::WindowMaximizeButtonHint);
