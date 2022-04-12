@@ -170,7 +170,8 @@ public:
         typedef QtPrivate::List<Obj*, Args...> Arguments;
     };
     template<typename Fun1, typename Fun2>
-    static bool overrideVfptrFun(quintptr *vfptr_t1, Fun1 fun1, Fun2 fun2, bool forceWrite)
+    static typename std::enable_if<QtPrivate::FunctionPointer<Fun2>::ArgumentCount >= 0, bool>::type
+            overrideVfptrFun(quintptr *vfptr_t1, Fun1 fun1, Fun2 fun2, bool forceWrite)
     {
         typedef QtPrivate::FunctionPointer<Fun1> FunInfo1;
         typedef QtPrivate::FunctionPointer<Fun2> FunInfo2;
@@ -199,6 +200,52 @@ public:
         return true;
     }
 
+    template<typename StdFun, typename Func> struct StdFunWrap {};
+    template<typename StdFun, class Obj, typename Ret, typename... Args>
+    struct StdFunWrap<StdFun, Ret (Obj::*) (Args...)> {
+        typedef std::function<Ret(Obj*, Args...)> StdFunType;
+        static inline StdFunType fun(StdFunType f, bool check = true) {
+            static StdFunType fun = f;
+            static bool initialized = false;
+            if (initialized && check) {
+                qWarning("The StdFunWrap is dirty! Don't use std::bind(use lambda functions).");
+            }
+            initialized = true;
+            return fun;
+        }
+        static Ret call(Obj *o, Args... args) {
+            return fun(call, false)(o, std::forward<Args>(args)...);
+        }
+    };
+    template<typename StdFun, class Obj, typename Ret, typename... Args>
+    struct StdFunWrap<StdFun, Ret (Obj::*) (Args...) const> : StdFunWrap<StdFun, Ret (Obj::*) (Args...)>{};
+
+    template<typename Fun1, typename Fun2>
+    static inline typename std::enable_if<QtPrivate::FunctionPointer<Fun2>::ArgumentCount == -1, bool>::type
+            overrideVfptrFun(quintptr *vfptr_t1, Fun1 fun1, Fun2 fun2, bool forceWrite)
+    {
+        typedef QtPrivate::FunctionPointer<Fun1> FunInfo1;
+        const int FunctorArgumentCount = QtPrivate::ComputeFunctorArgumentCount<Fun2, typename FunctionPointer<Fun1>::Arguments>::Value;
+
+        Q_STATIC_ASSERT_X((FunctorArgumentCount >= 0),
+                          "Function1 and Function2 arguments are not compatible.");
+        const int Fun2ArgumentCount = (FunctorArgumentCount >= 0) ? FunctorArgumentCount : 0;
+        typedef typename QtPrivate::FunctorReturnType<Fun2, typename QtPrivate::List_Left<typename FunctionPointer<Fun1>::Arguments, Fun2ArgumentCount>::Value>::Value Fun2ReturnType;
+
+        Q_STATIC_ASSERT_X((QtPrivate::AreArgumentsCompatible<Fun2ReturnType, typename FunInfo1::ReturnType>::value),
+                          "Function1 and Function2 return type are not compatible.");
+
+        StdFunWrap<Fun2, Fun1>::fun(fun2);
+        return overrideVfptrFun(vfptr_t1, fun1, StdFunWrap<Fun2, Fun1>::call, forceWrite);
+    }
+
+    /*!
+     * \fn template<typename Fun1, typename Fun2> static bool overrideVfptrFun(const typename QtPrivate::FunctionPointer<Fun1>::Object *t1, Fun1 fun1, Fun2 fun2)
+     *
+     * \note 重载多继承类中的多个虚函数时，fun1务必标记成一个类名的函数。否则可能出现内存泄露的情况
+     * \note 例如 class A 继承于 B，C，D，当需要重载B中的foo1，C中的foo2时，以下函数的fun1需要统一标记为&A::foo1和&A::foo2
+     * \note 因为如果分开写为&B::foo1和&C::foo2的话，指针转换内部会记录多张虚表，重载多份析构函数，可能导致最开始的部分无法正常析构！
+     */
     template<typename Fun1, typename Fun2>
     static bool overrideVfptrFun(const typename QtPrivate::FunctionPointer<Fun1>::Object *t1, Fun1 fun1, Fun2 fun2)
     {

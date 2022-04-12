@@ -47,12 +47,14 @@ isEmpty(VERSION) {
 SOURCES += \
         $$PWD/qt5dwaylandplugin.cpp \
         $$PWD/main.cpp \
-    dwaylandshellmanager.cpp
+        $$PWD/dwaylandshellmanagerv2.cpp \
+        $$PWD/dkeyboard.cpp
 
 HEADERS += \
         $$PWD/qt5dwaylandplugin.h \
         $$PWD/qt5dwayland-plugin_global.h \
-    dwaylandshellmanager.h
+        $$PWD/dwaylandshellmanagerv2.h \
+        $$PWD/dkeyboard.h
 
 qtHaveModule(waylandclient_private) : QT += waylandclient_private
 else: INCLUDEPATH += $$PWD/../qtwayland-dev

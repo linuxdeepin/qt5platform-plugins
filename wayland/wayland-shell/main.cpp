@@ -20,7 +20,7 @@
 #include <private/qguiapplication_p.h>
 #include <private/qwidgetwindow_p.h>
 
-#include "dwaylandshellmanager.h"
+#include "dwaylandshellmanagerv2.h"
 
 // 用于窗口设置和dwayland相关的特殊属性的前缀
 // 以_d_dwayland_开头的属性需要做特殊处理，一般是用于和kwayland的交互
@@ -46,51 +46,28 @@ QWaylandShellIntegration *QKWaylandShellIntegrationPlugin::create(const QString 
     Q_UNUSED(key)
     Q_UNUSED(paramList)
     auto wayland_integration = static_cast<QWaylandIntegration *>(QGuiApplicationPrivate::platformIntegration());
-    auto shell = wayland_integration->createShellIntegration("xdg-shell-v6");
+    auto shellIntegration = wayland_integration->createShellIntegration("xdg-shell-v6");
 
-    VtableHook::overrideVfptrFun(shell, &QWaylandShellIntegration::createShellSurface, DWaylandShellManager::createShellSurface);
+    auto manager = new DWaylandShellManagerV2(this);
+    VtableHook::overrideVfptrFun(shellIntegration, &QWaylandShellIntegration::createShellSurface,
+                                 [manager](QWaylandShellIntegration *shellIntegration, QWaylandWindow *window){
+        return manager->createShellSurface(shellIntegration, window);
+    });
 
     KWayland::Client::Registry *registry = new KWayland::Client::Registry();
-    wl_display *wlDisplay = reinterpret_cast<wl_display*>(QGuiApplication::platformNativeInterface()->nativeResourceForIntegration(QByteArrayLiteral("display")));
+    auto display = QGuiApplication::platformNativeInterface()->nativeResourceForIntegration(QByteArrayLiteral("display"));
+    wl_display *wlDisplay = reinterpret_cast<wl_display*>(display);
     registry->create(wlDisplay);
     Q_ASSERT_X(registry, "Registry", "KWayland create Registry failed.");
 
-    connect(registry, &KWayland::Client::Registry::plasmaShellAnnounced,
-            this, [registry] (quint32 name, quint32 version) {
-        DWaylandShellManager::createKWaylandShell(registry, name, version);
-    });
-    connect(registry, &KWayland::Client::Registry::serverSideDecorationManagerAnnounced,
-            this, [registry] (quint32 name, quint32 version) {
-        DWaylandShellManager::createKWaylandSSD(registry, name, version);
-    });
-
-    //创建ddeshell
-    connect(registry, &KWayland::Client::Registry::ddeShellAnnounced, [registry](quint32 name, quint32 version) {
-       DWaylandShellManager::createDDEShell(registry, name, version);
-    });
-
-    //创建ddeseat
-    connect(registry, &KWayland::Client::Registry::ddeSeatAnnounced, [registry](quint32 name, quint32 version) {
-       DWaylandShellManager::createDDESeat(registry, name, version);
-    });
-
-    connect(registry, &KWayland::Client::Registry::interfacesAnnounced, [registry] {
-       DWaylandShellManager::createDDEPointer(registry);
-       DWaylandShellManager::createDDEKeyboard(registry);
-       DWaylandShellManager::createDDEFakeInput(registry);
-    });
-
-    connect(registry, &KWayland::Client::Registry::strutAnnounced, [registry](quint32 name, quint32 version) {
-       DWaylandShellManager::createStrut(registry, name, version);
-    });
+    manager->init(registry);
 
     registry->setup();
 
     wl_display_roundtrip(wlDisplay);
 
-    return shell;
+    return shellIntegration;
 }
-
 }
 
 #include "main.moc"
