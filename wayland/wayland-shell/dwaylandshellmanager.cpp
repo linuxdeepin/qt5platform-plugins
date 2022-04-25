@@ -358,7 +358,7 @@ QWaylandShellSurface *DWaylandShellManager::createShellSurface(QWaylandShellInte
 
             // 1. dabstractdialog 的 showevent 中会主动move到屏幕居中的位置, 即 setAttribute(Qt::WA_Moved)。
             // 2. 有 parent(ddialog dlg(this)) 的 window 窗管会主动调整位置，没有设置parent的才需要插件调整位置 如 ddialog dlg;
-            if (window->transientParent()) {
+            if (window->transientParent() && !widgetWin->widget()->inherits("QMenu")) {
                 bSetPosition = false;
             }
         }
