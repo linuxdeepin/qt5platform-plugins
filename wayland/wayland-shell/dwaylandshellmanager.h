@@ -20,6 +20,10 @@
 #include <KWayland/Client/ddekeyboard.h>
 #include <KWayland/Client/strut.h>
 #include <KWayland/Client/fakeinput.h>
+#include <KWayland/Client/blur.h>
+#include <KWayland/Client/region.h>
+#include <KWayland/Client/surface.h>
+#include <KWayland/Client/compositor.h>
 
 #include <QGuiApplication>
 #include <QPointer>
@@ -52,6 +56,8 @@ public:
     static void createDDEShell(KWayland::Client::Registry *registry, quint32 name, quint32 version);
     static void createDDESeat(KWayland::Client::Registry *registry, quint32 name, quint32 version);
     static void createStrut(KWayland::Client::Registry *registry, quint32 name, quint32 version);
+    static void createBlur(KWayland::Client::Registry *registry, quint32 name, quint32 version);
+    static void createCompositor(KWayland::Client::Registry *registry, quint32 name, quint32 version);
     static void createDDEPointer(KWayland::Client::Registry *registry);
     static void createDDEKeyboard(KWayland::Client::Registry *registry);
     static void createDDEFakeInput(KWayland::Client::Registry *registry);
@@ -60,6 +66,7 @@ public:
     static void setWindowStaysOnTop(QWaylandShellSurface *surface, const bool state);
     static void setDockStrut(QWaylandShellSurface *surface, const QVariant var);
     static void setCursorPoint(QPointF pos);
+    static QMap<QWaylandWindow *, QPair<KWayland::Client::Blur *, KWayland::Client::Region*>> w2blur;
 };
 
 }

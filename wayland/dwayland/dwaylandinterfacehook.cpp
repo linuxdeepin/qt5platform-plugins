@@ -99,6 +99,8 @@ static QFunctionPointer getFunction(const QByteArray &function)
         return reinterpret_cast<QFunctionPointer>(&DWaylandInterfaceHook::splitWindowOnScreen);
     } else if (function == supportForSplittingWindow) {
         return reinterpret_cast<QFunctionPointer>(&DWaylandInterfaceHook::supportForSplittingWindow);
+    } else if (function == enableBlurWindow) {
+        return reinterpret_cast<QFunctionPointer>(&DWaylandInterfaceHook::enableBlurWindow);
     }
 
     return nullptr;
@@ -281,6 +283,16 @@ bool DWaylandInterfaceHook::supportForSplittingWindow(WId wid)
         return false;
     DNoTitlebarWlWindowHelper::setWindowProperty(window, ::supportForSplittingWindow, false);
     return window->property(::supportForSplittingWindow).toBool();
+}
+
+bool DWaylandInterfaceHook::enableBlurWindow(WId wid, bool enable)
+{
+    QWindow *window = fromQtWinId(wid);
+    if(!window || !window->handle())
+        return false;
+
+    DNoTitlebarWlWindowHelper::setWindowProperty(window, ::enableBlurWindow, enable);
+    return window->property(::enableBlurWindow).toBool();
 }
 
 DXcbXSettings *DWaylandInterfaceHook::globalSettings()

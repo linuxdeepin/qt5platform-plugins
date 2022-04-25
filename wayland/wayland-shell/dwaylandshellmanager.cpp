@@ -39,7 +39,14 @@ static QPointer<KWayland::Client::DDEPointer> kwayland_dde_pointer;
 static QPointer<KWayland::Client::Strut> kwayland_strut;
 static QPointer<KWayland::Client::DDEKeyboard> kwayland_dde_keyboard;
 static QPointer<KWayland::Client::FakeInput> kwayland_dde_fake_input;
+
+static QPointer<KWayland::Client::BlurManager> kwayland_blur_manager;
+static QPointer<KWayland::Client::Surface> kwayland_surface;
+static QPointer<KWayland::Client::Compositor> kwayland_compositor;
+
 static QPointer<QWaylandWindow> current_window;
+
+QMap<QWaylandWindow *, QPair<KWayland::Client::Blur *, KWayland::Client::Region*>> DWaylandShellManager::w2blur;
 
 //#if QT_CONFIG(xkbcommon)
 QXkbCommon::ScopedXKBKeymap mXkbKeymap;
@@ -229,6 +236,45 @@ void DWaylandShellManager::sendProperty(QWaylandShellSurface *self, const QStrin
                 self->window()->window()->setProperty(supportForSplittingWindow, dde_shell_surface->isSplitable());
             }
             return;
+        }
+    }
+
+    if (!name.compare(enableBlurWindow)) {
+        if (!self->window() || !self->window()->window()) {
+            return;
+        }
+        if (value.toBool()) {
+            auto surface = kwayland_surface->fromWindow(self->window()->window());
+            auto blur = kwayland_blur_manager->createBlur(surface, surface);
+            auto region = kwayland_compositor->createRegion();
+            blur->setRegion(region);
+            blur->commit();
+            kwayland_surface->commit(KWayland::Client::Surface::CommitFlag::None);
+
+            w2blur[self->window()] = qMakePair<KWayland::Client::Blur *, KWayland::Client::Region *>(blur, region);
+            QObject::connect(self->window(), &QWindow::destroyed, [self, blur, region](QObject *object) {
+                if (auto blur = w2blur[self->window()].first) {
+                    KWayland::Client::Region *region = w2blur[self->window()].second;
+                    blur->deleteLater();
+                    region->deleteLater();
+                    w2blur.remove(self->window());
+                }
+            });
+            self->window()->window()->setProperty(enableBlurWindow, true);
+        } else {
+            // 取消 blur 以后应用要主动 update
+            if (auto blur = w2blur[self->window()].first) {
+                KWayland::Client::Region *region = w2blur[self->window()].second;
+                region->subtract(region->region().boundingRect());
+                blur->commit();
+                auto surface = kwayland_surface->fromWindow(self->window()->window());
+                kwayland_blur_manager->removeBlur(surface);
+                kwayland_surface->commit(KWayland::Client::Surface::CommitFlag::None);
+                blur->deleteLater();
+                region->deleteLater();
+                w2blur.remove(self->window());
+            }
+            self->window()->window()->setProperty(enableBlurWindow, false);
         }
     }
 
@@ -442,6 +488,14 @@ void DWaylandShellManager::createStrut(KWayland::Client::Registry *registry, qui
 {
     kwayland_strut = registry->createStrut(name, version, registry->parent());
     Q_ASSERT_X(kwayland_strut, "strut", "Registry create strut failed.");
+}
+
+void DWaylandShellManager::createBlur(KWayland::Client::Registry *registry, quint32 name, quint32 version) {
+    kwayland_blur_manager = registry->createBlurManager(name, version);
+    kwayland_surface = kwayland_compositor->createSurface();
+}
+void DWaylandShellManager::createCompositor(KWayland::Client::Registry *registry, quint32 name, quint32 version) {
+    kwayland_compositor = registry->createCompositor(name, version);
 }
 
 void DWaylandShellManager::handleKeyEvent(quint32 key, KWayland::Client::DDEKeyboard::KeyState state, quint32 time)

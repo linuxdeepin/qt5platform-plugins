@@ -84,6 +84,13 @@ QWaylandShellIntegration *QKWaylandShellIntegrationPlugin::create(const QString 
        DWaylandShellManager::createStrut(registry, name, version);
     });
 
+    connect(registry, &KWayland::Client::Registry::blurAnnounced, [registry](quint32 name, quint32 version) {
+        DWaylandShellManager::createBlur(registry, name, version);
+    });
+    QObject::connect(registry, &KWayland::Client::Registry::compositorAnnounced, [registry](quint32 name, quint32 version){
+        DWaylandShellManager::createCompositor(registry, name, version);
+    });
+
     registry->setup();
 
     wl_display_roundtrip(wlDisplay);

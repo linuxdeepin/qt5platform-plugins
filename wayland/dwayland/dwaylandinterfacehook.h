@@ -54,6 +54,7 @@ public:
     static bool isEnableDwayland(const QWindow *window);
     static void splitWindowOnScreen(WId wid, quint32 type);
     static bool supportForSplittingWindow(WId wid);
+    static bool enableBlurWindow(WId wid, bool enable);
     static DXcbXSettings *globalSettings();
 
 private:
