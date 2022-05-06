@@ -21,8 +21,8 @@
 
 #include "dwaylandintegration.h"
 #include "dwaylandinterfacehook.h"
-#include "vtablehook.h"
-#include "dxcbxsettings.h"
+#include "../../src/vtablehook.h"
+#include "../../src/dxcbxsettings.h"
 
 #define private public
 #include <QtWaylandClient/private/qwaylanddisplay_p.h>
@@ -38,10 +38,9 @@
 #include <wayland-cursor.h>
 #include <QtWaylandClientVersion>
 
-#define XSETTINGS_DOUBLE_CLICK_TIME QByteArrayLiteral("Net/DoubleClickTime")
-
 DPP_BEGIN_NAMESPACE
 
+#define XSETTINGS_DOUBLE_CLICK_TIME QByteArrayLiteral("Net/DoubleClickTime")
 #define XSETTINGS_CURSOR_THEME_NAME QByteArrayLiteral("Gtk/CursorThemeName")
 #define XSETTINGS_PRIMARY_MONITOR_NAME QByteArrayLiteral("Gdk/PrimaryMonitorName")
 
@@ -160,11 +159,9 @@ static void onPrimaryScreenChanged(xcb_connection_t *connection, const QByteArra
     qDebug() << "primary screen info:" << QGuiApplication::primaryScreen()->model() << QGuiApplication::primaryScreen()->geometry();
 }
 
-DWaylandIntegration *DWaylandIntegration::m_instance = nullptr;
 DWaylandIntegration::DWaylandIntegration()
 {
-    m_instance = this;
-    DWaylandInterfaceHook::init();
+    DWaylandInterfaceHook::instance()->initXcb();
 }
 
 void DWaylandIntegration::initialize()
@@ -204,15 +201,15 @@ QStringList DWaylandIntegration::themeNames() const
     return list;
 }
 
+QVariant DWaylandIntegration::styleHint(QPlatformIntegration::StyleHint hint) const
+{
 #define GET_VALID_XSETTINGS(key) { \
     auto value = DWaylandInterfaceHook::globalSettings()->setting(key); \
     if (value.isValid()) return value; \
 }
 
-QVariant DWaylandIntegration::styleHint(QPlatformIntegration::StyleHint hint) const
-{
 #ifdef Q_OS_LINUX
-    switch ((int)hint) {
+    switch (hint) {
     case MouseDoubleClickInterval:
         GET_VALID_XSETTINGS(XSETTINGS_DOUBLE_CLICK_TIME);
         break;

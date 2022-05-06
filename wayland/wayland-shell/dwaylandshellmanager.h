@@ -1,7 +1,7 @@
 #ifndef DWaylandShellManager_H
 #define DWaylandShellManager_H
 
-#include "vtablehook.h"
+#include "../../src/vtablehook.h"
 
 #define private public
 #include "QtWaylandClient/private/qwaylandintegration_p.h"

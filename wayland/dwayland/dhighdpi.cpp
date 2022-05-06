@@ -19,8 +19,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 #include "dhighdpi.h"
-#include "vtablehook.h"
-#include "dxcbxsettings.h"
+#include "../../src/vtablehook.h"
+#include "../../src/dxcbxsettings.h"
 #include "dwaylandinterfacehook.h"
 
 #include <QtWaylandClient/private/qwaylandscreen_p.h>

@@ -7,7 +7,7 @@
 #include "dwaylandshellmanager.h"
 #include <QtWaylandClientVersion>
 #include <QLoggingCategory>
-#include "global.h"
+#include "../../src/global.h"
 
 #ifndef QT_DEBUG
 Q_LOGGING_CATEGORY(dwlp, "dtk.wayland.plugin" , QtInfoMsg);

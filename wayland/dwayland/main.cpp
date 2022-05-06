@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#include "global.h"
+#include "../../src/global.h"
 
 #include "dwaylandintegration.h"
 
@@ -37,7 +37,7 @@ QPlatformIntegration* DWaylandIntegrationPlugin::create(const QString& system, c
 #ifdef Q_OS_LINUX
     Q_UNUSED(system);
     Q_UNUSED(paramList);
-    auto *integration =  new DWaylandIntegration();
+    auto *integration = DWaylandIntegration::instance();
 
     if (integration->hasFailed()) {
         delete integration;

@@ -45,19 +45,21 @@ isEmpty(VERSION) {
 }
 
 SOURCES += \
-        $$PWD/qt5dwaylandplugin.cpp \
+        # $$PWD/qt5dwaylandplugin.cpp \
         $$PWD/main.cpp \
-    dwaylandshellmanager.cpp
+        dwaylandshellmanager.cpp \
+        $$PWD/../../src/global.cpp \
+        $$PWD/../../src/vtablehook.cpp
 
 HEADERS += \
-        $$PWD/qt5dwaylandplugin.h \
+        # $$PWD/qt5dwaylandplugin.h \
         $$PWD/qt5dwayland-plugin_global.h \
-    dwaylandshellmanager.h
+        dwaylandshellmanager.h \
+        $$PWD/../../src/global.h \
+        $$PWD/../../src/vtablehook.h
 
 qtHaveModule(waylandclient_private) : QT += waylandclient_private
 else: INCLUDEPATH += $$PWD/../qtwayland-dev
-
-include($$PWD/../../src/src.pri)
 
 OTHER_FILES += \
     kwayland-shell.json

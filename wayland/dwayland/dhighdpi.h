@@ -21,7 +21,7 @@
 #ifndef DHIGHDPI_H
 #define DHIGHDPI_H
 
-#include "global.h"
+#include "../../src/global.h"
 
 #include <QPointF>
 #include <qpa/qplatformscreen.h>

@@ -21,7 +21,7 @@
 #ifndef DNOTITLEBARWINDOWHELPER_WL_H
 #define DNOTITLEBARWINDOWHELPER_WL_H
 
-#include "global.h"
+#include "../../src/global.h"
 
 #include <QObject>
 #include <QPainterPath>
@@ -41,10 +41,6 @@ public:
     explicit DNoTitlebarWlWindowHelper(QWindow *window);
     ~DNoTitlebarWlWindowHelper();
 
-    inline QWindow *window() const {
-        return reinterpret_cast<QWindow*>(const_cast<DNoTitlebarWlWindowHelper*>(this));
-    }
-
     static void setWindowProperty(QWindow *window, const char *name, const QVariant &value);
     static void popupSystemWindowMenu(quintptr wid);
 
@@ -53,7 +49,7 @@ private slots:
     Q_SLOT void updateEnableSystemMoveFromProperty();
 
 private:
-    bool windowEvent(QEvent *event);
+    static bool windowEvent(QWindow *w, QEvent *event, DNoTitlebarWlWindowHelper *self);
     bool isEnableSystemMove();
     static void startMoveWindow(QWindow *window);
 
@@ -65,7 +61,7 @@ private:
     bool m_enableSystemMove = true;
 
 public:
-    static QHash<const QWindow*, DNoTitlebarWlWindowHelper*> mapped;
+    static QMap<const QWindow*, DNoTitlebarWlWindowHelper*> mapped;
 };
 
 DPP_END_NAMESPACE

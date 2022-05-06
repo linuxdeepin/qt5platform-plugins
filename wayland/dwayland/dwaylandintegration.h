@@ -22,7 +22,7 @@
 #ifndef DWAYLANDINTEGRATION_H
 #define DWAYLANDINTEGRATION_H
 
-#include "global.h"
+#include "../../src/global.h"
 #include "QtWaylandClient/private/qwaylandintegration_p.h"
 
 DPP_BEGIN_NAMESPACE
@@ -30,16 +30,17 @@ DPP_BEGIN_NAMESPACE
 class DWaylandIntegration : public QtWaylandClient::QWaylandIntegration
 {
 public:
-    static DWaylandIntegration *instance()
-    { return m_instance; }
-    DWaylandIntegration();
+    static DWaylandIntegration *instance() {
+        static DWaylandIntegration *dwayland = new DWaylandIntegration;
+        return dwayland;
+    }
 
     void initialize() override;
     QStringList themeNames() const override;
     QVariant styleHint(StyleHint hint) const override;
 
 private:
-    static DWaylandIntegration *m_instance;
+    DWaylandIntegration();
 };
 
 DPP_END_NAMESPACE

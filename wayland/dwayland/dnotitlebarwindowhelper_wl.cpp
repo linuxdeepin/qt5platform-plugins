@@ -19,7 +19,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 #include "dnotitlebarwindowhelper_wl.h"
-#include "vtablehook.h"
+#include "../../src/vtablehook.h"
 
 #define protected public
 #include <QWindow>
@@ -42,7 +42,7 @@
 
 DPP_BEGIN_NAMESPACE
 
-QHash<const QWindow*, DNoTitlebarWlWindowHelper*> DNoTitlebarWlWindowHelper::mapped;
+QMap<const QWindow*, DNoTitlebarWlWindowHelper*> DNoTitlebarWlWindowHelper::mapped;
 
 DNoTitlebarWlWindowHelper::DNoTitlebarWlWindowHelper(QWindow *window)
     : QObject(window)
@@ -137,7 +137,6 @@ void DNoTitlebarWlWindowHelper::popupSystemWindowMenu(quintptr wid)
     }
 }
 
-
 void DNoTitlebarWlWindowHelper::updateEnableSystemMoveFromProperty()
 {
     const QVariant &v = m_window->property(enableSystemMove);
@@ -145,19 +144,21 @@ void DNoTitlebarWlWindowHelper::updateEnableSystemMoveFromProperty()
     m_enableSystemMove = !v.isValid() || v.toBool();
 
     if (m_enableSystemMove) {
-        VtableHook::overrideVfptrFun(m_window, &QWindow::event, this, &DNoTitlebarWlWindowHelper::windowEvent);
+        using namespace std::placeholders;
+        auto hook = std::bind(&DNoTitlebarWlWindowHelper::windowEvent, _1, _2, this);
+        VtableHook::overrideVfptrFun(m_window, &QWindow::event, hook);
     } else if (VtableHook::hasVtable(m_window)) {
         VtableHook::resetVfptrFun(m_window, &QWindow::event);
     }
 }
 
-bool DNoTitlebarWlWindowHelper::windowEvent(QEvent *event)
+bool DNoTitlebarWlWindowHelper::windowEvent(QWindow *w, QEvent *event, DNoTitlebarWlWindowHelper *self)
 {
-    QWindow *w = this->window();
-    DNoTitlebarWlWindowHelper *self = mapped.value(w);
+    // m_window 的 event 被 override 以后，在 windowEvent 里面获取到的 this 就成 m_window 了，
+    // 而不是 DNoTitlebarWlWindowHelper，所以此处 windowEvent 改为 static 并传 self 进来
     bool is_mouse_move = event->type() == QEvent::MouseMove && static_cast<QMouseEvent*>(event)->buttons() == Qt::LeftButton;
 
-    if (event->type() == QEvent::MouseButtonRelease) {
+    if (Q_UNLIKELY(event->type() == QEvent::MouseButtonRelease)) {
         self->m_windowMoving = false;
     }
 
@@ -166,13 +167,13 @@ bool DNoTitlebarWlWindowHelper::windowEvent(QEvent *event)
     // workaround for kwin: Qt receives no release event when kwin finishes MOVE operation,
     // which makes app hang in windowMoving state. when a press happens, there's no sense of
     // keeping the moving state, we can just reset ti back to normal.
-    if (event->type() == QEvent::MouseButtonPress) {
+    if (Q_UNLIKELY(event->type() == QEvent::MouseButtonPress)) {
         self->m_windowMoving = false;
     }
 
-    if (is_mouse_move && !event->isAccepted()
-            && w->geometry().contains(static_cast<QMouseEvent*>(event)->globalPos())) {
-        if (!self->m_windowMoving && self->isEnableSystemMove()) {
+    if (Q_LIKELY(is_mouse_move && !event->isAccepted()
+            && w->geometry().contains(static_cast<QMouseEvent*>(event)->globalPos()))) {
+        if (Q_UNLIKELY(!self->m_windowMoving && self->isEnableSystemMove())) {
             self->m_windowMoving = true;
 
             event->accept();

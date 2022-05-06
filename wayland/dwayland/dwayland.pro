@@ -40,18 +40,28 @@ SOURCES += \
         $$PWD/main.cpp \
         $$PWD/dwaylandintegration.cpp \
         $$PWD/dnotitlebarwindowhelper_wl.cpp \
-        $$PWD/dhighdpi.cpp
+        $$PWD/dhighdpi.cpp \
+        $$PWD/../../src/global.cpp \
+        $$PWD/../../src/vtablehook.cpp \
+        $$PWD/../../src/dxcbxsettings.cpp \
+        $$PWD/../../src/dplatformsettings.cpp \
+        $$PWD/../../src/dnativesettings.cpp
 
 HEADERS += \
         $$PWD/dwaylandinterfacehook.h \
         $$PWD/dwaylandintegration.h \
         $$PWD/dnotitlebarwindowhelper_wl.h \
-        $$PWD/dhighdpi.h
+        $$PWD/dhighdpi.h \
+        $$PWD/../../src/global.h \
+        $$PWD/../../src/vtablehook.h \
+        $$PWD/../../src/dxcbxsettings.h \
+        $$PWD/../../src/dplatformsettings.h \
+        $$PWD/../../src/dnativesettings.h
 
 qtHaveModule(waylandclient_private) : QT += waylandclient_private
 else: INCLUDEPATH += $$PWD/../qtwayland-dev
 
-include($$PWD/../../src/src.pri)
+#include($$PWD/../../src/src.pri)
 
 OTHER_FILES += \
     dwayland.json

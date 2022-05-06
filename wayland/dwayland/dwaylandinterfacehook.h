@@ -18,7 +18,7 @@
 #ifndef DPLATFORMNATIVEINTERFACE_H
 #define DPLATFORMNATIVEINTERFACE_H
 
-#include "global.h"
+#include "../../src/global.h"
 
 #include <QtGlobal>
 #include <qwindowdefs.h>
@@ -39,12 +39,13 @@ class DXcbXSettings;
 class DWaylandInterfaceHook
 {
 public:
-    static void init();
-    static QFunctionPointer platformFunction(QPlatformNativeInterface *interface, const QByteArray &function);
-    static thread_local QHash<QByteArray, QFunctionPointer> functionCache;
+    static DWaylandInterfaceHook *instance() {
+        static DWaylandInterfaceHook *hook = new DWaylandInterfaceHook;
+        return hook;
+    }
 
-    static bool buildNativeSettings(QObject *object, quint32 settingWindow);
-    static void clearNativeSettings(quint32 settingWindow);
+    static QFunctionPointer platformFunction(QPlatformNativeInterface *interface, const QByteArray &function);
+
     static bool setEnableNoTitlebar(QWindow *window, bool enable);
     static bool isEnableNoTitlebar(QWindow *window);
     static bool setWindowRadius(QWindow *window, int value);
@@ -54,12 +55,19 @@ public:
     static bool isEnableDwayland(const QWindow *window);
     static void splitWindowOnScreen(WId wid, quint32 type);
     static bool supportForSplittingWindow(WId wid);
+
+    void initXcb();
+    static bool buildNativeSettings(QObject *object, quint32 settingWindow);
+    static void clearNativeSettings(quint32 settingWindow);
     static DXcbXSettings *globalSettings();
 
 private:
-    static QPlatformNativeInterface* m_nativeinterface;
-    static xcb_connection_t *xcb_connection;
-    static DXcbXSettings *m_xsettings;
+    DWaylandInterfaceHook() {}
+    ~DWaylandInterfaceHook() {}
+
+    QPlatformNativeInterface* m_nativeinterface = nullptr;
+    xcb_connection_t *xcb_connection = nullptr;
+    DXcbXSettings *m_xsettings = nullptr;
 };
 
 DPP_END_NAMESPACE
