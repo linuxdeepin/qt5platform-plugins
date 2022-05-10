@@ -145,9 +145,9 @@ void DNoTitlebarWlWindowHelper::updateEnableSystemMoveFromProperty()
     m_enableSystemMove = !v.isValid() || v.toBool();
 
     if (m_enableSystemMove) {
-        VtableHook::overrideVfptrFun(m_window, &QWindow::event, this, &DNoTitlebarWlWindowHelper::windowEvent);
+        HookOverride(m_window, &QWindow::event, this, &DNoTitlebarWlWindowHelper::windowEvent);
     } else if (VtableHook::hasVtable(m_window)) {
-        VtableHook::resetVfptrFun(m_window, &QWindow::event);
+        HookReset(m_window, &QWindow::event);
     }
 }
 
@@ -161,7 +161,7 @@ bool DNoTitlebarWlWindowHelper::windowEvent(QEvent *event)
         self->m_windowMoving = false;
     }
 
-    bool ret = VtableHook::callOriginalFun(w, &QWindow::event, event);
+    bool ret = HookCall(w, &QWindow::event, event);
 
     // workaround for kwin: Qt receives no release event when kwin finishes MOVE operation,
     // which makes app hang in windowMoving state. when a press happens, there's no sense of

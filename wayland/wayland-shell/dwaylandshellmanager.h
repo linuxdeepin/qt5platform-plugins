@@ -29,14 +29,24 @@
 #include <private/qwidgetwindow_p.h>
 
 DPP_USE_NAMESPACE
+using namespace KWayland::Client;
 
 namespace QtWaylandClient {
 
 class DWaylandShellManager
 {
-public:
     DWaylandShellManager();
     ~DWaylandShellManager();
+    Registry *m_registry = nullptr;
+public:
+    static DWaylandShellManager *instance() {
+        static DWaylandShellManager manager;
+        return &manager;
+    }
+    static Registry *registry() {
+        return instance()->m_registry;
+    }
+
     static void sendProperty(QWaylandShellSurface *self, const QString &name, const QVariant &value);
     static void requestActivateWindow(QPlatformWindow *self);
     static bool disableClientDecorations(QWaylandShellSurface *surface);
@@ -47,21 +57,25 @@ public:
     static void handleKeyEvent(quint32 key, KWayland::Client::DDEKeyboard::KeyState state, quint32 time);
     static void handleModifiersChanged(quint32 depressed, quint32 latched, quint32 locked, quint32 group);
     static QWaylandShellSurface *createShellSurface(QWaylandShellIntegration *self, QWaylandWindow *window);
-    static void createKWaylandShell(KWayland::Client::Registry *registry, quint32 name, quint32 version);
-    static void createKWaylandSSD(KWayland::Client::Registry *registry, quint32 name, quint32 version);
-    static void createDDEShell(KWayland::Client::Registry *registry, quint32 name, quint32 version);
-    static void createDDESeat(KWayland::Client::Registry *registry, quint32 name, quint32 version);
-    static void createStrut(KWayland::Client::Registry *registry, quint32 name, quint32 version);
-    static void createDDEPointer(KWayland::Client::Registry *registry);
-    static void createDDEKeyboard(KWayland::Client::Registry *registry);
-    static void createDDEFakeInput(KWayland::Client::Registry *registry);
+    static void createKWaylandShell(quint32 name, quint32 version);
+    static void createKWaylandSSD(quint32 name, quint32 version);
+    static void createDDEShell(quint32 name, quint32 version);
+    static void createDDESeat(quint32 name, quint32 version);
+    static void createStrut(quint32 name, quint32 version);
+    static void createDDEPointer();
+    static void createDDEKeyboard();
+    static void createDDEFakeInput();
     static void handleGeometryChange(QWaylandWindow *window);
     static void handleWindowStateChanged(QWaylandWindow *window);
     static void setWindowStaysOnTop(QWaylandShellSurface *surface, const bool state);
     static void setDockStrut(QWaylandShellSurface *surface, const QVariant var);
     static void setCursorPoint(QPointF pos);
-};
 
+private:
+    // 用于记录设置过以_DWAYALND_开头的属性，当kwyalnd_shell对象创建以后要使这些属性生效
+    static QList<QPointer<QWaylandWindow>> send_property_window_list;
+    static QPointer<QWaylandWindow> current_window;
+};
 }
 
 #endif // DWaylandShellManager_H
