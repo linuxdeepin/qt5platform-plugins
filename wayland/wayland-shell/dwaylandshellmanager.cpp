@@ -634,13 +634,13 @@ Qt::WindowStates getwindowStates(KCDFace *surface)
 {
     Qt::WindowStates state = Qt::WindowNoState;
 //    if (surface->isActive())
-//        state |= Qt::WindowActive;
-    if (surface->isFullscreen())
-        state |= Qt::WindowFullScreen;
+//        state = Qt::WindowActive;
     if (surface->isMinimized())
-        state |= Qt::WindowMinimized;
-    if (surface->isMaximized())
-        state |= Qt::WindowMaximized;
+        state = Qt::WindowMinimized;
+    else if (surface->isFullscreen())
+        state = Qt::WindowFullScreen;
+    else if (surface->isMaximized())
+        state = Qt::WindowMaximized;
 
     return state;
 }
@@ -653,7 +653,7 @@ void DWaylandShellManager::handleWindowStateChanged(QWaylandWindow *window)
         return;
 
 #define d_oldState QStringLiteral("_d_oldState")
-    window->setProperty(d_oldState, Qt::WindowNoState);
+    window->setProperty(d_oldState, (int)getwindowStates(ddeShellSurface));
 #define STATE_CHANGED(sig) \
     QObject::connect(ddeShellSurface, &KCDFace::sig, window, [window, ddeShellSurface](){\
         qCDebug(dwlp) << "==== "#sig ;\
@@ -667,7 +667,7 @@ void DWaylandShellManager::handleWindowStateChanged(QWaylandWindow *window)
     STATE_CHANGED(maximizedChanged);
     STATE_CHANGED(fullscreenChanged);
 
-    //    STATE_CHANGED(activeChanged);
+    STATE_CHANGED(activeChanged);
     QObject::connect(ddeShellSurface, &KCDFace::activeChanged, window, [window, ddeShellSurface](){
         if (QWindow *w = ddeShellSurface->isActive() ? window->window() : nullptr)
             QWindowSystemInterface::handleWindowActivated(w, Qt::FocusReason::ActiveWindowFocusReason);
