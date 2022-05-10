@@ -38,7 +38,6 @@ static QPointer<KWayland::Client::DDETouch> kwayland_dde_touch;
 static QPointer<KWayland::Client::DDEPointer> kwayland_dde_pointer;
 static QPointer<KWayland::Client::Strut> kwayland_strut;
 static QPointer<KWayland::Client::DDEKeyboard> kwayland_dde_keyboard;
-static QPointer<KWayland::Client::FakeInput> kwayland_dde_fake_input;
 static QPointer<QWaylandWindow> current_window;
 
 //#if QT_CONFIG(xkbcommon)
@@ -495,18 +494,6 @@ void DWaylandShellManager::createDDEKeyboard(KWayland::Client::Registry *registr
     }
 }
 
-void DWaylandShellManager::createDDEFakeInput(KWayland::Client::Registry *registry)
-{
-    kwayland_dde_fake_input = registry->createFakeInput(registry->interface(KWayland::Client::Registry::Interface::FakeInput).name,
-                                                        registry->interface(KWayland::Client::Registry::Interface::FakeInput).version);
-    if (!kwayland_dde_fake_input || !kwayland_dde_fake_input->isValid()) {
-        qInfo() << "fake input create failed.";
-        return;
-    }
-    // 打开设置光标位置的开关
-    kwayland_dde_fake_input->authenticate("dtk", QString("set cursor pos"));
-}
-
 void DWaylandShellManager::createDDEPointer(KWayland::Client::Registry *registry)
 {
     //create dde pointer
@@ -551,7 +538,6 @@ void DWaylandShellManager::createDDEPointer(KWayland::Client::Registry *registry
         }
         releasePos = pos;
 
-        setCursorPoint(pos);
         pointerEvent(pos, QEvent::MouseButtonPress);
     });
     QObject::connect(kwayland_dde_touch, &KWayland::Client::DDETouch::touchMotion, [=] (int32_t kwaylandId, const QPointF &pos) {
@@ -560,7 +546,6 @@ void DWaylandShellManager::createDDEPointer(KWayland::Client::Registry *registry
         }
         isTouchMotion = true;
         pointerEvent(pos, QEvent::Move);
-        setCursorPoint(pos);
         releasePos = pos;
     });
     QObject::connect(kwayland_dde_touch, &KWayland::Client::DDETouch::touchUp, [=] (int32_t kwaylandId) {
@@ -574,7 +559,6 @@ void DWaylandShellManager::createDDEPointer(KWayland::Client::Registry *registry
             return;
         }
 
-        setCursorPoint(releasePos);
         pointerEvent(releasePos, QEvent::MouseButtonRelease);
     });
 }
@@ -745,22 +729,6 @@ void DWaylandShellManager::setDockStrut(QWaylandShellSurface *surface, const QVa
     }
 
     kwayland_strut->setStrutPartial(getWindowWLSurface(surface->window()), dockStrut);
-}
-
-/*
- * @brief setCursorPoint  设置光标在屏幕中的绝对位置
- * @param pos
- */
-void DWaylandShellManager::setCursorPoint(QPointF pos) {
-    if (!kwayland_dde_fake_input) {
-        qInfo() << "kwayland_dde_fake_input is nullptr";
-        return;
-    }
-    if (!kwayland_dde_fake_input->isValid()) {
-        qInfo() << "kwayland_dde_fake_input is invalid";
-        return;
-    }
-    kwayland_dde_fake_input->requestPointerMoveAbsolute(pos);
 }
 
 bool DWaylandShellManager::disableClientDecorations(QWaylandShellSurface *surface)
