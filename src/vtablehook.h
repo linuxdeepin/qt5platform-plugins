@@ -349,4 +349,8 @@ private:
 
 DPP_END_NAMESPACE
 
+#define HookReset VtableHook::resetVfptrFun
+#define HookCall VtableHook::callOriginalFun
+#define HookOverride VtableHook::overrideVfptrFun
+
 #endif // VTABLEHOOK_H

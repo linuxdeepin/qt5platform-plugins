@@ -22,24 +22,24 @@ DPP_USE_NAMESPACE
 
 namespace QtWaylandClient {
 
-// kwayland中PlasmaShell的全局对象，用于使用kwayland中的扩展协议
-static QPointer<KWayland::Client::PlasmaShell> kwayland_shell;
+namespace {
+    // kwayland中PlasmaShell的全局对象，用于使用kwayland中的扩展协议
+    static QPointer<PlasmaShell> kwayland_shell;
+    // kwin合成器提供的窗口边框管理器
+    static QPointer<ServerSideDecorationManager> kwayland_ssd;
+    // 创建ddeshell
+    static QPointer<DDEShell> ddeShell;
+    // kwayland
+    static QPointer<Strut> kwayland_strut;
+    static QPointer<DDESeat> kwayland_dde_seat;
+    static QPointer<DDETouch> kwayland_dde_touch;
+    static QPointer<DDEPointer> kwayland_dde_pointer;
+    static QPointer<FakeInput> kwayland_dde_fake_input;
+    static QPointer<DDEKeyboard> kwayland_dde_keyboard;
+};
 
-// 用于记录设置过以_DWAYALND_开头的属性，当kwyalnd_shell对象创建以后要使这些属性生效
-static QList<QPointer<QWaylandWindow>> send_property_window_list;
-// kwin合成器提供的窗口边框管理器
-static QPointer<KWayland::Client::ServerSideDecorationManager> kwayland_ssd;
-//创建ddeshell
-static QPointer<KWayland::Client::DDEShell> ddeShell = nullptr;
-
-//kwayland
-static QPointer<KWayland::Client::DDESeat> kwayland_dde_seat;
-static QPointer<KWayland::Client::DDETouch> kwayland_dde_touch;
-static QPointer<KWayland::Client::DDEPointer> kwayland_dde_pointer;
-static QPointer<KWayland::Client::Strut> kwayland_strut;
-static QPointer<KWayland::Client::DDEKeyboard> kwayland_dde_keyboard;
-static QPointer<KWayland::Client::FakeInput> kwayland_dde_fake_input;
-static QPointer<QWaylandWindow> current_window;
+QList<QPointer<QWaylandWindow>> DWaylandShellManager::send_property_window_list;
+QPointer<QWaylandWindow> DWaylandShellManager::current_window;
 
 //#if QT_CONFIG(xkbcommon)
 QXkbCommon::ScopedXKBKeymap mXkbKeymap;
@@ -114,7 +114,7 @@ inline static wl_surface *getWindowWLSurface(QWaylandWindow *window)
 #endif
 }
 
-static KWayland::Client::PlasmaShellSurface* createKWayland(QWaylandWindow *window)
+static PlasmaShellSurface* createKWayland(QWaylandWindow *window)
 {
     if (!window)
         return nullptr;
@@ -127,9 +127,9 @@ static KWayland::Client::PlasmaShellSurface* createKWayland(QWaylandWindow *wind
     return nullptr;
 }
 
-static KWayland::Client::PlasmaShellSurface *ensureKWaylandSurface(QWaylandShellSurface *self)
+static PlasmaShellSurface *ensureKWaylandSurface(QWaylandShellSurface *self)
 {
-    auto *ksurface = self->findChild<KWayland::Client::PlasmaShellSurface*>();
+    auto *ksurface = self->findChild<PlasmaShellSurface*>();
 
     if (!ksurface) {
         ksurface = createKWayland(self->window());
@@ -138,7 +138,7 @@ static KWayland::Client::PlasmaShellSurface *ensureKWaylandSurface(QWaylandShell
     return ksurface;
 }
 
-static KWayland::Client::DDEShellSurface* createDDESurface(QWaylandWindow *window)
+static DDEShellSurface* createDDESurface(QWaylandWindow *window)
 {
     if (!window)
         return nullptr;
@@ -151,11 +151,11 @@ static KWayland::Client::DDEShellSurface* createDDESurface(QWaylandWindow *windo
     return nullptr;
 }
 
-static KWayland::Client::DDEShellSurface *ensureDDEShellSurface(QWaylandShellSurface *self)
+static DDEShellSurface *ensureDDEShellSurface(QWaylandShellSurface *self)
 {
     if (!self)
         return nullptr;
-    auto *dde_shell_surface = self->findChild<KWayland::Client::DDEShellSurface*>();
+    auto *dde_shell_surface = self->findChild<DDEShellSurface*>();
 
     if (!dde_shell_surface) {
         dde_shell_surface = createDDESurface(self->window());
@@ -165,6 +165,7 @@ static KWayland::Client::DDEShellSurface *ensureDDEShellSurface(QWaylandShellSur
 }
 
 DWaylandShellManager::DWaylandShellManager()
+    : m_registry (new Registry())
 {
 
 }
@@ -182,7 +183,7 @@ void DWaylandShellManager::sendProperty(QWaylandShellSurface *self, const QStrin
     }
 
     if (!CHECK_PREFIX(name))
-        return VtableHook::callOriginalFun(self, &QWaylandShellSurface::sendProperty, name, value);
+        return HookCall(self, &QWaylandShellSurface::sendProperty, name, value);
 
     auto *ksurface = ensureKWaylandSurface(self);
     // 如果创建失败则说明kwaylnd_shell对象还未初始化，应当终止设置
@@ -237,13 +238,13 @@ void DWaylandShellManager::sendProperty(QWaylandShellSurface *self, const QStrin
         QWaylandWindow *wayland_window = self->window();
         if (wayland_window) {
             if (wayland_window->window()->type() == Qt::Popup)
-                ksurface->setRole(KWayland::Client::PlasmaShellSurface::Role::ToolTip);
+                ksurface->setRole(PlasmaShellSurface::Role::ToolTip);
         }
     }
 
 #ifdef D_DEEPIN_KWIN
     // 禁止窗口移动接口适配。
-    typedef KWayland::Client::PlasmaShellSurface::Role KRole;
+    typedef PlasmaShellSurface::Role KRole;
     if (!name.compare(enableSystemMove)) {
         ksurface->setRole(value.toBool() ? KRole::Normal : KRole::StandAlone);
         return;
@@ -252,10 +253,10 @@ void DWaylandShellManager::sendProperty(QWaylandShellSurface *self, const QStrin
     if (QStringLiteral(_DWAYALND_ "global_keyevent") == name && value.toBool()) {
         current_window = self->window();
         // 只有关心全局键盘事件才连接, 并且随窗口销毁而断开
-        QObject::connect(kwayland_dde_keyboard, &KWayland::Client::DDEKeyboard::keyChanged,
+        QObject::connect(kwayland_dde_keyboard, &DDEKeyboard::keyChanged,
                          current_window, &DWaylandShellManager::handleKeyEvent,
                          Qt::ConnectionType::UniqueConnection);
-        QObject::connect(kwayland_dde_keyboard, &KWayland::Client::DDEKeyboard::modifiersChanged,
+        QObject::connect(kwayland_dde_keyboard, &DDEKeyboard::modifiersChanged,
                          current_window, &DWaylandShellManager::handleModifiersChanged,
                          Qt::ConnectionType::UniqueConnection);
 
@@ -277,25 +278,25 @@ void DWaylandShellManager::sendProperty(QWaylandShellSurface *self, const QStrin
         const QByteArray &type = value.toByteArray();
 
         if (type == "normal") {
-            ksurface->setRole(KWayland::Client::PlasmaShellSurface::Role::Normal);
+            ksurface->setRole(PlasmaShellSurface::Role::Normal);
         } else if (type == "desktop") {
-            ksurface->setRole(KWayland::Client::PlasmaShellSurface::Role::Desktop);
+            ksurface->setRole(PlasmaShellSurface::Role::Desktop);
         }else if (type == "dock" || type == "panel") {
-            ksurface->setRole(KWayland::Client::PlasmaShellSurface::Role::Panel);
-            ksurface->setPanelBehavior(KWayland::Client::PlasmaShellSurface::PanelBehavior::AlwaysVisible);
+            ksurface->setRole(PlasmaShellSurface::Role::Panel);
+            ksurface->setPanelBehavior(PlasmaShellSurface::PanelBehavior::AlwaysVisible);
         } else if (type == "wallpaper" || type == "onScreenDisplay") {
-            ksurface->setRole(KWayland::Client::PlasmaShellSurface::Role::OnScreenDisplay);
+            ksurface->setRole(PlasmaShellSurface::Role::OnScreenDisplay);
         } else if (type == "notification") {
-            ksurface->setRole(KWayland::Client::PlasmaShellSurface::Role::Notification);
+            ksurface->setRole(PlasmaShellSurface::Role::Notification);
         } else if (type == "tooltip") {
-            ksurface->setRole(KWayland::Client::PlasmaShellSurface::Role::ToolTip);
+            ksurface->setRole(PlasmaShellSurface::Role::ToolTip);
         } else if (type == "launcher" || type == "standAlone") {
 #ifdef D_DEEPIN_KWIN
-            ksurface->setRole(KWayland::Client::PlasmaShellSurface::Role::StandAlone);
+            ksurface->setRole(PlasmaShellSurface::Role::StandAlone);
 #endif
         } else if (type == "session-shell" || type == "menu" || type == "wallpaper-set" || type == "override") {
 #ifdef D_DEEPIN_KWIN
-            ksurface->setRole(KWayland::Client::PlasmaShellSurface::Role::Override);
+            ksurface->setRole(PlasmaShellSurface::Role::Override);
 #endif
         } else {
 
@@ -307,7 +308,7 @@ void DWaylandShellManager::sendProperty(QWaylandShellSurface *self, const QStrin
 
 void DWaylandShellManager::setGeometry(QPlatformWindow *self, const QRect &rect)
 {
-    VtableHook::callOriginalFun(self, &QPlatformWindow::setGeometry, rect);
+    HookCall(self, &QPlatformWindow::setGeometry, rect);
 
     if (!self->QPlatformWindow::parent()) {
         if (auto lw_window = static_cast<QWaylandWindow*>(self)) {
@@ -331,13 +332,13 @@ void DWaylandShellManager::pointerEvent(const QPointF &pointF, QEvent::Type type
 
 QWaylandShellSurface *DWaylandShellManager::createShellSurface(QWaylandShellIntegration *self, QWaylandWindow *window)
 {
-    auto surface = VtableHook::callOriginalFun(self, &QWaylandShellIntegration::createShellSurface, window);
+    auto surface = HookCall(self, &QWaylandShellIntegration::createShellSurface, window);
 
-    VtableHook::overrideVfptrFun(surface, &QWaylandShellSurface::sendProperty, DWaylandShellManager::sendProperty);
-    VtableHook::overrideVfptrFun(surface, &QWaylandShellSurface::wantsDecorations, DWaylandShellManager::disableClientDecorations);
-    VtableHook::overrideVfptrFun(window, &QPlatformWindow::setGeometry, DWaylandShellManager::setGeometry);
-    VtableHook::overrideVfptrFun(window, &QPlatformWindow::requestActivateWindow, DWaylandShellManager::requestActivateWindow);
-    VtableHook::overrideVfptrFun(window, &QPlatformWindow::frameMargins, DWaylandShellManager::frameMargins);
+    HookOverride(surface, &QWaylandShellSurface::sendProperty, DWaylandShellManager::sendProperty);
+    HookOverride(surface, &QWaylandShellSurface::wantsDecorations, DWaylandShellManager::disableClientDecorations);
+    HookOverride(window, &QPlatformWindow::setGeometry, DWaylandShellManager::setGeometry);
+    HookOverride(window, &QPlatformWindow::requestActivateWindow, DWaylandShellManager::requestActivateWindow);
+    HookOverride(window, &QPlatformWindow::frameMargins, DWaylandShellManager::frameMargins);
 
     if (ddeShell) {
         QObject::connect(window, &QWaylandWindow::shellSurfaceCreated, [window] {
@@ -394,9 +395,9 @@ QWaylandShellSurface *DWaylandShellManager::createShellSurface(QWaylandShellInte
     return surface;
 }
 
-void DWaylandShellManager::createKWaylandShell(KWayland::Client::Registry *registry, quint32 name, quint32 version)
+void DWaylandShellManager::createKWaylandShell(quint32 name, quint32 version)
 {
-    kwayland_shell = registry->createPlasmaShell(name, version, registry->parent());
+    kwayland_shell = registry()->createPlasmaShell(name, version, registry()->parent());
 
     Q_ASSERT_X(kwayland_shell, "PlasmaShell", "Registry create PlasmaShell  failed.");
 
@@ -414,21 +415,21 @@ void DWaylandShellManager::createKWaylandShell(KWayland::Client::Registry *regis
     send_property_window_list.clear();
 }
 
-void DWaylandShellManager::createKWaylandSSD(KWayland::Client::Registry *registry, quint32 name, quint32 version)
+void DWaylandShellManager::createKWaylandSSD(quint32 name, quint32 version)
 {
-    kwayland_ssd = registry->createServerSideDecorationManager(name, version, registry->parent());
+    kwayland_ssd = registry()->createServerSideDecorationManager(name, version, registry()->parent());
     Q_ASSERT_X(kwayland_ssd, "ServerSideDecorationManager", "KWayland Registry ServerSideDecorationManager failed.");
 }
 
-void DWaylandShellManager::createDDEShell(KWayland::Client::Registry *registry, quint32 name, quint32 version)
+void DWaylandShellManager::createDDEShell(quint32 name, quint32 version)
 {
-    ddeShell = registry->createDDEShell(name, version, registry->parent());
+    ddeShell = registry()->createDDEShell(name, version, registry()->parent());
     Q_ASSERT_X(ddeShell, "DDEShell", "Registry create DDEShell failed.");
 }
 
-void DWaylandShellManager::createDDESeat(KWayland::Client::Registry *registry, quint32 name, quint32 version)
+void DWaylandShellManager::createDDESeat(quint32 name, quint32 version)
 {
-    kwayland_dde_seat = registry->createDDESeat(name, version, registry->parent());
+    kwayland_dde_seat = registry()->createDDESeat(name, version, registry()->parent());
     Q_ASSERT_X(kwayland_dde_seat, "DDESeat", "Registry create DDESeat failed.");
 }
 
@@ -438,16 +439,16 @@ void DWaylandShellManager::createDDESeat(KWayland::Client::Registry *registry, q
  * @param name
  * @param version
  */
-void DWaylandShellManager::createStrut(KWayland::Client::Registry *registry, quint32 name, quint32 version)
+void DWaylandShellManager::createStrut(quint32 name, quint32 version)
 {
-    kwayland_strut = registry->createStrut(name, version, registry->parent());
+    kwayland_strut = registry()->createStrut(name, version, registry()->parent());
     Q_ASSERT_X(kwayland_strut, "strut", "Registry create strut failed.");
 }
 
-void DWaylandShellManager::handleKeyEvent(quint32 key, KWayland::Client::DDEKeyboard::KeyState state, quint32 time)
+void DWaylandShellManager::handleKeyEvent(quint32 key, DDEKeyboard::KeyState state, quint32 time)
 {
     if (current_window && current_window->window() && !current_window->isActive()) {
-        QEvent::Type type = state == KWayland::Client::DDEKeyboard::KeyState::Pressed ? QEvent::KeyPress : QEvent::KeyRelease;
+        QEvent::Type type = state == DDEKeyboard::KeyState::Pressed ? QEvent::KeyPress : QEvent::KeyRelease;
 //        qCDebug(dwlp) << __func__ << " key " << key << " state " << (int)state << " time " << time;
 
 //#if QT_CONFIG(xkbcommon)
@@ -480,12 +481,12 @@ void DWaylandShellManager::handleModifiersChanged(quint32 depressed, quint32 lat
     mNativeModifiers = depressed | latched | locked;
 }
 
-void DWaylandShellManager::createDDEKeyboard(KWayland::Client::Registry *registry)
+void DWaylandShellManager::createDDEKeyboard()
 {
     //create dde keyboard
     Q_ASSERT(kwayland_dde_seat);
 
-    kwayland_dde_keyboard = kwayland_dde_seat->createDDEKeyboard(registry->parent());
+    kwayland_dde_keyboard = kwayland_dde_seat->createDDEKeyboard(registry()->parent());
     Q_ASSERT(kwayland_dde_keyboard);
 
     //刷新时间队列，等待kwin反馈消息
@@ -495,10 +496,10 @@ void DWaylandShellManager::createDDEKeyboard(KWayland::Client::Registry *registr
     }
 }
 
-void DWaylandShellManager::createDDEFakeInput(KWayland::Client::Registry *registry)
+void DWaylandShellManager::createDDEFakeInput()
 {
-    kwayland_dde_fake_input = registry->createFakeInput(registry->interface(KWayland::Client::Registry::Interface::FakeInput).name,
-                                                        registry->interface(KWayland::Client::Registry::Interface::FakeInput).version);
+    kwayland_dde_fake_input = registry()->createFakeInput(registry()->interface(Registry::Interface::FakeInput).name,
+                                                        registry()->interface(Registry::Interface::FakeInput).version);
     if (!kwayland_dde_fake_input || !kwayland_dde_fake_input->isValid()) {
         qInfo() << "fake input create failed.";
         return;
@@ -507,12 +508,12 @@ void DWaylandShellManager::createDDEFakeInput(KWayland::Client::Registry *regist
     kwayland_dde_fake_input->authenticate("dtk", QString("set cursor pos"));
 }
 
-void DWaylandShellManager::createDDEPointer(KWayland::Client::Registry *registry)
+void DWaylandShellManager::createDDEPointer()
 {
     //create dde pointer
     Q_ASSERT(kwayland_dde_seat);
 
-    if (!registry) {
+    if (!registry()) {
         qCritical() << "registry is null";
         return;
     }
@@ -534,7 +535,7 @@ void DWaylandShellManager::createDDEPointer(KWayland::Client::Registry *registry
 
     // mouse move
     static bool isTouchMotion = false;
-    QObject::connect(kwayland_dde_pointer, &KWayland::Client::DDEPointer::motion,
+    QObject::connect(kwayland_dde_pointer, &DDEPointer::motion,
             [] (const QPointF &posF) {
         if (isTouchMotion)
             return;
@@ -545,7 +546,7 @@ void DWaylandShellManager::createDDEPointer(KWayland::Client::Registry *registry
     // 1.25倍的缩放还是需要单独处理
     static QPointF releasePos;
     kwayland_dde_touch = kwayland_dde_seat->createDDETouch();
-    QObject::connect(kwayland_dde_touch, &KWayland::Client::DDETouch::touchDown, [=] (int32_t kwaylandId, const QPointF &pos) {
+    QObject::connect(kwayland_dde_touch, &DDETouch::touchDown, [=] (int32_t kwaylandId, const QPointF &pos) {
         if (kwaylandId != 0) {
             return;
         }
@@ -554,7 +555,7 @@ void DWaylandShellManager::createDDEPointer(KWayland::Client::Registry *registry
         setCursorPoint(pos);
         pointerEvent(pos, QEvent::MouseButtonPress);
     });
-    QObject::connect(kwayland_dde_touch, &KWayland::Client::DDETouch::touchMotion, [=] (int32_t kwaylandId, const QPointF &pos) {
+    QObject::connect(kwayland_dde_touch, &DDETouch::touchMotion, [=] (int32_t kwaylandId, const QPointF &pos) {
         if (kwaylandId != 0) {
             return;
         }
@@ -563,7 +564,7 @@ void DWaylandShellManager::createDDEPointer(KWayland::Client::Registry *registry
         setCursorPoint(pos);
         releasePos = pos;
     });
-    QObject::connect(kwayland_dde_touch, &KWayland::Client::DDETouch::touchUp, [=] (int32_t kwaylandId) {
+    QObject::connect(kwayland_dde_touch, &DDETouch::touchUp, [=] (int32_t kwaylandId) {
         if (kwaylandId != 0) {
             return;
         }
@@ -613,7 +614,7 @@ void DWaylandShellManager::handleGeometryChange(QWaylandWindow *window)
     if (ddeShellSurface) {
         QObject::connect(
             ddeShellSurface,
-            &KWayland::Client::DDEShellSurface::geometryChanged,
+            &DDEShellSurface::geometryChanged,
             [=] (const QRect &geom) {
                 QWindowSystemInterface::handleGeometryChange(
                     window->window(),
@@ -629,7 +630,7 @@ void DWaylandShellManager::handleGeometryChange(QWaylandWindow *window)
     }
 }
 
-typedef KWayland::Client::DDEShellSurface KCDFace;
+typedef DDEShellSurface KCDFace;
 Qt::WindowStates getwindowStates(KCDFace *surface)
 {
     Qt::WindowStates state = Qt::WindowNoState;
@@ -718,7 +719,7 @@ void DWaylandShellManager::setWindowStaysOnTop(QWaylandShellSurface *surface, co
  */
 void DWaylandShellManager::setDockStrut(QWaylandShellSurface *surface, const QVariant var)
 {
-    KWayland::Client::deepinKwinStrut dockStrut;
+    deepinKwinStrut dockStrut;
     switch (var.toList()[0].toInt()) {
     case 0:
         dockStrut.left = var.toList()[1].toInt();
@@ -823,7 +824,7 @@ void DWaylandShellManager::createServerDecoration(QWaylandWindow *window)
 
     // 创建由kwin server渲染的窗口边框对象
     if (auto ssd = kwayland_ssd->create(surface, q_shell_surface)) {
-        ssd->requestMode(KWayland::Client::ServerSideDecoration::Mode::Server);
+        ssd->requestMode(ServerSideDecoration::Mode::Server);
     }
 }
 
