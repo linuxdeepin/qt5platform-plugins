@@ -47,12 +47,14 @@ isEmpty(VERSION) {
 SOURCES += \
         $$PWD/main.cpp \
         $$PWD/dwaylandshellmanager.cpp \
+        $$PWD/dkeyboard.cpp \
         $$PWD/../../src/global.cpp \
         $$PWD/../../src/vtablehook.cpp
 
 HEADERS += \
         $$PWD/qt5dwayland-plugin_global.h \
         $$PWD/dwaylandshellmanager.h \
+        $$PWD/dkeyboard.h \
         $$PWD/../../src/global.h \
         $$PWD/../../src/vtablehook.h
 
