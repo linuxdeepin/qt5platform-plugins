@@ -19,6 +19,7 @@ DPP_USE_NAMESPACE
 
 #define _DWAYALND_ "_d_dwayland_"
 #define CHECK_PREFIX(key) (key.startsWith(_DWAYALND_) || key.startsWith("_d_"))
+#define wlDisplay reinterpret_cast<wl_display *>(QGuiApplication::platformNativeInterface()->nativeResourceForWindow("display", nullptr))
 
 namespace QtWaylandClient {
 
@@ -60,7 +61,7 @@ static PlasmaShellSurface* createKWayland(QWaylandWindow *window)
 
 static PlasmaShellSurface *ensureKWaylandSurface(QWaylandShellSurface *self)
 {
-    if (auto *ksurface = self->findChild<PlasmaShellSurface*>()) {
+    if (auto *ksurface = self->findChild<PlasmaShellSurface*>(QString(), Qt::FindDirectChildrenOnly)) {
         return ksurface;
     }
 
@@ -81,7 +82,7 @@ static DDEShellSurface *ensureDDEShellSurface(QWaylandShellSurface *self)
     if (!self)
         return nullptr;
 
-    if (auto *shell_surface = self->findChild<DDEShellSurface*>()) {
+    if (auto *shell_surface = self->findChild<DDEShellSurface*>(QString(), Qt::FindDirectChildrenOnly)) {
         return shell_surface;
     }
 
@@ -226,23 +227,26 @@ void DWaylandShellManager::sendProperty(QWaylandShellSurface *self, const QStrin
 void DWaylandShellManager::setGeometry(QPlatformWindow *self, const QRect &rect)
 {
     HookCall(self, &QPlatformWindow::setGeometry, rect);
-
-    if (!self->QPlatformWindow::parent()) {
-        if (auto lw_window = static_cast<QWaylandWindow*>(self)) {
-            lw_window->sendProperty(QStringLiteral(_DWAYALND_ "window-position"), rect.topLeft());
-        }
+    if (self->QPlatformWindow::parent()) {
+        return;
+    }
+    if (auto wl_window = static_cast<QWaylandWindow*>(self)) {
+        wl_window->sendProperty(QStringLiteral(_DWAYALND_ "window-position"), rect.topLeft());
     }
 }
 
 void DWaylandShellManager::pointerEvent(const QPointF &pointF, QEvent::Type type)
 {
+    if (Q_UNLIKELY(!(type == QEvent::MouseButtonPress
+                     || type == QEvent::MouseButtonRelease
+                     || type == QEvent::Move))) {
+        return;
+    }
+    // cursor()->pointerEvent 中只用到 event.globalPos(), 即 pointF 这个参数
     for (QScreen *screen : qApp->screens()) {
         if (screen && screen->handle() && screen->handle()->cursor()) {
-            // cursor()->pointerEvent 中只用到 event.globalPos(), 即 pointF 这个参数
-            if (type == QEvent::MouseButtonPress || type == QEvent::MouseButtonRelease || type == QEvent::Move) {
-                const QMouseEvent event(type, QPointF(), QPointF(), pointF, Qt::LeftButton, Qt::LeftButton, Qt::NoModifier);
-                screen->handle()->cursor()->pointerEvent(event);
-            }
+            const QMouseEvent event(type, QPointF(), QPointF(), pointF, Qt::LeftButton, Qt::LeftButton, Qt::NoModifier);
+            screen->handle()->cursor()->pointerEvent(event);
         }
     }
 }
@@ -257,19 +261,16 @@ QWaylandShellSurface *DWaylandShellManager::createShellSurface(QWaylandShellInte
     HookOverride(window, &QPlatformWindow::requestActivateWindow, DWaylandShellManager::requestActivateWindow);
     HookOverride(window, &QPlatformWindow::frameMargins, DWaylandShellManager::frameMargins);
 
-    if (ddeShell) {
-        QObject::connect(window, &QWaylandWindow::shellSurfaceCreated, [window] {
-            handleGeometryChange(window);
-            handleWindowStateChanged(window);
-        });
-    } else {
-        qDebug()<<"====DDEShell creat failed";
-    }
+    QObject::connect(window, &QWaylandWindow::shellSurfaceCreated, [window] {
+        handleGeometryChange(window);
+        handleWindowStateChanged(window);
+    });
+
     // 设置窗口位置, 默认都需要设置，同时判断如果窗口并没有移动过，则不需要再设置位置，而是由窗管默认平铺显示
     bool bSetPosition = true;
-    if (window->window()->inherits("QWidgetWindow")) {
-        QWidgetWindow *widgetWin = static_cast<QWidgetWindow*>(window->window());
-        if (widgetWin && widgetWin->widget()) {
+    QWidgetWindow *widgetWin = static_cast<QWidgetWindow*>(window->window());
+    if (widgetWin->inherits("QWidgetWindow")) {
+        if (widgetWin->widget()) {
             if (!widgetWin->widget()->testAttribute(Qt::WA_Moved)) {
                 bSetPosition = false;
             }
@@ -281,23 +282,22 @@ QWaylandShellSurface *DWaylandShellManager::createShellSurface(QWaylandShellInte
             }
         }
     }
+
     if (bSetPosition) {
         //QWaylandWindow对应surface的geometry，如果使用QWindow会导致缩放后surface坐标错误。
         window->sendProperty(_DWAYALND_ "window-position", window->geometry().topLeft());
     }
 
-    if (window->window()) {
-        for (const QByteArray &pname : window->window()->dynamicPropertyNames()) {
-            if (Q_LIKELY(!CHECK_PREFIX(pname)))
-                continue;
-            // 将窗口自定义属性记录到wayland window property中
-            window->sendProperty(pname, window->window()->property(pname.constData()));
-        }
+    for (const QByteArray &pname : widgetWin->dynamicPropertyNames()) {
+        if (Q_LIKELY(!CHECK_PREFIX(pname)))
+            continue;
+        // 将窗口自定义属性记录到wayland window property中
+        window->sendProperty(pname, widgetWin->property(pname.constData()));
+    }
 
-        //将拖拽图标窗口置顶，QShapedPixmapWindow是Qt中拖拽图标窗口专用类
-        if (window->window()->inherits("QShapedPixmapWindow")) {
-            window->sendProperty(QStringLiteral(_DWAYALND_ "staysontop"), true);
-        }
+    //将拖拽图标窗口置顶，QShapedPixmapWindow是Qt中拖拽图标窗口专用类
+    if (widgetWin->inherits("QShapedPixmapWindow")) {
+        window->sendProperty(QStringLiteral(_DWAYALND_ "staysontop"), true);
     }
 
     // 如果kwayland的server窗口装饰已转变完成，则为窗口创建边框
@@ -319,13 +319,14 @@ void DWaylandShellManager::createKWaylandShell(quint32 name, quint32 version)
     Q_ASSERT_X(kwayland_shell, "PlasmaShell", "Registry create PlasmaShell  failed.");
 
     for (QPointer<QWaylandWindow> lw_window : send_property_window_list) {
-        if (lw_window) {
-            const QVariantMap &properites = lw_window->properties();
-            // 当kwayland_shell被创建后，找到以_d_dwayland_开头的扩展属性将其设置一遍
-            for (auto p = properites.constBegin(); p != properites.constEnd(); ++p) {
-                if (CHECK_PREFIX(p.key()))
-                    sendProperty(lw_window->shellSurface(), p.key(), p.value());
-            }
+        if (!lw_window) {
+            continue;
+        }
+        const QVariantMap &properites = lw_window->properties();
+        // 当kwayland_shell被创建后，找到以_d_dwayland_开头的扩展属性将其设置一遍
+        for (auto p = properites.cbegin(); p != properites.cend(); ++p) {
+            if (CHECK_PREFIX(p.key()))
+                sendProperty(lw_window->shellSurface(), p.key(), p.value());
         }
     }
 
@@ -371,9 +372,8 @@ void DWaylandShellManager::createDDEKeyboard()
     Q_ASSERT(kwayland_dde_keyboard);
 
     //刷新时间队列，等待kwin反馈消息
-    auto display = reinterpret_cast<wl_display *>(QGuiApplication::platformNativeInterface()->nativeResourceForWindow("display", nullptr));
-    if (display) {
-        wl_display_roundtrip(display);
+    if (wlDisplay){
+        wl_display_roundtrip(wlDisplay);
     }
 }
 
@@ -394,11 +394,6 @@ void DWaylandShellManager::createDDEPointer()
     //create dde pointer
     Q_ASSERT(kwayland_dde_seat);
 
-    if (!registry()) {
-        qCritical() << "registry is null";
-        return;
-    }
-
     kwayland_dde_pointer = kwayland_dde_seat->createDDePointer();
     Q_ASSERT(kwayland_dde_pointer);
 
@@ -406,9 +401,8 @@ void DWaylandShellManager::createDDEPointer()
     kwayland_dde_pointer->getMotion();
 
     //刷新时间队列，等待kwin反馈消息
-    auto display = reinterpret_cast<wl_display *>(QGuiApplication::platformNativeInterface()->nativeResourceForWindow("display", nullptr));
-    if (display) {
-        wl_display_roundtrip(display);
+    if (wlDisplay) {
+        wl_display_roundtrip(wlDisplay);
     }
 
     //更新一次全局坐标
@@ -463,17 +457,15 @@ void DWaylandShellManager::createDDEPointer()
 
 void DWaylandShellManager::requestActivateWindow(QPlatformWindow *self)
 {
-    VtableHook::originalFun(self, &QPlatformWindow::requestActivateWindow);
+    HookCall(self, &QPlatformWindow::requestActivateWindow);
 
-    if (!self->QPlatformWindow::parent() && ddeShell) {
-        auto qwlWindow = static_cast<QWaylandWindow *>(self);
-        if (qwlWindow) {
-            QWaylandShellSurface *q_shell_surface = qwlWindow->shellSurface();
-            auto *dde_shell_surface = ensureDDEShellSurface(q_shell_surface);
-            if (dde_shell_surface) {
-                dde_shell_surface->requestActive();
-            }
-        }
+    auto qwlWindow = static_cast<QWaylandWindow *>(self);
+    if (self->QPlatformWindow::parent() || !ddeShell || !qwlWindow) {
+        return;
+    }
+
+    if (auto *dde_shell_surface = ensureDDEShellSurface(qwlWindow->shellSurface())) {
+        dde_shell_surface->requestActive();
     }
 }
 
@@ -490,33 +482,22 @@ QMargins DWaylandShellManager::frameMargins(QPlatformWindow *self)
 
 void DWaylandShellManager::handleGeometryChange(QWaylandWindow *window)
 {
-    auto surface = window->shellSurface();
-    auto ddeShellSurface = ensureDDEShellSurface(surface);
-    if (ddeShellSurface) {
-        QObject::connect(
-            ddeShellSurface,
-            &DDEShellSurface::geometryChanged,
-            [=] (const QRect &geom) {
-                QWindowSystemInterface::handleGeometryChange(
-                    window->window(),
-                    QRect(
-                        geom.x(),
-                        geom.y(),
-                        window->geometry().width(),
-                        window->geometry().height()
-                    )
-                );
-            }
-        );
+    auto ddeShellSurface = ensureDDEShellSurface(window->shellSurface());
+    if (!ddeShellSurface) {
+        return;
     }
+    QObject::connect(ddeShellSurface, &DDEShellSurface::geometryChanged,
+                     [=] (const QRect &geom) {
+        QRect newRect(geom.topLeft(), window->geometry().size());
+        QWindowSystemInterface::handleGeometryChange(window->window(), newRect);
+    });
 }
 
 typedef DDEShellSurface KCDFace;
 Qt::WindowStates getwindowStates(KCDFace *surface)
 {
+    // handleWindowStateChanged 不能传 WindowActive 状态，单独处理
     Qt::WindowStates state = Qt::WindowNoState;
-//    if (surface->isActive())
-//        state = Qt::WindowActive;
     if (surface->isMinimized())
         state = Qt::WindowMinimized;
     else if (surface->isFullscreen())
@@ -587,8 +568,7 @@ void DWaylandShellManager::handleWindowStateChanged(QWaylandWindow *window)
  */
 void DWaylandShellManager::setWindowStaysOnTop(QWaylandShellSurface *surface, const bool state)
 {
-    auto *dde_shell_surface = ensureDDEShellSurface(surface);
-    if (dde_shell_surface) {
+    if (auto *dde_shell_surface = ensureDDEShellSurface(surface)) {
         dde_shell_surface->requestKeepAbove(state);
     }
 }
