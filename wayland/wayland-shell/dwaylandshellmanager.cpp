@@ -1,13 +1,13 @@
+#include "dwaylandshellmanager.h"
+#include "dkeyboard.h"
+#include "global.h"
+
 #define protected public
 #include <qwindow.h>
 #undef protected
 
-#include <QtXkbCommonSupport/private/qxkbcommon_p.h>
-#include <qpa/qplatforminputcontext.h>
-#include "dwaylandshellmanager.h"
 #include <QtWaylandClientVersion>
 #include <QLoggingCategory>
-#include "global.h"
 
 #ifndef QT_DEBUG
 Q_LOGGING_CATEGORY(dwlp, "dtk.wayland.plugin" , QtInfoMsg);
@@ -39,71 +39,6 @@ namespace {
 };
 
 QList<QPointer<QWaylandWindow>> DWaylandShellManager::send_property_window_list;
-QPointer<QWaylandWindow> DWaylandShellManager::current_window;
-
-//#if QT_CONFIG(xkbcommon)
-QXkbCommon::ScopedXKBKeymap mXkbKeymap;
-QXkbCommon::ScopedXKBState mXkbState;
-uint32_t mNativeModifiers = 0;
-
-// from qtwayland...
-void handleKey(QWindow *window, ulong timestamp, QEvent::Type type, int key, Qt::KeyboardModifiers modifiers,
-               quint32 nativeScanCode, quint32 nativeVirtualKey, quint32 nativeModifiers,
-               const QString &text, bool autorepeat = false, ushort count = 1)
-{
-    QPlatformInputContext *inputContext = QGuiApplicationPrivate::platformIntegration()->inputContext();
-    bool filtered = false;
-
-    QWaylandDisplay *display = static_cast<QWaylandIntegration *>(QGuiApplicationPrivate::platformIntegration())->display();
-    if (inputContext && display && !display->usingInputContextFromCompositor()) {
-        QKeyEvent event(type, key, modifiers, nativeScanCode, nativeVirtualKey,
-                        nativeModifiers, text, autorepeat, count);
-        event.setTimestamp(timestamp);
-        filtered = inputContext->filterEvent(&event);
-    }
-
-    if (!filtered) {
-        if (type == QEvent::KeyPress && key == Qt::Key_Menu) {
-            auto cursor = window->screen()->handle()->cursor();
-            if (cursor) {
-                const QPoint globalPos = cursor->pos();
-                const QPoint pos = window->mapFromGlobal(globalPos);
-                QWindowSystemInterface::handleContextMenuEvent(window, false, pos, globalPos, modifiers);
-            }
-        }
-
-        QWindowSystemInterface::handleExtendedKeyEvent(window, timestamp, type, key, modifiers,
-                nativeScanCode, nativeVirtualKey, nativeModifiers, text, autorepeat, count);
-    }
-}
-
-bool createDefaultKeymap()
-{
-//    QWaylandDisplay *display = static_cast<QWaylandIntegration *>(QGuiApplicationPrivate::platformIntegration())->display();
-//    struct xkb_context *ctx = display->xkbContext();
-    auto ctx = xkb_context_new(XKB_CONTEXT_NO_FLAGS);
-    if (!ctx)
-        return false;
-
-    struct xkb_rule_names names;
-    names.rules = "evdev";
-    names.model = "pc105";
-    names.layout = "us";
-    names.variant = "";
-    names.options = "";
-
-    mXkbKeymap.reset(xkb_keymap_new_from_names(ctx, &names, XKB_KEYMAP_COMPILE_NO_FLAGS));
-    if (mXkbKeymap)
-        mXkbState.reset(xkb_state_new(mXkbKeymap.get()));
-
-    if (!mXkbKeymap || !mXkbState) {
-        qCWarning(dwlp, "failed to create default keymap");
-        return false;
-    }
-
-    return true;
-}
-// #endif //QT_CONFIG(xkbcommon)
 
 inline static wl_surface *getWindowWLSurface(QWaylandWindow *window)
 {
@@ -116,52 +51,41 @@ inline static wl_surface *getWindowWLSurface(QWaylandWindow *window)
 
 static PlasmaShellSurface* createKWayland(QWaylandWindow *window)
 {
-    if (!window)
+    if (!window || !kwayland_shell)
         return nullptr;
 
-    if (kwayland_shell) {
-        auto surface = window->shellSurface();
-        return kwayland_shell->createSurface(getWindowWLSurface(window), surface);
-    }
-
-    return nullptr;
+    auto surface = window->shellSurface();
+    return kwayland_shell->createSurface(getWindowWLSurface(window), surface);
 }
 
 static PlasmaShellSurface *ensureKWaylandSurface(QWaylandShellSurface *self)
 {
-    auto *ksurface = self->findChild<PlasmaShellSurface*>();
-
-    if (!ksurface) {
-        ksurface = createKWayland(self->window());
+    if (auto *ksurface = self->findChild<PlasmaShellSurface*>()) {
+        return ksurface;
     }
 
-    return ksurface;
+    return createKWayland(self->window());
 }
 
 static DDEShellSurface* createDDESurface(QWaylandWindow *window)
 {
-    if (!window)
+    if (!window || !ddeShell)
         return nullptr;
 
-    if (ddeShell) {
-        auto surface = window->shellSurface();
-        return ddeShell->createShellSurface(getWindowWLSurface(window), surface);
-    }
-
-    return nullptr;
+    auto surface = window->shellSurface();
+    return ddeShell->createShellSurface(getWindowWLSurface(window), surface);
 }
 
 static DDEShellSurface *ensureDDEShellSurface(QWaylandShellSurface *self)
 {
     if (!self)
         return nullptr;
-    auto *dde_shell_surface = self->findChild<DDEShellSurface*>();
 
-    if (!dde_shell_surface) {
-        dde_shell_surface = createDDESurface(self->window());
+    if (auto *shell_surface = self->findChild<DDEShellSurface*>()) {
+        return shell_surface;
     }
 
-    return dde_shell_surface;
+    return createDDESurface(self->window());
 }
 
 DWaylandShellManager::DWaylandShellManager()
@@ -178,26 +102,30 @@ DWaylandShellManager::~DWaylandShellManager()
 void DWaylandShellManager::sendProperty(QWaylandShellSurface *self, const QString &name, const QVariant &value)
 {
     // 某些应用程序(比如日历，启动器)调用此方法时 self为空，导致插件崩溃
-    if(!self) {
+    if (Q_UNLIKELY(!self)) {
         return;
     }
 
-    if (!CHECK_PREFIX(name))
-        return HookCall(self, &QWaylandShellSurface::sendProperty, name, value);
+    if (Q_UNLIKELY(!CHECK_PREFIX(name))) {
+        HookCall(self, &QWaylandShellSurface::sendProperty, name, value);
+        return;
+    }
 
-    auto *ksurface = ensureKWaylandSurface(self);
+    QWaylandWindow *wlWindow = self->window();
+    if (Q_UNLIKELY(!wlWindow)) {
+        qCWarning(dwlp) << "Error, wlWindow is nullptr";
+        return;
+    }
+
     // 如果创建失败则说明kwaylnd_shell对象还未初始化，应当终止设置
     // 记录下本次的设置行为，kwayland_shell创建后会重新设置这些属性
-    if (!ksurface) {
-        QWaylandWindow * qw = self->window();
-        if (qw) {
-            send_property_window_list << self->window();
-        }
+    auto *ksurface = ensureKWaylandSurface(self);
+    if (Q_UNLIKELY(!ksurface)) {
+        send_property_window_list << wlWindow;
         return;
     }
 
-    auto *dde_shell_surface = ensureDDEShellSurface(self);
-    if (dde_shell_surface) {
+    if (auto *dde_shell_surface = ensureDDEShellSurface(self)) {
         if (!name.compare(noTitlebar)) {
             qCDebug(dwlp()) << "### requestNoTitleBar" << value;
             dde_shell_surface->requestNoTitleBarProperty(value.toBool());
@@ -205,12 +133,12 @@ void DWaylandShellManager::sendProperty(QWaylandShellSurface *self, const QStrin
         if (!name.compare(windowRadius)) {
             bool ok = false;
             qreal radius  = value.toInt(&ok);
-            if (self->window() && self->window()->screen())
-                radius *= self->window()->screen()->devicePixelRatio();
+            if (wlWindow->screen())
+                radius *= wlWindow->screen()->devicePixelRatio();
             qCDebug(dwlp()) << "### requestWindowRadius" << radius << value;
             if (ok)
                 dde_shell_surface->requestWindowRadiusProperty({radius, radius});
-             else
+            else
                 qCWarning(dwlp) << "invalid property" << name << value;
         }
         if (!name.compare(splitWindowOnScreen)) {
@@ -223,24 +151,17 @@ void DWaylandShellManager::sendProperty(QWaylandShellSurface *self, const QStrin
             } else {
                 qCWarning(dwlp) << "invalid property: " << name << value;
             }
-            self->window()->window()->setProperty(splitWindowOnScreen, 0);
+            wlWindow->window()->setProperty(splitWindowOnScreen, 0);
         }
         if (!name.compare(supportForSplittingWindow)) {
-            if (self->window() && self->window()->window()) {
-                self->window()->window()->setProperty(supportForSplittingWindow, dde_shell_surface->isSplitable());
-            }
+            wlWindow->window()->setProperty(supportForSplittingWindow, dde_shell_surface->isSplitable());
             return;
         }
     }
 
     // 将popup的窗口设置为tooltop层级, 包括qmenu，combobox弹出窗口
-    {
-        QWaylandWindow *wayland_window = self->window();
-        if (wayland_window) {
-            if (wayland_window->window()->type() == Qt::Popup)
-                ksurface->setRole(PlasmaShellSurface::Role::ToolTip);
-        }
-    }
+    if (wlWindow->window()->type() == Qt::Popup)
+        ksurface->setRole(PlasmaShellSurface::Role::ToolTip);
 
 #ifdef D_DEEPIN_KWIN
     // 禁止窗口移动接口适配。
@@ -251,57 +172,53 @@ void DWaylandShellManager::sendProperty(QWaylandShellSurface *self, const QStrin
     }
 
     if (QStringLiteral(_DWAYALND_ "global_keyevent") == name && value.toBool()) {
-        current_window = self->window();
+        if (wlWindow->findChild<DKeyboard*>(QString(), Qt::FindDirectChildrenOnly)) {
+            return;
+        }
+
+        DKeyboard *keyboard = new DKeyboard(wlWindow);
         // 只有关心全局键盘事件才连接, 并且随窗口销毁而断开
         QObject::connect(kwayland_dde_keyboard, &DDEKeyboard::keyChanged,
-                         current_window, &DWaylandShellManager::handleKeyEvent,
-                         Qt::ConnectionType::UniqueConnection);
+                         keyboard, &DKeyboard::handleKeyEvent);
         QObject::connect(kwayland_dde_keyboard, &DDEKeyboard::modifiersChanged,
-                         current_window, &DWaylandShellManager::handleModifiersChanged,
-                         Qt::ConnectionType::UniqueConnection);
-
+                         keyboard, &DKeyboard::handleModifiersChanged);
     }
-
 #endif
 
     if (QStringLiteral(_DWAYALND_ "dockstrut") == name) {
         setDockStrut(self, value);
     }
-
     if (QStringLiteral(_DWAYALND_ "window-position") == name) {
-        QWaylandWindow *wayland_window = self->window();
-        if (!wayland_window) {
-            return;
-        }
         ksurface->setPosition(value.toPoint());
-    } else if (QStringLiteral(_DWAYALND_ "window-type") == name) {
+    }
+    static const QMap<PlasmaShellSurface::Role, QStringList> role2type = {
+        {PlasmaShellSurface::Role::Normal, {"normal"}},
+        {PlasmaShellSurface::Role::Desktop, {"desktop"}},
+        {PlasmaShellSurface::Role::Panel, {"dock", "panel"}},
+        {PlasmaShellSurface::Role::OnScreenDisplay, {"wallpaper", "onScreenDisplay"}},
+        {PlasmaShellSurface::Role::Notification, {"notification"}},
+        {PlasmaShellSurface::Role::ToolTip, {"tooltip"}},
+    #ifdef D_DEEPIN_KWIN
+        {PlasmaShellSurface::Role::StandAlone, {"launcher", "standAlone"}},
+        {PlasmaShellSurface::Role::Override, {"session-shell", "menu", "wallpaper-set", "override"}},
+    #endif
+    };
+
+    if (QStringLiteral(_DWAYALND_ "window-type") == name) {
+        // 根据 type 设置对应的 role
         const QByteArray &type = value.toByteArray();
-
-        if (type == "normal") {
-            ksurface->setRole(PlasmaShellSurface::Role::Normal);
-        } else if (type == "desktop") {
-            ksurface->setRole(PlasmaShellSurface::Role::Desktop);
-        }else if (type == "dock" || type == "panel") {
-            ksurface->setRole(PlasmaShellSurface::Role::Panel);
-            ksurface->setPanelBehavior(PlasmaShellSurface::PanelBehavior::AlwaysVisible);
-        } else if (type == "wallpaper" || type == "onScreenDisplay") {
-            ksurface->setRole(PlasmaShellSurface::Role::OnScreenDisplay);
-        } else if (type == "notification") {
-            ksurface->setRole(PlasmaShellSurface::Role::Notification);
-        } else if (type == "tooltip") {
-            ksurface->setRole(PlasmaShellSurface::Role::ToolTip);
-        } else if (type == "launcher" || type == "standAlone") {
-#ifdef D_DEEPIN_KWIN
-            ksurface->setRole(PlasmaShellSurface::Role::StandAlone);
-#endif
-        } else if (type == "session-shell" || type == "menu" || type == "wallpaper-set" || type == "override") {
-#ifdef D_DEEPIN_KWIN
-            ksurface->setRole(PlasmaShellSurface::Role::Override);
-#endif
-        } else {
-
+        for (int i = 0; i <= (int)PlasmaShellSurface::Role::ActiveFullScreen; ++i) {
+            PlasmaShellSurface::Role role = PlasmaShellSurface::Role(i);
+            if (role2type.value(role).contains(type)) {
+                ksurface->setRole(role);
+                if (type == "dock" || type == "panel") {
+                    ksurface->setPanelBehavior(PlasmaShellSurface::PanelBehavior::AlwaysVisible);
+                }
+                break;
+            }
         }
-    } else if (QStringLiteral(_DWAYALND_ "staysontop") == name) {
+    }
+    if (QStringLiteral(_DWAYALND_ "staysontop") == name) {
         setWindowStaysOnTop(self, value.toBool());
     }
 }
@@ -445,42 +362,6 @@ void DWaylandShellManager::createStrut(quint32 name, quint32 version)
     Q_ASSERT_X(kwayland_strut, "strut", "Registry create strut failed.");
 }
 
-void DWaylandShellManager::handleKeyEvent(quint32 key, DDEKeyboard::KeyState state, quint32 time)
-{
-    if (current_window && current_window->window() && !current_window->isActive()) {
-        QEvent::Type type = state == DDEKeyboard::KeyState::Pressed ? QEvent::KeyPress : QEvent::KeyRelease;
-//        qCDebug(dwlp) << __func__ << " key " << key << " state " << (int)state << " time " << time;
-
-//#if QT_CONFIG(xkbcommon)
-        if ((!mXkbKeymap || !mXkbState) && !createDefaultKeymap())
-            return;
-
-        auto code = key + 8; // map to wl_keyboard::keymap_format::keymap_format_xkb_v1
-        xkb_keysym_t sym = xkb_state_key_get_one_sym(mXkbState.get(), code);
-        Qt::KeyboardModifiers modifiers = QXkbCommon::modifiers(mXkbState.get());
-        QString text = QXkbCommon::lookupString(mXkbState.get(), code);
-
-        int qtkey = QXkbCommon::keysymToQtKey(sym, modifiers, mXkbState.get(), code);
-         qCDebug(dwlp) << __func__ << "type" << type << "qtkey" << qtkey << "mNativeModifiers" << mNativeModifiers <<
-                          "modifiers" << modifiers << "text" << text;
-        handleKey(current_window->window(), time, type, qtkey, modifiers, code, sym, mNativeModifiers, text);
-//#endif
-    }
-}
-
-void DWaylandShellManager::handleModifiersChanged(quint32 depressed, quint32 latched, quint32 locked, quint32 group)
-{
-    qCDebug(dwlp) << __func__ << " depressed " << depressed <<
-                     " latched " << latched <<
-                     " locked " << locked <<
-                     " group " << group;
-    if (mXkbState)
-        xkb_state_update_mask(mXkbState.get(),
-                              depressed, latched, locked,
-                              0, 0, group);
-    mNativeModifiers = depressed | latched | locked;
-}
-
 void DWaylandShellManager::createDDEKeyboard()
 {
     //create dde keyboard
@@ -585,9 +466,9 @@ void DWaylandShellManager::requestActivateWindow(QPlatformWindow *self)
     VtableHook::originalFun(self, &QPlatformWindow::requestActivateWindow);
 
     if (!self->QPlatformWindow::parent() && ddeShell) {
-        auto qwayland_window = static_cast<QWaylandWindow *>(self);
-        if (qwayland_window) {
-            QWaylandShellSurface *q_shell_surface = qwayland_window->shellSurface();
+        auto qwlWindow = static_cast<QWaylandWindow *>(self);
+        if (qwlWindow) {
+            QWaylandShellSurface *q_shell_surface = qwlWindow->shellSurface();
             auto *dde_shell_surface = ensureDDEShellSurface(q_shell_surface);
             if (dde_shell_surface) {
                 dde_shell_surface->requestActive();

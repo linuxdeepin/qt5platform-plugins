@@ -54,8 +54,6 @@ public:
     static void createServerDecoration(QWaylandWindow *window);
     static void setGeometry(QPlatformWindow *self, const QRect &rect);
     static void pointerEvent(const QPointF &pointF, QEvent::Type type);
-    static void handleKeyEvent(quint32 key, KWayland::Client::DDEKeyboard::KeyState state, quint32 time);
-    static void handleModifiersChanged(quint32 depressed, quint32 latched, quint32 locked, quint32 group);
     static QWaylandShellSurface *createShellSurface(QWaylandShellIntegration *self, QWaylandWindow *window);
     static void createKWaylandShell(quint32 name, quint32 version);
     static void createKWaylandSSD(quint32 name, quint32 version);
@@ -74,7 +72,6 @@ public:
 private:
     // 用于记录设置过以_DWAYALND_开头的属性，当kwyalnd_shell对象创建以后要使这些属性生效
     static QList<QPointer<QWaylandWindow>> send_property_window_list;
-    static QPointer<QWaylandWindow> current_window;
 };
 }
 
