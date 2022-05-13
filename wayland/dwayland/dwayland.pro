@@ -41,6 +41,7 @@ SOURCES += \
         $$PWD/dwaylandintegration.cpp \
         $$PWD/dnotitlebarwindowhelper_wl.cpp \
         $$PWD/dhighdpi.cpp \
+        $$PWD/dxsettings.cpp \
         $$PWD/../../src/global.cpp \
         $$PWD/../../src/vtablehook.cpp \
         $$PWD/../../src/dxcbxsettings.cpp \
@@ -52,6 +53,7 @@ HEADERS += \
         $$PWD/dwaylandintegration.h \
         $$PWD/dnotitlebarwindowhelper_wl.h \
         $$PWD/dhighdpi.h \
+        $$PWD/dxsettings.h \
         $$PWD/../../src/global.h \
         $$PWD/../../src/vtablehook.h \
         $$PWD/../../src/dxcbxsettings.h \

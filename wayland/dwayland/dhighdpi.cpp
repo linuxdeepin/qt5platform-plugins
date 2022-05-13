@@ -20,7 +20,7 @@
  */
 #include "dhighdpi.h"
 #include "vtablehook.h"
-#include "dxcbxsettings.h"
+#include "dxsettings.h"
 #include "dwaylandinterfacehook.h"
 
 #include <QtWaylandClient/private/qwaylandscreen_p.h>
@@ -55,7 +55,7 @@ void DHighDpi::init()
             // 可以禁用此行为
             || qEnvironmentVariableIsSet("D_DXCB_DISABLE_OVERRIDE_HIDPI")
             // 无有效的xsettings时禁用
-            || !DXcbXSettings::getOwner()
+            || !dXSettings->getOwner()
             || (qEnvironmentVariableIsSet("QT_SCALE_FACTOR_ROUNDING_POLICY")
                 && qgetenv("QT_SCALE_FACTOR_ROUNDING_POLICY") != "PassThrough")) {
         return;
@@ -83,7 +83,7 @@ void DHighDpi::init()
 
     qDebug()<<QHighDpiScaling::isActive();
 
-    active = VtableHook::overrideVfptrFun(&QtWaylandClient::QWaylandScreen::logicalDpi, logicalDpi);
+    active = HookOverride(&QtWaylandClient::QWaylandScreen::logicalDpi, logicalDpi);
  }
 
 bool DHighDpi::isActive()
@@ -112,13 +112,13 @@ QDpi DHighDpi::logicalDpi(QtWaylandClient::QWaylandScreen *s)
 
     int dpi = 0;
 
-    QVariant value = DWaylandInterfaceHook::globalSettings()->setting("Qt/DPI/" + s->name().toLocal8Bit());    bool ok = false;
+    QVariant value = dXSettings->globalSettings()->setting("Qt/DPI/" + s->name().toLocal8Bit());    bool ok = false;
 
     dpi = value.toInt(&ok);
 
     // fallback
     if (!ok) {
-        value = DWaylandInterfaceHook::globalSettings()->setting("Xft/DPI");
+        value = dXSettings->globalSettings()->setting("Xft/DPI");
         dpi = value.toInt(&ok);
     }
 

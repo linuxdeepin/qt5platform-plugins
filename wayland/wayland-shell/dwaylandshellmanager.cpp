@@ -269,17 +269,15 @@ QWaylandShellSurface *DWaylandShellManager::createShellSurface(QWaylandShellInte
     // 设置窗口位置, 默认都需要设置，同时判断如果窗口并没有移动过，则不需要再设置位置，而是由窗管默认平铺显示
     bool bSetPosition = true;
     QWidgetWindow *widgetWin = static_cast<QWidgetWindow*>(window->window());
-    if (widgetWin->inherits("QWidgetWindow")) {
-        if (widgetWin->widget()) {
-            if (!widgetWin->widget()->testAttribute(Qt::WA_Moved)) {
-                bSetPosition = false;
-            }
+    if (widgetWin->inherits("QWidgetWindow") && widgetWin->widget()) {
+        if (!widgetWin->widget()->testAttribute(Qt::WA_Moved)) {
+            bSetPosition = false;
+        }
 
-            // 1. dabstractdialog 的 showevent 中会主动move到屏幕居中的位置, 即 setAttribute(Qt::WA_Moved)。
-            // 2. 有 parent(ddialog dlg(this)) 的 window 窗管会主动调整位置，没有设置parent的才需要插件调整位置 如 ddialog dlg;
-            if (window->transientParent() && !widgetWin->widget()->inherits("QMenu")) {
-                bSetPosition = false;
-            }
+        // 1. dabstractdialog 的 showevent 中会主动move到屏幕居中的位置, 即 setAttribute(Qt::WA_Moved)。
+        // 2. 有 parent(ddialog dlg(this)) 的 window 窗管会主动调整位置，没有设置parent的才需要插件调整位置 如 ddialog dlg;
+        if (window->transientParent() && !widgetWin->widget()->inherits("QMenu")) {
+            bSetPosition = false;
         }
     }
 
@@ -302,9 +300,7 @@ QWaylandShellSurface *DWaylandShellManager::createShellSurface(QWaylandShellInte
 
     // 如果kwayland的server窗口装饰已转变完成，则为窗口创建边框
     if (kwayland_ssd) {
-        QObject::connect(window, &QWaylandWindow::shellSurfaceCreated, [window] {
-            createServerDecoration(window);
-        });
+        QObject::connect(window, &QWaylandWindow::shellSurfaceCreated, std::bind(createServerDecoration, window));
     } else {
         qDebug()<<"====kwayland_ssd creat failed";
     }
@@ -516,15 +512,17 @@ void DWaylandShellManager::handleWindowStateChanged(QWaylandWindow *window)
         return;
 
 #define d_oldState QStringLiteral("_d_oldState")
-    window->setProperty(d_oldState, (int)getwindowStates(ddeShellSurface));
-#define STATE_CHANGED(sig) \
-    QObject::connect(ddeShellSurface, &KCDFace::sig, window, [window, ddeShellSurface](){\
-        qCDebug(dwlp) << "==== "#sig ;\
-        const Qt::WindowStates &newState = getwindowStates(ddeShellSurface); \
-        const int &oldState = window->property(d_oldState).toInt(); \
+
+#define STATE_CHANGED(sig)                                                                      \
+    QObject::connect(ddeShellSurface, &KCDFace::sig, window, [window, ddeShellSurface](){       \
+        qCDebug(dwlp) << "==== "#sig ;                                                          \
+        const Qt::WindowStates &newState = getwindowStates(ddeShellSurface);                    \
+        const int &oldState = window->property(d_oldState).toInt();                             \
         QWindowSystemInterface::handleWindowStateChanged(window->window(), newState, oldState); \
-        window->setProperty(d_oldState, static_cast<int>(newState)); \
+        window->setProperty(d_oldState, static_cast<int>(newState));                            \
     })
+
+    window->setProperty(d_oldState, (int)getwindowStates(ddeShellSurface));
 
     STATE_CHANGED(minimizedChanged);
     STATE_CHANGED(maximizedChanged);
@@ -536,14 +534,14 @@ void DWaylandShellManager::handleWindowStateChanged(QWaylandWindow *window)
             QWindowSystemInterface::handleWindowActivated(w, Qt::FocusReason::ActiveWindowFocusReason);
     });
 
-#define SYNC_FLAG(sig, enableFunc, flag) \
-    QObject::connect(ddeShellSurface, &KCDFace::sig, window, [window, ddeShellSurface](){ \
-        qCDebug(dwlp) << "==== "#sig << (enableFunc); \
-        window->window()->setFlag(flag, enableFunc);\
+#define SYNC_FLAG(sig, enableFunc, flag)                                                    \
+    QObject::connect(ddeShellSurface, &KCDFace::sig, window, [window, ddeShellSurface](){   \
+        qCDebug(dwlp) << "==== "#sig << (enableFunc);                                       \
+        window->window()->setFlag(flag, enableFunc);                                        \
     })
 
-//    SYNC_FLAG(keepAboveChanged, ddeShellSurface->isKeepAbove(), Qt::WindowStaysOnTopHint);
-    QObject::connect(ddeShellSurface, &KCDFace::keepAboveChanged, window, [window, ddeShellSurface](){ \
+    // SYNC_FLAG(keepAboveChanged, ddeShellSurface->isKeepAbove(), Qt::WindowStaysOnTopHint);
+    QObject::connect(ddeShellSurface, &KCDFace::keepAboveChanged, window, [window, ddeShellSurface](){
         bool isKeepAbove = ddeShellSurface->isKeepAbove();
         qCDebug(dwlp) << "==== keepAboveChanged" << isKeepAbove;
         window->window()->setProperty(_DWAYALND_ "staysontop", isKeepAbove);

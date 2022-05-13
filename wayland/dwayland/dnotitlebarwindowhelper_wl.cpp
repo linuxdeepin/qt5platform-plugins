@@ -145,16 +145,18 @@ void DNoTitlebarWlWindowHelper::updateEnableSystemMoveFromProperty()
     m_enableSystemMove = !v.isValid() || v.toBool();
 
     if (m_enableSystemMove) {
-        HookOverride(m_window, &QWindow::event, this, &DNoTitlebarWlWindowHelper::windowEvent);
+        using namespace std::placeholders;
+        auto hook = std::bind(&DNoTitlebarWlWindowHelper::windowEvent, _1, _2, this);
+        HookOverride(m_window, &QWindow::event, hook);
     } else if (VtableHook::hasVtable(m_window)) {
         HookReset(m_window, &QWindow::event);
     }
 }
 
-bool DNoTitlebarWlWindowHelper::windowEvent(QEvent *event)
+bool DNoTitlebarWlWindowHelper::windowEvent(QWindow *w, QEvent *event, DNoTitlebarWlWindowHelper *self)
 {
-    QWindow *w = this->window();
-    DNoTitlebarWlWindowHelper *self = mapped.value(w);
+    // m_window 的 event 被 override 以后，在 windowEvent 里面获取到的 this 就成 m_window 了，
+    // 而不是 DNoTitlebarWlWindowHelper，所以此处 windowEvent 改为 static 并传 self 进来
     bool is_mouse_move = event->type() == QEvent::MouseMove && static_cast<QMouseEvent*>(event)->buttons() == Qt::LeftButton;
 
     if (event->type() == QEvent::MouseButtonRelease) {
