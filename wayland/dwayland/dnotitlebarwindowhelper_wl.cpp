@@ -26,6 +26,7 @@
 #undef protected
 #include <QMouseEvent>
 #include <QGuiApplication>
+#include <QStyleHints>
 #include <QTimer>
 #include <QMetaProperty>
 #include <QScreen>
@@ -157,6 +158,29 @@ bool DNoTitlebarWlWindowHelper::windowEvent(QWindow *w, QEvent *event, DNoTitleb
 {
     // m_window 的 event 被 override 以后，在 windowEvent 里面获取到的 this 就成 m_window 了，
     // 而不是 DNoTitlebarWlWindowHelper，所以此处 windowEvent 改为 static 并传 self 进来
+    {
+        // get touch begin position
+        static bool isTouchDown = false;
+        static QPointF touchBeginPosition;
+        if (event->type() == QEvent::TouchBegin) {
+            isTouchDown = true;
+        }
+        if (event->type() == QEvent::TouchEnd || event->type() == QEvent::MouseButtonRelease) {
+            isTouchDown = false;
+        }
+        if (isTouchDown && event->type() == QEvent::MouseButtonPress) {
+            touchBeginPosition = static_cast<QMouseEvent*>(event)->globalPos();
+        }
+        // add some redundancy to distinguish trigger between system menu and system move
+        if (event->type() == QEvent::MouseMove) {
+            QPointF currentPos = static_cast<QMouseEvent*>(event)->globalPos();
+            QPointF delta = touchBeginPosition  - currentPos;
+            if (delta.manhattanLength() < QGuiApplication::styleHints()->startDragDistance()) {
+                return VtableHook::callOriginalFun(w, &QWindow::event, event);
+            }
+        }
+    }
+
     bool is_mouse_move = event->type() == QEvent::MouseMove && static_cast<QMouseEvent*>(event)->buttons() == Qt::LeftButton;
 
     if (event->type() == QEvent::MouseButtonRelease) {
