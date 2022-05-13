@@ -37,7 +37,7 @@ QPlatformIntegration* DWaylandIntegrationPlugin::create(const QString& system, c
 #ifdef Q_OS_LINUX
     Q_UNUSED(system);
     Q_UNUSED(paramList);
-    auto *integration =  new DWaylandIntegration();
+    auto *integration = DWaylandIntegration::instance();
 
     if (integration->hasFailed()) {
         delete integration;

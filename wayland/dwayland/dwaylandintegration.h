@@ -29,17 +29,16 @@ DPP_BEGIN_NAMESPACE
 
 class DWaylandIntegration : public QtWaylandClient::QWaylandIntegration
 {
-public:
-    static DWaylandIntegration *instance()
-    { return m_instance; }
     DWaylandIntegration();
+public:
+    static DWaylandIntegration *instance() {
+        static DWaylandIntegration *integration = new DWaylandIntegration;
+        return integration;
+    }
 
     void initialize() override;
     QStringList themeNames() const override;
     QVariant styleHint(StyleHint hint) const override;
-
-private:
-    static DWaylandIntegration *m_instance;
 };
 
 DPP_END_NAMESPACE

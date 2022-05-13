@@ -39,12 +39,15 @@ class DXcbXSettings;
 class DWaylandInterfaceHook
 {
 public:
-    static void init();
+    static DWaylandInterfaceHook *instance() {
+        static DWaylandInterfaceHook *hook = new DWaylandInterfaceHook;
+        return hook;
+    }
     static QFunctionPointer platformFunction(QPlatformNativeInterface *interface, const QByteArray &function);
-    static thread_local QHash<QByteArray, QFunctionPointer> functionCache;
 
     static bool buildNativeSettings(QObject *object, quint32 settingWindow);
     static void clearNativeSettings(quint32 settingWindow);
+
     static bool setEnableNoTitlebar(QWindow *window, bool enable);
     static bool isEnableNoTitlebar(QWindow *window);
     static bool setWindowRadius(QWindow *window, int value);
@@ -54,12 +57,6 @@ public:
     static bool isEnableDwayland(const QWindow *window);
     static void splitWindowOnScreen(WId wid, quint32 type);
     static bool supportForSplittingWindow(WId wid);
-    static DXcbXSettings *globalSettings();
-
-private:
-    static QPlatformNativeInterface* m_nativeinterface;
-    static xcb_connection_t *xcb_connection;
-    static DXcbXSettings *m_xsettings;
 };
 
 DPP_END_NAMESPACE
