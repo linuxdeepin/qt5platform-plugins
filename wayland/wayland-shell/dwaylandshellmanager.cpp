@@ -25,18 +25,18 @@ namespace QtWaylandClient {
 
 namespace {
     // kwayland中PlasmaShell的全局对象，用于使用kwayland中的扩展协议
-    static QPointer<PlasmaShell> kwayland_shell;
+    PlasmaShell *kwayland_shell = nullptr;
     // kwin合成器提供的窗口边框管理器
-    static QPointer<ServerSideDecorationManager> kwayland_ssd;
+    ServerSideDecorationManager *kwayland_ssd = nullptr;
     // 创建ddeshell
-    static QPointer<DDEShell> ddeShell;
+    DDEShell *ddeShell = nullptr;
     // kwayland
-    static QPointer<Strut> kwayland_strut;
-    static QPointer<DDESeat> kwayland_dde_seat;
-    static QPointer<DDETouch> kwayland_dde_touch;
-    static QPointer<DDEPointer> kwayland_dde_pointer;
-    static QPointer<FakeInput> kwayland_dde_fake_input;
-    static QPointer<DDEKeyboard> kwayland_dde_keyboard;
+    Strut *kwayland_strut = nullptr;
+    DDESeat *kwayland_dde_seat = nullptr;
+    DDETouch *kwayland_dde_touch = nullptr;
+    DDEPointer *kwayland_dde_pointer = nullptr;
+    FakeInput *kwayland_dde_fake_input = nullptr;
+    DDEKeyboard *kwayland_dde_keyboard = nullptr;
 };
 
 QList<QPointer<QWaylandWindow>> DWaylandShellManager::send_property_window_list;
