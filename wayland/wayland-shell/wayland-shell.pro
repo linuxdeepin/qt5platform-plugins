@@ -25,7 +25,7 @@ qtCompileTest(deepin-kwin-test) {
 }
 
 DESTDIR = $$_PRO_FILE_PWD_/../../bin/plugins/wayland-shell-integration
-DEFINES += QT5DWAYLANDPLUGIN_LIBRARY
+DEFINES += QT5DWAYLANDPLUGIN_LIBRARY HAS_FAKEINPUT=0
 
 # The following define makes your compiler emit warnings if you use
 # any feature of Qt which has been marked as deprecated (the exact warnings

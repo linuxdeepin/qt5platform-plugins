@@ -19,7 +19,9 @@
 #include <KWayland/Client/ddeseat.h>
 #include <KWayland/Client/ddekeyboard.h>
 #include <KWayland/Client/strut.h>
+#if HAS_FAKEINPUT
 #include <KWayland/Client/fakeinput.h>
+#endif
 
 #include <QGuiApplication>
 #include <QPointer>
@@ -62,7 +64,9 @@ public:
     static void createStrut(quint32 name, quint32 version);
     static void createDDEPointer();
     static void createDDEKeyboard();
+#if HAS_FAKEINPUT
     static void createDDEFakeInput();
+#endif
     static void handleGeometryChange(QWaylandWindow *window);
     static void handleWindowStateChanged(QWaylandWindow *window);
     static void setWindowStaysOnTop(QWaylandShellSurface *surface, const bool state);
