@@ -20,6 +20,7 @@
 #include <qpa/qplatformnativeinterface.h>
 #include <private/qguiapplication_p.h>
 #include <private/qwidgetwindow_p.h>
+#include <QDebug>
 
 // 用于窗口设置和dwayland相关的特殊属性的前缀
 // 以_d_dwayland_开头的属性需要做特殊处理，一般是用于和kwayland的交互
@@ -44,6 +45,13 @@ QWaylandShellIntegration *QKWaylandShellIntegrationPlugin::create(const QString 
     Q_UNUSED(paramList)
     auto wayland_integration = static_cast<QWaylandIntegration *>(QGuiApplicationPrivate::platformIntegration());
     auto shell = wayland_integration->createShellIntegration("xdg-shell-v6");
+    if (!shell)
+        shell = wayland_integration->createShellIntegration("xdg-shell");
+
+    if (!shell) {
+        qCritical("create xdg-shell Integration failed!");
+        return nullptr;
+    }
 
     HookOverride(shell, &QWaylandShellIntegration::createShellSurface, DWaylandShellManager::createShellSurface);
 
