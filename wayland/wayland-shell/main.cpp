@@ -44,6 +44,12 @@ QWaylandShellIntegration *QKWaylandShellIntegrationPlugin::create(const QString 
     Q_UNUSED(paramList)
     auto wayland_integration = static_cast<QWaylandIntegration *>(QGuiApplicationPrivate::platformIntegration());
     auto shell = wayland_integration->createShellIntegration("xdg-shell-v6");
+    if (!shell) {
+        shell = wayland_integration->createShellIntegration("xdg-shell");
+    }
+    if (!shell) {
+        return nullptr;
+    }
 
     HookOverride(shell, &QWaylandShellIntegration::createShellSurface, DWaylandShellManager::createShellSurface);
 
