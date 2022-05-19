@@ -59,7 +59,9 @@ private:
 
     static bool active;
     static QDpi oldDpi;
+#if QT_VERSION < QT_VERSION_CHECK(5, 14, 0)
     static QHash<QPlatformScreen*, qreal> screenFactorMap;
+#endif
 };
 
 DPP_END_NAMESPACE
