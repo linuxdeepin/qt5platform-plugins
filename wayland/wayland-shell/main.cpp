@@ -62,17 +62,24 @@ QWaylandShellIntegration *QKWaylandShellIntegrationPlugin::create(const QString 
             &DWaylandShellManager::createDDEShell);
 
     //创建ddeseat
-    connect(registry, &KWayland::Client::Registry::ddeSeatAnnounced,
+    connect(registry, &Registry::ddeSeatAnnounced,
             &DWaylandShellManager::createDDESeat);
 
-    connect(registry, &KWayland::Client::Registry::interfacesAnnounced, [] {
+    connect(registry, &Registry::interfacesAnnounced, [] {
         DWaylandShellManager::createDDEPointer();
         DWaylandShellManager::createDDEKeyboard();
         DWaylandShellManager::createDDEFakeInput();
     });
 
-    connect(registry, &KWayland::Client::Registry::strutAnnounced,
+    connect(registry, &Registry::strutAnnounced,
             &DWaylandShellManager::createStrut);
+
+    connect(registry, &Registry::blurAnnounced, [](quint32 name, quint32 version) {
+        DWaylandShellManager::createBlur(name, version);
+    });
+    QObject::connect(registry, &Registry::compositorAnnounced, [](quint32 name, quint32 version){
+        DWaylandShellManager::createCompositor(name, version);
+    });
 
     registry->setup();
 

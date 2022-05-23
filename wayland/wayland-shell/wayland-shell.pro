@@ -48,20 +48,23 @@ SOURCES += \
         $$PWD/main.cpp \
         $$PWD/dwaylandshellmanager.cpp \
         $$PWD/dkeyboard.cpp \
+        $$PWD/blureffect.cpp \
         $$PWD/../../src/global.cpp \
         $$PWD/../../src/vtablehook.cpp
 
 HEADERS += \
+        $$PWD/shell_common.h \
         $$PWD/qt5dwayland-plugin_global.h \
         $$PWD/dwaylandshellmanager.h \
         $$PWD/dkeyboard.h \
+        $$PWD/blureffect.h \
         $$PWD/../../src/global.h \
         $$PWD/../../src/vtablehook.h
 
 qtHaveModule(waylandclient_private) : QT += waylandclient_private
 else: INCLUDEPATH += $$PWD/../qtwayland-dev
 
-INCLUDEPATH += ../../src
+INCLUDEPATH += ../../src ..
 
 OTHER_FILES += \
     kwayland-shell.json

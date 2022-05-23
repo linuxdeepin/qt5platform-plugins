@@ -1,6 +1,8 @@
 #include "dwaylandshellmanager.h"
 #include "dkeyboard.h"
 #include "global.h"
+#include "wl_utility.h"
+#include "blureffect.h"
 
 #define protected public
 #include <qwindow.h>
@@ -8,6 +10,7 @@
 
 #include <QtWaylandClientVersion>
 #include <QLoggingCategory>
+#include <private/qhighdpiscaling_p.h>
 
 #ifndef QT_DEBUG
 Q_LOGGING_CATEGORY(dwlp, "dtk.wayland.plugin" , QtInfoMsg);
@@ -16,29 +19,13 @@ Q_LOGGING_CATEGORY(dwlp, "dtk.wayland.plugin");
 #endif
 
 DPP_USE_NAMESPACE
+using namespace DWaylandPointer;
 
 #define _DWAYALND_ "_d_dwayland_"
 #define CHECK_PREFIX(key) (key.startsWith(_DWAYALND_) || key.startsWith("_d_"))
 #define wlDisplay reinterpret_cast<wl_display *>(QGuiApplication::platformNativeInterface()->nativeResourceForWindow("display", nullptr))
 
 namespace QtWaylandClient {
-
-namespace {
-    // kwayland中PlasmaShell的全局对象，用于使用kwayland中的扩展协议
-    PlasmaShell *kwayland_shell = nullptr;
-    // kwin合成器提供的窗口边框管理器
-    ServerSideDecorationManager *kwayland_ssd = nullptr;
-    // 创建ddeshell
-    DDEShell *ddeShell = nullptr;
-    // kwayland
-    Strut *kwayland_strut = nullptr;
-    DDESeat *kwayland_dde_seat = nullptr;
-    DDETouch *kwayland_dde_touch = nullptr;
-    DDEPointer *kwayland_dde_pointer = nullptr;
-    FakeInput *kwayland_dde_fake_input = nullptr;
-    DDEKeyboard *kwayland_dde_keyboard = nullptr;
-};
-
 QList<QPointer<QWaylandWindow>> DWaylandShellManager::send_property_window_list;
 
 inline static wl_surface *getWindowWLSurface(QWaylandWindow *window)
@@ -158,6 +145,21 @@ void DWaylandShellManager::sendProperty(QWaylandShellSurface *self, const QStrin
             wlWindow->window()->setProperty(supportForSplittingWindow, dde_shell_surface->isSplitable());
             return;
         }
+    }
+
+    if (!name.compare(enableBlurWindow)) {
+        bool enable = value.toBool();
+        blurEffect(wlWindow)->enableBlur(enable);
+    } else if (!name.compare(windowBlurAreas)) {
+        const QVector<quint32> &v = qvariant_cast<QVector<quint32>>(value);
+        const QVector<WlUtility::BlurArea> &areas = *(reinterpret_cast<const QVector<WlUtility::BlurArea>*>(&v));
+        blurEffect(wlWindow)->updateBlurAreas(areas);
+    } else if (!name.compare(windowBlurPaths)) {
+        const QList<QPainterPath> paths = qvariant_cast<QList<QPainterPath>>(value);
+        blurEffect(wlWindow)->updateBlurPaths(paths);
+    } else if (!name.compare(clipPath)) {
+        const QList<QPainterPath> paths = qvariant_cast<QList<QPainterPath>>(value);
+        blurEffect(wlWindow)->updateClipPaths(paths);
     }
 
     // 将popup的窗口设置为tooltop层级, 包括qmenu，combobox弹出窗口
@@ -357,6 +359,19 @@ void DWaylandShellManager::createStrut(quint32 name, quint32 version)
 {
     kwayland_strut = registry()->createStrut(name, version, registry()->parent());
     Q_ASSERT_X(kwayland_strut, "strut", "Registry create strut failed.");
+}
+
+void DWaylandShellManager::createBlur(quint32 name, quint32 version) {
+    kwayland_blur_manager = registry()->createBlurManager(name, version);
+    if (!kwayland_compositor) {
+        qCWarning(dwlp) << "Error, kwayland_compositor not created";
+        return;
+    }
+    kwayland_surface = kwayland_compositor->createSurface();
+}
+
+void DWaylandShellManager::createCompositor(quint32 name, quint32 version) {
+    kwayland_compositor = registry()->createCompositor(name, version);
 }
 
 void DWaylandShellManager::createDDEKeyboard()

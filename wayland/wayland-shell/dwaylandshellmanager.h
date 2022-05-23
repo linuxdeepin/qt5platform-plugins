@@ -1,35 +1,7 @@
 #ifndef DWaylandShellManager_H
 #define DWaylandShellManager_H
 
-#include "vtablehook.h"
-
-#define private public
-#include "QtWaylandClient/private/qwaylandintegration_p.h"
-#include "QtWaylandClient/private/qwaylandshellintegrationplugin_p.h"
-#include "QtWaylandClient/private/qwaylandshellintegration_p.h"
-#include "QtWaylandClient/private/qwaylandshellsurface_p.h"
-#include "QtWaylandClient/private/qwaylandwindow_p.h"
-#include "QtWaylandClient/private/qwaylandcursor_p.h"
-#undef private
-
-#include <KWayland/Client/registry.h>
-#include <KWayland/Client/plasmashell.h>
-#include <KWayland/Client/server_decoration.h>
-#include <KWayland/Client/ddeshell.h>
-#include <KWayland/Client/ddeseat.h>
-#include <KWayland/Client/ddekeyboard.h>
-#include <KWayland/Client/strut.h>
-#include <KWayland/Client/fakeinput.h>
-
-#include <QGuiApplication>
-#include <QPointer>
-#include <QDebug>
-#include <qpa/qplatformnativeinterface.h>
-#include <private/qguiapplication_p.h>
-#include <private/qwidgetwindow_p.h>
-
-DPP_USE_NAMESPACE
-using namespace KWayland::Client;
+#include "shell_common.h"
 
 namespace QtWaylandClient {
 
@@ -60,6 +32,8 @@ public:
     static void createDDEShell(quint32 name, quint32 version);
     static void createDDESeat(quint32 name, quint32 version);
     static void createStrut(quint32 name, quint32 version);
+    static void createBlur(quint32 name, quint32 version);
+    static void createCompositor(quint32 name, quint32 version);
     static void createDDEPointer();
     static void createDDEKeyboard();
     static void createDDEFakeInput();

@@ -57,6 +57,8 @@ public:
     static bool isEnableDwayland(const QWindow *window);
     static void splitWindowOnScreen(WId wid, quint32 type);
     static bool supportForSplittingWindow(WId wid);
+    static bool hasBlurWindow();
+    static bool enableBlurWindow(WId wid, bool enable);
 };
 
 DPP_END_NAMESPACE

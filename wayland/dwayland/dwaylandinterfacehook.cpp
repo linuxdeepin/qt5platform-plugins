@@ -1,4 +1,4 @@
-/*
+ /*
  * Copyright (C) 2017 ~ 2020 Deepin Technology Co., Ltd.
  *
  * This program is free software: you can redistribute it and/or modify
@@ -51,7 +51,9 @@ static QFunctionPointer getFunction(const QByteArray &function)
         {enableDwayland, reinterpret_cast<QFunctionPointer>(&DWaylandInterfaceHook::enableDwayland)},
         {isEnableDwayland, reinterpret_cast<QFunctionPointer>(&DWaylandInterfaceHook::isEnableDwayland)},
         {splitWindowOnScreen, reinterpret_cast<QFunctionPointer>(&DWaylandInterfaceHook::splitWindowOnScreen)},
-        {supportForSplittingWindow, reinterpret_cast<QFunctionPointer>(&DWaylandInterfaceHook::supportForSplittingWindow)}
+        {supportForSplittingWindow, reinterpret_cast<QFunctionPointer>(&DWaylandInterfaceHook::supportForSplittingWindow)},
+        {hasBlurWindow, reinterpret_cast<QFunctionPointer>(&DWaylandInterfaceHook::hasBlurWindow)},
+        {enableBlurWindow, reinterpret_cast<QFunctionPointer>(&DWaylandInterfaceHook::enableBlurWindow)}
     };
     return functionCache.value(function);
 }
@@ -185,6 +187,21 @@ bool DWaylandInterfaceHook::supportForSplittingWindow(WId wid)
         return false;
     DNoTitlebarWlWindowHelper::setWindowProperty(window, ::supportForSplittingWindow, false);
     return window->property(::supportForSplittingWindow).toBool();
+}
+
+bool DWaylandInterfaceHook::hasBlurWindow() {
+    return true;
+}
+
+bool DWaylandInterfaceHook::enableBlurWindow(WId wid, bool enable)
+{
+    QWindow *window = fromQtWinId(wid);
+    if(!window || !window->handle())
+        return false;
+
+    DNoTitlebarWlWindowHelper::sendWindowProperty(window, ::enableBlurWindow, enable);
+    bool res = window->property(::enableBlurWindow).toBool();
+    return res;
 }
 
 DPP_END_NAMESPACE

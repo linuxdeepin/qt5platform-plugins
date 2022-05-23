@@ -20,6 +20,7 @@
  */
 #include "dnotitlebarwindowhelper_wl.h"
 #include "vtablehook.h"
+#include "wl_utility.h"
 
 #define protected public
 #include <QWindow>
@@ -56,7 +57,12 @@ DNoTitlebarWlWindowHelper::DNoTitlebarWlWindowHelper(QWindow *window)
 
     mapped[window] = this;
 
+    m_window->setProperty(enableSystemMove, true);
+
     updateEnableSystemMoveFromProperty();
+    updateEnableBlurWindowFromProperty();
+    updateWindowBlurPathsFromProperty();
+    updateWindowBlurAreasFromProperty();
 }
 
 DNoTitlebarWlWindowHelper::~DNoTitlebarWlWindowHelper()
@@ -72,6 +78,27 @@ DNoTitlebarWlWindowHelper::~DNoTitlebarWlWindowHelper()
     //     //! Utility::clearWindowProperty(m_windowID, Utility::internAtom(_DEEPIN_SCISSOR_WINDOW));
     //     DPlatformIntegration::clearNativeSettings(m_windowID);
     // }
+}
+
+void DNoTitlebarWlWindowHelper::sendWindowProperty(QWindow *window, const char *name, const QVariant &value)
+{
+    const QVariant &old_value = window->property(name);
+
+    if (old_value.isValid() && old_value == value)
+        return;
+
+    if (!window)
+        return;
+
+    window->setProperty(name, value);
+
+    if (window->handle()) {
+        QtWaylandClient::QWaylandWindow *wl_window = static_cast<QtWaylandClient::QWaylandWindow *>(window->handle());
+
+        if (wl_window->shellSurface()) {
+            wl_window->sendProperty(name, value);
+        }
+    }
 }
 
 void DNoTitlebarWlWindowHelper::setWindowProperty(QWindow *window, const char *name, const QVariant &value)
@@ -101,7 +128,11 @@ void DNoTitlebarWlWindowHelper::setWindowProperty(QWindow *window, const char *n
         if (wl_window->shellSurface())
             wl_window->sendProperty(name, value);
     }
+    propertyBatchUpdate(window, name);
+}
 
+void DNoTitlebarWlWindowHelper::propertyBatchUpdate(QWindow *window, const char *name)
+{
     if (DNoTitlebarWlWindowHelper *self = mapped.value(window)) {
 
         QByteArray name_array(name);
@@ -138,12 +169,11 @@ void DNoTitlebarWlWindowHelper::popupSystemWindowMenu(quintptr wid)
     }
 }
 
-
 void DNoTitlebarWlWindowHelper::updateEnableSystemMoveFromProperty()
 {
     const QVariant &v = m_window->property(enableSystemMove);
 
-    m_enableSystemMove = !v.isValid() || v.toBool();
+    m_enableSystemMove = v.toBool();
 
     if (m_enableSystemMove) {
         using namespace std::placeholders;
@@ -152,6 +182,54 @@ void DNoTitlebarWlWindowHelper::updateEnableSystemMoveFromProperty()
     } else if (VtableHook::hasVtable(m_window)) {
         HookReset(m_window, &QWindow::event);
     }
+}
+
+void DNoTitlebarWlWindowHelper::updateEnableBlurWindowFromProperty()
+{
+    qInfo() << "updateEnableBlurWindowFromProperty 1";
+    const QVariant &v = m_window->property(enableBlurWindow);
+    if (!v.isValid()) {
+        return;
+    }
+    sendWindowProperty(m_window, enableBlurWindow, QVariant::fromValue(v));
+    qInfo() << "updateEnableBlurWindowFromProperty 2";
+}
+
+void DNoTitlebarWlWindowHelper::updateWindowBlurPathsFromProperty()
+{
+    qInfo() << "updateWindowBlurPathsFromProperty 1";
+    const QVariant &v = m_window->property(windowBlurPaths);
+    if (!v.isValid()) {
+        return;
+    }
+    const QList<QPainterPath> paths = qvariant_cast<QList<QPainterPath>>(v);
+    sendWindowProperty(m_window, windowBlurPaths, QVariant::fromValue(paths));
+    qInfo() << "updateWindowBlurPathsFromProperty 2";
+}
+
+void DNoTitlebarWlWindowHelper::updateWindowBlurAreasFromProperty()
+{
+    qInfo() << "updateWindowBlurAreasFromProperty 1";
+    const QVariant &v = m_window->property(windowBlurAreas);
+    if (!v.isValid()) {
+        return;
+    }
+    const QVector<quint32> &tmpV = qvariant_cast<QVector<quint32>>(v);
+    const QVector<WlUtility::BlurArea> &a = *(reinterpret_cast<const QVector<WlUtility::BlurArea>*>(&tmpV));
+    sendWindowProperty(m_window, windowBlurAreas, QVariant::fromValue(a));
+    qInfo() << "updateWindowBlurAreasFromProperty 2";
+}
+
+void DNoTitlebarWlWindowHelper::updateClipPathFromProperty()
+{
+    qInfo() << "updateClipPathFromProperty 1";
+    const QVariant &v = m_window->property(clipPath);
+    if (!v.isValid()) {
+        return;
+    }
+    const QList<QPainterPath> &paths{qvariant_cast<QPainterPath>(v)};
+    sendWindowProperty(m_window, clipPath, QVariant::fromValue(paths));
+    qInfo() << "updateClipPathFromProperty 2";
 }
 
 bool DNoTitlebarWlWindowHelper::windowEvent(QWindow *w, QEvent *event, DNoTitlebarWlWindowHelper *self)

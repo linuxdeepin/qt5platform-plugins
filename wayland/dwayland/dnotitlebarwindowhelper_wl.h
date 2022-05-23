@@ -41,12 +41,19 @@ public:
     explicit DNoTitlebarWlWindowHelper(QWindow *window);
     ~DNoTitlebarWlWindowHelper();
 
+    static void sendWindowProperty(QWindow *window, const char *name, const QVariant &value);
     static void setWindowProperty(QWindow *window, const char *name, const QVariant &value);
+    static void propertyBatchUpdate(QWindow *window, const char *name);
     static void popupSystemWindowMenu(quintptr wid);
 
-private slots:
+private Q_SLOTS:
     // update properties
-    Q_SLOT void updateEnableSystemMoveFromProperty();
+    void updateEnableSystemMoveFromProperty();
+
+    void updateEnableBlurWindowFromProperty();
+    void updateWindowBlurPathsFromProperty();
+    void updateWindowBlurAreasFromProperty();
+    void updateClipPathFromProperty();
 
 private:
     static bool windowEvent(QWindow *w, QEvent *event, DNoTitlebarWlWindowHelper *self);
@@ -59,6 +66,11 @@ private:
 
     // properties
     bool m_enableSystemMove = true;
+//    bool m_enableBlurWindow = false;
+
+//private:
+//    QPainterPath m_clipPath;
+//    QList<QPainterPath> m_blurPathList;
 
 public:
     static QHash<const QWindow*, DNoTitlebarWlWindowHelper*> mapped;

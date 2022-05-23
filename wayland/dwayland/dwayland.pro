@@ -42,6 +42,7 @@ SOURCES += \
         $$PWD/dnotitlebarwindowhelper_wl.cpp \
         $$PWD/dhighdpi.cpp \
         $$PWD/dxsettings.cpp \
+        $$PWD/../wl_utility.cpp \
         $$PWD/../../src/global.cpp \
         $$PWD/../../src/vtablehook.cpp \
         $$PWD/../../src/dxcbxsettings.cpp \
@@ -54,6 +55,7 @@ HEADERS += \
         $$PWD/dnotitlebarwindowhelper_wl.h \
         $$PWD/dhighdpi.h \
         $$PWD/dxsettings.h \
+        $$PWD/../wl_utility.h \
         $$PWD/../../src/global.h \
         $$PWD/../../src/vtablehook.h \
         $$PWD/../../src/dxcbxsettings.h \
@@ -64,7 +66,7 @@ HEADERS += \
 qtHaveModule(waylandclient_private) : QT += waylandclient_private
 else: INCLUDEPATH += $$PWD/../qtwayland-dev
 
-INCLUDEPATH += ../../src
+INCLUDEPATH += ../../src ..
 
 OTHER_FILES += \
     dwayland.json
