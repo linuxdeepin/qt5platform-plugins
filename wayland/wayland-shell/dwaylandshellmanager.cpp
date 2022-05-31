@@ -158,6 +158,10 @@ void DWaylandShellManager::sendProperty(QWaylandShellSurface *self, const QStrin
             wlWindow->window()->setProperty(supportForSplittingWindow, dde_shell_surface->isSplitable());
             return;
         }
+        if (!name.compare(windowInWorkSpace)) {
+            dde_shell_surface->requestOnAllDesktops(value.toBool());
+            qCDebug(dwlp()) << "### requestOnAllDesktops" << name << value;
+        }
     }
 
     // 将popup的窗口设置为tooltop层级, 包括qmenu，combobox弹出窗口
