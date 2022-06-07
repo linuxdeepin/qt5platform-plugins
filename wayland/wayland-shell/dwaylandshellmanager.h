@@ -51,6 +51,7 @@ public:
     static void requestActivateWindow(QPlatformWindow *self);
     static bool disableClientDecorations(QWaylandShellSurface *surface);
     static QMargins frameMargins(QPlatformWindow *self);
+    static void setWindowFlags(QPlatformWindow *self, Qt::WindowFlags flags);
     static void createServerDecoration(QWaylandWindow *window);
     static void setGeometry(QPlatformWindow *self, const QRect &rect);
     static void pointerEvent(const QPointF &pointF, QEvent::Type type);
