@@ -260,6 +260,7 @@ QWaylandShellSurface *DWaylandShellManager::createShellSurface(QWaylandShellInte
     HookOverride(window, &QPlatformWindow::setGeometry, DWaylandShellManager::setGeometry);
     HookOverride(window, &QPlatformWindow::requestActivateWindow, DWaylandShellManager::requestActivateWindow);
     HookOverride(window, &QPlatformWindow::frameMargins, DWaylandShellManager::frameMargins);
+    HookOverride(window, &QPlatformWindow::setWindowFlags, DWaylandShellManager::setWindowFlags);
 
     QObject::connect(window, &QWaylandWindow::shellSurfaceCreated, [window] {
         handleGeometryChange(window);
@@ -474,6 +475,17 @@ QMargins DWaylandShellManager::frameMargins(QPlatformWindow *self)
     Q_UNUSED(self)
 
     return QMargins(0, 0, 0, 0);
+}
+
+void DWaylandShellManager::setWindowFlags(QPlatformWindow *self, Qt::WindowFlags flags)
+{
+    HookCall(self, &QPlatformWindow::setWindowFlags, flags);
+    auto qwlWindow = static_cast<QWaylandWindow *>(self);
+    if (!qwlWindow) {
+        return;
+    }
+    qCDebug(dwlp) << "Qt::WindowStaysOnTopHint: " << flags.testFlag(Qt::WindowStaysOnTopHint);
+    setWindowStaysOnTop(qwlWindow->shellSurface(), flags.testFlag(Qt::WindowStaysOnTopHint));
 }
 
 void DWaylandShellManager::handleGeometryChange(QWaylandWindow *window)
