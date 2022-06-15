@@ -44,21 +44,26 @@ isEmpty(VERSION) {
     isEmpty(VERSION): VERSION = 1.1.11
 }
 
+qtCompileTest(wayland_test) {
+    DEFINES += USE_DEEPIN_WAYLAND
+    SOURCES += \
+            $$PWD/dwaylandshellmanager.cpp \
+            $$PWD/dkeyboard.cpp \
+            $$PWD/../../src/global.cpp \
+            $$PWD/../../src/vtablehook.cpp
+
+    HEADERS += \
+            $$PWD/qt5dwayland-plugin_global.h \
+            $$PWD/dwaylandshellmanager.h \
+            $$PWD/dkeyboard.h \
+            $$PWD/../../src/global.h \
+            $$PWD/../../src/vtablehook.h
+}
+
 SOURCES += \
         $$PWD/main.cpp \
-        $$PWD/dwaylandshellmanager.cpp \
-        $$PWD/dkeyboard.cpp \
-        $$PWD/../../src/global.cpp \
-        $$PWD/../../src/vtablehook.cpp
 
-HEADERS += \
-        $$PWD/qt5dwayland-plugin_global.h \
-        $$PWD/dwaylandshellmanager.h \
-        $$PWD/dkeyboard.h \
-        $$PWD/../../src/global.h \
-        $$PWD/../../src/vtablehook.h
-
-qtHaveModule(waylandclient_private) : QT += waylandclient_private
+qtHaveModule(waylandclient-private) : QT += waylandclient-private
 else: INCLUDEPATH += $$PWD/../qtwayland-dev
 
 INCLUDEPATH += ../../src

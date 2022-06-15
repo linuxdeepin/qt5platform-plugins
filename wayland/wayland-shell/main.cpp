@@ -1,3 +1,23 @@
+#ifndef USE_DEEPIN_WAYLAND
+#include "QtWaylandClient/private/qwaylandintegration_p.h"
+#include "QtWaylandClient/private/qwaylandshellintegrationplugin_p.h"
+namespace QtWaylandClient {
+class QKWaylandShellIntegrationPlugin : public QWaylandShellIntegrationPlugin
+{
+    Q_OBJECT
+    Q_PLUGIN_METADATA(IID QWaylandShellIntegrationFactoryInterface_iid FILE "kwayland-shell.json")
+
+public:
+    QWaylandShellIntegration *create(const QString &key, const QStringList &paramList) override {
+        Q_UNUSED(key);
+        Q_UNUSED(paramList);
+        return nullptr;
+    }
+};
+}
+
+#else
+
 #include "vtablehook.h"
 #include "dwaylandshellmanager.h"
 
@@ -90,3 +110,4 @@ QWaylandShellIntegration *QKWaylandShellIntegrationPlugin::create(const QString 
 }
 
 #include "main.moc"
+#endif
