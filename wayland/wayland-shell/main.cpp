@@ -45,6 +45,10 @@ public:
 // 以_d_dwayland_开头的属性需要做特殊处理，一般是用于和kwayland的交互
 #define _DWAYALND_ "_d_dwayland_"
 
+#define platformNativeDisplay \
+    QGuiApplication::platformNativeInterface()-> \
+    nativeResourceForIntegration(QByteArrayLiteral("display"))
+
 DPP_USE_NAMESPACE
 
 namespace QtWaylandClient {
@@ -63,19 +67,15 @@ QWaylandShellIntegration *QKWaylandShellIntegrationPlugin::create(const QString 
     Q_UNUSED(key)
     Q_UNUSED(paramList)
     auto wayland_integration = static_cast<QWaylandIntegration *>(QGuiApplicationPrivate::platformIntegration());
-    auto shell = wayland_integration->createShellIntegration("xdg-shell-v6");
-    if (!shell) {
-        shell = wayland_integration->createShellIntegration("xdg-shell");
-    }
-    if (!shell) {
+    QString shellVersion = qgetenv("SHELL_V6").isEmpty() ? "xdg-shell-v6" : "xdg-shell";
+    QWaylandShellIntegration *shell = wayland_integration->createShellIntegration(shellVersion);
+
+    if (!shell)
         return nullptr;
-    }
 
     HookOverride(shell, &QWaylandShellIntegration::createShellSurface, DWaylandShellManager::createShellSurface);
 
     Registry *registry = DWaylandShellManager::registry();
-    wl_display *wlDisplay = reinterpret_cast<wl_display*>(QGuiApplication::platformNativeInterface()->nativeResourceForIntegration(QByteArrayLiteral("display")));
-    registry->create(wlDisplay);
 
     connect(registry, &Registry::plasmaShellAnnounced,
             &DWaylandShellManager::createKWaylandShell);
@@ -88,18 +88,21 @@ QWaylandShellIntegration *QKWaylandShellIntegrationPlugin::create(const QString 
             &DWaylandShellManager::createDDEShell);
 
     //创建ddeseat
-    connect(registry, &KWayland::Client::Registry::ddeSeatAnnounced,
+    connect(registry, &Registry::ddeSeatAnnounced,
             &DWaylandShellManager::createDDESeat);
 
-    connect(registry, &KWayland::Client::Registry::interfacesAnnounced, [] {
+    connect(registry, &Registry::interfacesAnnounced, [] {
         DWaylandShellManager::createDDEPointer();
         DWaylandShellManager::createDDEKeyboard();
         DWaylandShellManager::createDDEFakeInput();
     });
 
-    connect(registry, &KWayland::Client::Registry::strutAnnounced,
+    connect(registry, &Registry::strutAnnounced,
             &DWaylandShellManager::createStrut);
 
+    wl_display *wlDisplay = reinterpret_cast<wl_display*>(platformNativeDisplay);
+
+    registry->create(wlDisplay);
     registry->setup();
 
     wl_display_roundtrip(wlDisplay);
