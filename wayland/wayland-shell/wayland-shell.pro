@@ -58,6 +58,8 @@ qtCompileTest(wayland_test) {
             $$PWD/dkeyboard.h \
             $$PWD/../../src/global.h \
             $$PWD/../../src/vtablehook.h
+} else {
+    error("QtWayland version incompatible")
 }
 
 SOURCES += \
