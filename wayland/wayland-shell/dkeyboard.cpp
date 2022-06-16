@@ -52,8 +52,12 @@ static void handleKey(QWindow *window, ulong timestamp, QEvent::Type type, int k
     QPlatformInputContext *inputContext = QGuiApplicationPrivate::platformIntegration()->inputContext();
     bool filtered = false;
 
+    bool usingInputContextFromCompositor = true;
+#if QT_VERSION < QT_VERSION_CHECK(5, 15, 0)
     QWaylandDisplay *display = static_cast<QWaylandIntegration *>(QGuiApplicationPrivate::platformIntegration())->display();
-    if (inputContext && display && !display->usingInputContextFromCompositor()) {
+    usingInputContextFromCompositor = display && !display->usingInputContextFromCompositor();
+#endif
+    if (inputContext && usingInputContextFromCompositor) {
         QKeyEvent event(type, key, modifiers, nativeScanCode, nativeVirtualKey,
                         nativeModifiers, text, autorepeat, count);
         event.setTimestamp(timestamp);
