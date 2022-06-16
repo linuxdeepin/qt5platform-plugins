@@ -187,7 +187,8 @@ bool DNoTitlebarWlWindowHelper::windowEvent(QWindow *w, QEvent *event, DNoTitleb
         self->m_windowMoving = false;
     }
 
-    bool ret = HookCall(w, &QWindow::event, event);
+    if (!HookCall(w, &QWindow::event, event))
+        return false;
 
     // workaround for kwin: Qt receives no release event when kwin finishes MOVE operation,
     // which makes app hang in windowMoving state. when a press happens, there's no sense of
@@ -206,7 +207,7 @@ bool DNoTitlebarWlWindowHelper::windowEvent(QWindow *w, QEvent *event, DNoTitleb
         }
     }
 
-    return ret;
+    return true;
 }
 
 bool DNoTitlebarWlWindowHelper::isEnableSystemMove(/*quint32 winId*/)
