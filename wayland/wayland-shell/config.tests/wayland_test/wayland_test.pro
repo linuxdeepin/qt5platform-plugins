@@ -9,7 +9,16 @@ QT += gui-private
 QT += waylandclient
 QT += waylandclient-private
 
+TARGET = wayland_test
+
+QT       += KWaylandClient
+LIBS     += -lKF5WaylandClient
+CONFIG += link_pkgconfig
+PKGCONFIG += Qt5WaylandClient
+# xkb
+QT += xkbcommon_support-private
+
 CONFIG += c++17
 
 SOURCES += main.cpp
-TARGET = wayland_test
+
