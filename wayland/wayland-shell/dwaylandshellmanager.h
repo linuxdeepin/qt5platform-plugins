@@ -20,6 +20,10 @@
 #include <KWayland/Client/ddekeyboard.h>
 #include <KWayland/Client/strut.h>
 #include <KWayland/Client/fakeinput.h>
+#include <KWayland/Client/compositor.h>
+#include <KWayland/Client/blur.h>
+#include <KWayland/Client/region.h>
+#include <KWayland/Client/surface.h>
 
 #include <QGuiApplication>
 #include <QPointer>
@@ -32,6 +36,37 @@ DPP_USE_NAMESPACE
 using namespace KWayland::Client;
 
 namespace QtWaylandClient {
+
+struct BlurArea {
+    qint32 x;
+    qint32 y;
+    qint32 width;
+    qint32 height;
+    qint32 xRadius;
+    qint32 yRaduis;
+
+    inline BlurArea operator *(qreal scale)
+    {
+        if (qFuzzyCompare(1.0, scale))
+            return *this;
+
+        BlurArea new_area;
+
+        new_area.x = qRound64(x * scale);
+        new_area.y = qRound64(y * scale);
+        new_area.width = qRound64(width * scale);
+        new_area.height = qRound64(height * scale);
+        new_area.xRadius = qRound64(xRadius * scale);
+        new_area.yRaduis = qRound64(yRaduis * scale);
+
+        return new_area;
+    }
+
+    inline BlurArea &operator *=(qreal scale)
+    {
+        return *this = *this * scale;
+    }
+};
 
 class DWaylandShellManager
 {
@@ -64,15 +99,21 @@ public:
     static void createDDEPointer();
     static void createDDEKeyboard();
     static void createDDEFakeInput();
+    static void createBlurManager(quint32 name, quint32 version);
+    static void createCompositor(quint32 name, quint32 version);
+    static void createSurface();
     static void handleGeometryChange(QWaylandWindow *window);
     static void handleWindowStateChanged(QWaylandWindow *window);
     static void setWindowStaysOnTop(QWaylandShellSurface *surface, const bool state);
     static void setDockStrut(QWaylandShellSurface *surface, const QVariant var);
     static void setCursorPoint(QPointF pos);
+    static void setEnableBlurWidow(QWaylandWindow *wlWindow);
+    static void updateWindowBlurAreasForWM(QWaylandWindow *wlWindow, const QString &name, const QVariant &value);
 
 private:
     // 用于记录设置过以_DWAYALND_开头的属性，当kwyalnd_shell对象创建以后要使这些属性生效
     static QList<QPointer<QWaylandWindow>> send_property_window_list;
+    static bool m_enableBlurWidow;
 };
 }
 

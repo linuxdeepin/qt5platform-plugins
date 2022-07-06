@@ -100,6 +100,15 @@ QWaylandShellIntegration *QKWaylandShellIntegrationPlugin::create(const QString 
     connect(registry, &Registry::strutAnnounced,
             &DWaylandShellManager::createStrut);
 
+    connect(registry, &Registry::blurAnnounced, [](quint32 name, quint32 version) {
+        DWaylandShellManager::createBlurManager(name, version);
+    });
+
+    connect(registry, &Registry::compositorAnnounced, [](quint32 name, quint32 version){
+        DWaylandShellManager::createCompositor(name, version);
+        DWaylandShellManager::createSurface();
+    });
+
     wl_display *wlDisplay = reinterpret_cast<wl_display*>(platformNativeDisplay);
 
     registry->create(wlDisplay);
