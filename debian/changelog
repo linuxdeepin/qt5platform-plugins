@@ -1,3 +1,9 @@
+dde-qt5platform-plugins (5.0.59.2) unstable; urgency=medium
+
+  * snipe release 5.0.59.2
+
+ -- Deepin Packages Builder <packages@deepin.com>  Wed, 13 Jul 2022 16:13:51 +0800
+
 dde-qt5platform-plugins (5.0.0-1) unstable; urgency=medium
 
   * Initial release
