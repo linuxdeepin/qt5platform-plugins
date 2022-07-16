@@ -31,6 +31,14 @@
 #include <QPainter>
 #include <QDebug>
 
+#include <QLoggingCategory>
+
+#ifndef QT_DEBUG
+Q_LOGGING_CATEGORY(dwhdpi, "dtk.wayland.plugin.hdpi" , QtInfoMsg);
+#else
+Q_LOGGING_CATEGORY(dwhdpi, "dtk.wayland.plugin.hdpi");
+#endif
+
 DPP_BEGIN_NAMESPACE
 
 bool DHighDpi::active = false;
@@ -81,7 +89,8 @@ void DHighDpi::init()
         QHighDpiScaling::initHighDpiScaling();
     }
 
-    qDebug()<<QHighDpiScaling::isActive();
+    //qDebug()<<QHighDpiScaling::isActive();
+    QObject::connect(qApp, &QGuiApplication::screenRemoved, &DHighDpi::removeScreenFactorCache);
 
     active = HookOverride(&QtWaylandClient::QWaylandScreen::logicalDpi, logicalDpi);
  }
@@ -133,6 +142,7 @@ QDpi DHighDpi::logicalDpi(QtWaylandClient::QWaylandScreen *s)
 
 #if QT_VERSION < QT_VERSION_CHECK(5, 14, 0)
     if (!screenFactorMap.contains(s)) {
+        qDebug(dwhdpi()) << "add screen to cache" << s->model() << s->devicePixelRatio();
         screenFactorMap[s] = d;
     }
 #endif
@@ -151,25 +161,12 @@ qreal DHighDpi::devicePixelRatio(QPlatformWindow *w)
     return qCeil(base_factor) / base_factor;
 }
 
-void DHighDpi::onDPIChanged(xcb_connection_t *connection, const QByteArray &name, const QVariant &property, void *handle)
+void DHighDpi::removeScreenFactorCache(QScreen *screen)
 {
-    static bool dynamic_dpi = qEnvironmentVariableIsSet("D_DXCB_RT_HIDPI");
-
-    if (!dynamic_dpi)
-        return;
-
-    Q_UNUSED(connection)
-    Q_UNUSED(name)
-
-    // 判断值是否有效
-    if (!property.isValid())
-        return;
-
-    qDebug() << Q_FUNC_INFO << name << property;
-
     // 清理过期的屏幕缩放值
 #if QT_VERSION < QT_VERSION_CHECK(5, 14, 0)
-    if (QScreen *screen = reinterpret_cast<QScreen*>(handle)) {
+    if (screen) {
+         qCDebug(dwhdpi()) << "remove screen from cache" << screen->model() << screen->devicePixelRatio();
         screenFactorMap.remove(screen->handle());
     } else {
         screenFactorMap.clear();
@@ -181,7 +178,7 @@ void DHighDpi::onDPIChanged(xcb_connection_t *connection, const QByteArray &name
         if (window->type() == Qt::Desktop)
             continue;
 
-        qDebug()<<window->devicePixelRatio();
+//        qDebug()<<window->devicePixelRatio();
         // 更新窗口大小
         if (window->handle()) {
             QWindowSystemInterfacePrivate::GeometryChangeEvent gce(window, QHighDpi::fromNativePixels(window->handle()->geometry(), window));

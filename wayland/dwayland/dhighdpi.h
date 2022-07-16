@@ -53,7 +53,7 @@ public:
     static QDpi logicalDpi(QtWaylandClient::QWaylandScreen *s);
     static qreal devicePixelRatio(QPlatformWindow *w);
 
-    static void onDPIChanged(xcb_connection_t *screen, const QByteArray &name, const QVariant &property, void *handle);
+    static void removeScreenFactorCache(QScreen *screen);
 
 private:
 
