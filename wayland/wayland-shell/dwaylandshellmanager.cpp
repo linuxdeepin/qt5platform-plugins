@@ -2,6 +2,7 @@
 #include "dkeyboard.h"
 #include "global.h"
 
+
 #define protected public
 #include <qwindow.h>
 #undef protected
@@ -21,6 +22,8 @@ DPP_USE_NAMESPACE
 #define CHECK_PREFIX(key) (key.startsWith(_DWAYALND_) || key.startsWith("_d_"))
 #define wlDisplay reinterpret_cast<wl_display *>(QGuiApplication::platformNativeInterface()->nativeResourceForWindow("display", nullptr))
 
+Q_DECLARE_METATYPE(QPainterPath)
+
 namespace QtWaylandClient {
 
 namespace {
@@ -37,9 +40,13 @@ namespace {
     DDEPointer *kwayland_dde_pointer = nullptr;
     FakeInput *kwayland_dde_fake_input = nullptr;
     DDEKeyboard *kwayland_dde_keyboard = nullptr;
+    BlurManager *kwayland_blur_manager = nullptr;
+    Surface *kwayland_surface = nullptr;
+    Compositor *kwayland_compositor = nullptr;
 };
 
 QList<QPointer<QWaylandWindow>> DWaylandShellManager::send_property_window_list;
+bool DWaylandShellManager::m_enableBlurWidow = false;
 
 inline static wl_surface *getWindowWLSurface(QWaylandWindow *window)
 {
@@ -87,6 +94,46 @@ static DDEShellSurface *ensureDDEShellSurface(QWaylandShellSurface *self)
     }
 
     return createDDESurface(self->window());
+}
+
+static Surface *ensureSurface(QWaylandWindow *wlWindow)
+{
+    if (!kwayland_surface) {
+        qCWarning(dwlp) << "invalid wayland surface";
+        return nullptr;
+    }
+    if (!wlWindow->window()) {
+        qCWarning(dwlp) << "invalid wlWindow";
+        return nullptr;
+    }
+    return kwayland_surface->fromWindow(wlWindow->window());
+}
+
+static Blur *ensureBlur(Surface *surface, QObject *parent = nullptr)
+{
+    if (parent) {
+        if (auto *blur = parent->findChild<Blur *>(QString(), Qt::FindDirectChildrenOnly))
+            return blur;
+    }
+    if (!kwayland_blur_manager) {
+        qCWarning(dwlp) << "invalid blur manager";
+        return nullptr;
+    }
+    return kwayland_blur_manager->createBlur(surface, parent);
+}
+
+static Region *ensureRegion(QObject *parent = nullptr)
+{
+    if (parent) {
+        if (auto *region = parent->findChild<Region *>(QString(), Qt::FindDirectChildrenOnly)) {
+            return region;
+        }
+    }
+    if (!kwayland_compositor) {
+        qCWarning(dwlp) << "invalid wayland compositor";
+        return nullptr;
+    }
+    return kwayland_compositor->createRegion(parent);
 }
 
 DWaylandShellManager::DWaylandShellManager()
@@ -161,6 +208,19 @@ void DWaylandShellManager::sendProperty(QWaylandShellSurface *self, const QStrin
         if (!name.compare(windowInWorkSpace)) {
             dde_shell_surface->requestOnAllDesktops(value.toBool());
             qCDebug(dwlp()) << "### requestOnAllDesktops" << name << value;
+        }
+        if (!name.compare(enableBlurWindow)) {
+            qCDebug(dwlp) << "### enableBlurWindow" << name << value;
+            if (!value.isValid()) {
+                qCWarning(dwlp) << "invalid enableBlurWindow";
+                return;
+            }
+            m_enableBlurWidow = value.toBool();
+            setEnableBlurWidow(wlWindow);
+        }
+        if (!name.compare(windowBlurAreas) || !name.compare(windowBlurPaths)) {
+            qCDebug(dwlp) << "### requestWindowBlur" << name << value;
+            updateWindowBlurAreasForWM(wlWindow, name, value);
         }
     }
 
@@ -456,6 +516,37 @@ void DWaylandShellManager::createDDEPointer()
     });
 }
 
+void DWaylandShellManager::createBlurManager(quint32 name, quint32 version)
+{
+    kwayland_blur_manager = registry()->createBlurManager(name, version);
+    if (!kwayland_blur_manager) {
+        qCWarning(dwlp) << "kwayland_blur_manager create failed.";
+        return;
+    }
+}
+
+void DWaylandShellManager::createCompositor(quint32 name, quint32 version)
+{
+    kwayland_compositor = registry()->createCompositor(name, version);
+    if (!kwayland_compositor) {
+        qCWarning(dwlp) << "kwayland_compositor create failed.";
+        return;
+    }
+}
+
+void DWaylandShellManager::createSurface()
+{
+    if (!kwayland_compositor) {
+        qCWarning(dwlp) << "kwayland_compositor is invalid.";
+        return;
+    }
+    kwayland_surface = kwayland_compositor->createSurface();
+    if (!kwayland_surface) {
+        qCWarning(dwlp) << "kwayland_surface create failed.";
+        return;
+    }
+}
+
 void DWaylandShellManager::requestActivateWindow(QPlatformWindow *self)
 {
     HookCall(self, &QPlatformWindow::requestActivateWindow);
@@ -637,6 +728,89 @@ void DWaylandShellManager::setCursorPoint(QPointF pos) {
         return;
     }
     kwayland_dde_fake_input->requestPointerMoveAbsolute(pos);
+}
+
+void DWaylandShellManager::setEnableBlurWidow(QWaylandWindow *wlWindow)
+{
+    auto surface = ensureSurface(wlWindow);
+    if (m_enableBlurWidow) {
+        auto blur = ensureBlur(surface, surface);
+        if (!blur) {
+            qCWarning(dwlp) << "invalid blur";
+            return;
+        }
+        auto region = ensureRegion(surface);
+        if (!region) {
+            qCWarning(dwlp) << "invalid region";
+            return;
+        }
+        blur->setRegion(region);
+        blur->commit();
+        kwayland_surface->commit(Surface::CommitFlag::None);
+    } else {
+        kwayland_blur_manager->removeBlur(surface);
+        kwayland_surface->commit(Surface::CommitFlag::None);
+        // 取消模糊效果的更新需要主动调用应用侧的窗口
+        if (QWidgetWindow *widgetWin = static_cast<QWidgetWindow*>(wlWindow->window())) {
+            if (auto widget = widgetWin->widget()) {
+                widget->update();
+            }
+        }
+    }
+}
+
+void DWaylandShellManager::updateWindowBlurAreasForWM(QWaylandWindow *wlWindow, const QString &name, const QVariant &value)
+{
+    auto surface = ensureSurface(wlWindow);
+    if (!surface) {
+        qCWarning(dwlp) << "invalid surface";
+        return;
+    }
+    auto blur = ensureBlur(surface, surface);
+    if (!blur) {
+        qCWarning(dwlp) << "invalid blur";
+        return;
+    }
+    auto region = ensureRegion(surface);
+    if (!region) {
+        qCWarning(dwlp) << "invalid region";
+        return;
+    }
+
+    if (m_enableBlurWidow) {
+        blur->setRegion(region);
+        blur->commit();
+        kwayland_surface->commit(Surface::CommitFlag::None);
+        return;
+    }
+    if (!name.compare(windowBlurAreas)) {
+        const QVector<quint32> &tmpV = qvariant_cast<QVector<quint32>>(value);
+        const QVector<BlurArea> &blurAreas = *(reinterpret_cast<const QVector<BlurArea>*>(&tmpV));
+        if (blurAreas.isEmpty()) {
+            qCWarning(dwlp) << "invalid BlurAreas";
+            return;
+        }
+        for (auto ba : blurAreas) {
+            QPainterPath path;
+            path.addRoundedRect(ba.x, ba.y, ba.width, ba.height, ba.xRadius, ba.yRaduis);
+            region->add(path.toFillPolygon().toPolygon());
+            qCDebug(dwlp) << "blurArea:" << path;
+        }
+    } else {
+        const QList<QPainterPath> paths = qvariant_cast<QList<QPainterPath>>(value);
+        if (paths.isEmpty()) {
+            qCWarning(dwlp) << "invalid BlurPaths";
+            return;
+        }
+        for (auto path : paths) {
+            QPolygon polygon(path.toFillPolygon().toPolygon());
+            region->add(polygon);
+            qCDebug(dwlp) << "blurPaths:" << polygon;
+        }
+    }
+    blur->setRegion(region);
+    blur->commit();
+    kwayland_surface->commit(Surface::CommitFlag::None);
 }
 
 bool DWaylandShellManager::disableClientDecorations(QWaylandShellSurface *surface)
