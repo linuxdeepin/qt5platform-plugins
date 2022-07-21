@@ -1,6 +1,7 @@
 #include "dwaylandshellmanager.h"
 #include "dkeyboard.h"
 #include "global.h"
+#include "../xcb/utility.h"
 
 
 #define protected public
@@ -47,7 +48,6 @@ namespace {
 };
 
 QList<QPointer<QWaylandWindow>> DWaylandShellManager::send_property_window_list;
-bool DWaylandShellManager::m_enableBlurWidow = false;
 
 inline static wl_surface *getWindowWLSurface(QWaylandWindow *window)
 {
@@ -216,8 +216,7 @@ void DWaylandShellManager::sendProperty(QWaylandShellSurface *self, const QStrin
                 qCWarning(dwlp) << "invalid enableBlurWindow";
                 return;
             }
-            m_enableBlurWidow = value.toBool();
-            setEnableBlurWidow(wlWindow);
+            setEnableBlurWidow(wlWindow, value);
         }
         if (!name.compare(windowBlurAreas) || !name.compare(windowBlurPaths)) {
             qCDebug(dwlp) << "### requestWindowBlur" << name << value;
@@ -731,10 +730,10 @@ void DWaylandShellManager::setCursorPoint(QPointF pos) {
     kwayland_dde_fake_input->requestPointerMoveAbsolute(pos);
 }
 
-void DWaylandShellManager::setEnableBlurWidow(QWaylandWindow *wlWindow)
+void DWaylandShellManager::setEnableBlurWidow(QWaylandWindow *wlWindow, const QVariant &value)
 {
     auto surface = ensureSurface(wlWindow);
-    if (m_enableBlurWidow) {
+    if (value.toBool()) {
         auto blur = ensureBlur(surface, surface);
         if (!blur) {
             qCWarning(dwlp) << "invalid blur";
@@ -762,6 +761,15 @@ void DWaylandShellManager::setEnableBlurWidow(QWaylandWindow *wlWindow)
 
 void DWaylandShellManager::updateWindowBlurAreasForWM(QWaylandWindow *wlWindow, const QString &name, const QVariant &value)
 {
+    if (!wlWindow->waylandScreen()) {
+        return;
+    }
+    auto screen = wlWindow->waylandScreen()->screen();
+    if (!screen) {
+        return;
+    }
+    auto devicePixelRatio = screen->devicePixelRatio();
+
     auto surface = ensureSurface(wlWindow);
     if (!surface) {
         qCWarning(dwlp) << "invalid surface";
@@ -772,30 +780,20 @@ void DWaylandShellManager::updateWindowBlurAreasForWM(QWaylandWindow *wlWindow, 
         qCWarning(dwlp) << "invalid blur";
         return;
     }
-    auto region = ensureRegion(surface);
-    if (!region) {
-        qCWarning(dwlp) << "invalid region";
-        return;
-    }
+    auto region = kwayland_compositor->createRegion(surface);
 
-    if (m_enableBlurWidow) {
-        blur->setRegion(region);
-        blur->commit();
-        kwayland_surface->commit(Surface::CommitFlag::None);
-        return;
-    }
     if (!name.compare(windowBlurAreas)) {
         const QVector<quint32> &tmpV = qvariant_cast<QVector<quint32>>(value);
-        const QVector<BlurArea> &blurAreas = *(reinterpret_cast<const QVector<BlurArea>*>(&tmpV));
+        const QVector<Utility::BlurArea> &blurAreas = *(reinterpret_cast<const QVector<Utility::BlurArea>*>(&tmpV));
         if (blurAreas.isEmpty()) {
             qCWarning(dwlp) << "invalid BlurAreas";
             return;
         }
         for (auto ba : blurAreas) {
+            ba *= devicePixelRatio;
             QPainterPath path;
             path.addRoundedRect(ba.x, ba.y, ba.width, ba.height, ba.xRadius, ba.yRaduis);
             region->add(path.toFillPolygon().toPolygon());
-            qCDebug(dwlp) << "blurArea:" << path;
         }
     } else {
         const QList<QPainterPath> paths = qvariant_cast<QList<QPainterPath>>(value);
@@ -804,9 +802,9 @@ void DWaylandShellManager::updateWindowBlurAreasForWM(QWaylandWindow *wlWindow, 
             return;
         }
         for (auto path : paths) {
+            path *= devicePixelRatio;
             QPolygon polygon(path.toFillPolygon().toPolygon());
             region->add(polygon);
-            qCDebug(dwlp) << "blurPaths:" << polygon;
         }
     }
     blur->setRegion(region);
