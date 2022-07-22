@@ -60,7 +60,7 @@ qtCompileTest(wayland_test) {
             $$PWD/../../src/global.h \
             $$PWD/../../src/vtablehook.h
 } else {
-    error("QtWayland version incompatible")
+    warning("QtWayland version incompatible")
 }
 
 SOURCES += \
