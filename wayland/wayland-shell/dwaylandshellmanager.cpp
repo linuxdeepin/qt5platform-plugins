@@ -9,6 +9,7 @@
 
 #include <QtWaylandClientVersion>
 #include <QLoggingCategory>
+#include <QPainterPath>
 
 #ifndef QT_DEBUG
 Q_LOGGING_CATEGORY(dwlp, "dtk.wayland.plugin" , QtInfoMsg);
