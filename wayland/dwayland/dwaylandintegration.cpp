@@ -148,6 +148,8 @@ static void onPrimaryScreenChanged(xcb_connection_t *connection, const QByteArra
             if (screen->model().startsWith(primaryScreenName)) {
 #if QT_VERSION >= QT_VERSION_CHECK(5, 12, 0)
                 QWindowSystemInterface::handlePrimaryScreenChanged(screen);
+#else
+                DWaylandIntegration::instance()->setPrimaryScreen(screen);
 #endif
             }
         }
@@ -220,5 +222,12 @@ QVariant DWaylandIntegration::styleHint(QPlatformIntegration::StyleHint hint) co
 
     return QtWaylandClient::QWaylandIntegration::styleHint(hint);
 }
+
+#if QT_VERSION < QT_VERSION_CHECK(5, 12, 0)
+void DWaylandIntegration::setPrimaryScreen(QPlatformScreen *newPrimary)
+{
+    return QPlatformIntegration::setPrimaryScreen(newPrimary);
+}
+#endif
 
 DPP_END_NAMESPACE
