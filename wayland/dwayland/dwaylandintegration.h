@@ -39,6 +39,10 @@ public:
     void initialize() override;
     QStringList themeNames() const override;
     QVariant styleHint(StyleHint hint) const override;
+
+#if QT_VERSION < QT_VERSION_CHECK(5, 12, 0)
+    void setPrimaryScreen(QPlatformScreen *newPrimary);
+#endif
 };
 
 DPP_END_NAMESPACE
