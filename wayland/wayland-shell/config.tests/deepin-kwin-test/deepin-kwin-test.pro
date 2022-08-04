@@ -1,3 +1,3 @@
 CONFIG += qt
-QT += KWaylandClient
+QT += DWaylandClient
 SOURCES += main.cpp

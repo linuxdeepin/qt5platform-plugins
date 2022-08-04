@@ -33,10 +33,10 @@ public:
 #include "QtWaylandClient/private/qwaylandwindow_p.h"
 #undef private
 
-#include <KWayland/Client/registry.h>
-#include <KWayland/Client/plasmashell.h>
-#include <KWayland/Client/server_decoration.h>
-#include <KWayland/Client/ddeshell.h>
+#include <DWayland/Client/registry.h>
+#include <DWayland/Client/plasmashell.h>
+#include <DWayland/Client/server_decoration.h>
+#include <DWayland/Client/ddeshell.h>
 
 #include <QGuiApplication>
 #include <QPointer>

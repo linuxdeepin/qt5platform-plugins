@@ -17,18 +17,18 @@
 #include "QtWaylandClient/private/qwaylandscreen_p.h"
 #undef private
 
-#include <KWayland/Client/registry.h>
-#include <KWayland/Client/plasmashell.h>
-#include <KWayland/Client/server_decoration.h>
-#include <KWayland/Client/ddeshell.h>
-#include <KWayland/Client/ddeseat.h>
-#include <KWayland/Client/ddekeyboard.h>
-#include <KWayland/Client/strut.h>
-#include <KWayland/Client/fakeinput.h>
-#include <KWayland/Client/compositor.h>
-#include <KWayland/Client/blur.h>
-#include <KWayland/Client/region.h>
-#include <KWayland/Client/surface.h>
+#include <DWayland/Client/registry.h>
+#include <DWayland/Client/plasmashell.h>
+#include <DWayland/Client/server_decoration.h>
+#include <DWayland/Client/ddeshell.h>
+#include <DWayland/Client/ddeseat.h>
+#include <DWayland/Client/ddekeyboard.h>
+#include <DWayland/Client/strut.h>
+#include <DWayland/Client/fakeinput.h>
+#include <DWayland/Client/compositor.h>
+#include <DWayland/Client/blur.h>
+#include <DWayland/Client/region.h>
+#include <DWayland/Client/surface.h>
 
 #include <QGuiApplication>
 #include <QPointer>
