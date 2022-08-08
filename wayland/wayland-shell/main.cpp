@@ -66,14 +66,6 @@ QWaylandShellIntegration *QKWaylandShellIntegrationPlugin::create(const QString 
 {
     Q_UNUSED(key)
     Q_UNUSED(paramList)
-    auto wayland_integration = static_cast<QWaylandIntegration *>(QGuiApplicationPrivate::platformIntegration());
-    QString shellVersion = qgetenv("ENABLE_XDG_SHELL").isEmpty() ? "xdg-shell-v6" : "xdg-shell";
-    QWaylandShellIntegration *shell = wayland_integration->createShellIntegration(shellVersion);
-
-    if (!shell)
-        return nullptr;
-
-    HookOverride(shell, &QWaylandShellIntegration::createShellSurface, DWaylandShellManager::createShellSurface);
 
     Registry *registry = DWaylandShellManager::registry();
 
@@ -115,6 +107,15 @@ QWaylandShellIntegration *QKWaylandShellIntegrationPlugin::create(const QString 
     registry->setup();
 
     wl_display_roundtrip(wlDisplay);
+
+    auto wayland_integration = static_cast<QWaylandIntegration *>(QGuiApplicationPrivate::platformIntegration());
+    QString shellVersion = registry->hasInterface(Registry::Interface::XdgShellUnstableV6) ? "xdg-shell-v6" : "xdg-shell";
+    QWaylandShellIntegration *shell = wayland_integration->createShellIntegration(shellVersion);
+
+    if (!shell)
+        return nullptr;
+
+    HookOverride(shell, &QWaylandShellIntegration::createShellSurface, DWaylandShellManager::createShellSurface);
 
     return shell;
 }
