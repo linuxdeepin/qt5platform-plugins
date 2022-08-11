@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2022 Uniontech Software Technology Co.,Ltd.
+//
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 #ifndef USE_DEEPIN_WAYLAND
 #include "QtWaylandClient/private/qwaylandintegration_p.h"
 #include "QtWaylandClient/private/qwaylandshellintegrationplugin_p.h"
