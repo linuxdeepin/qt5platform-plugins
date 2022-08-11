@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2020 - 2022 Uniontech Software Technology Co.,Ltd.
+//
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 #ifndef QT5DWAYLANDPLUGIN_H
 #define QT5DWAYLANDPLUGIN_H
 

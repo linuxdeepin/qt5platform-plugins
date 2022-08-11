@@ -1,19 +1,6 @@
-/*
- * Copyright (C) 2017 ~ 2018 Deepin Technology Co., Ltd.
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- */
+// SPDX-FileCopyrightText: 2017 - 2022 Uniontech Software Technology Co.,Ltd.
+//
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "dplatformbackingstore.h"
 #include "dplatformwindowhook.h"
@@ -809,8 +796,8 @@ void DPlatformBackingStore::composeAndFlushHelper(QWindow *window, const QRegion
         if (graphicsBuffer->origin() == QPlatformGraphicsBuffer::OriginBottomLeft)
             origin = QOpenGLTextureBlitter::OriginBottomLeft;
         textureId = m_textureId;
-    } 
-    else 
+    }
+    else
 #endif
     {
         TextureFlags flags = 0;
@@ -843,7 +830,7 @@ void DPlatformBackingStore::composeAndFlushHelper(QWindow *window, const QRegion
 #endif
         // The backingstore is for the entire tlw.
         // In case of native children offset tells the position relative to the tlw.
-        // reverse translate backward for widgets 
+        // reverse translate backward for widgets
         const QRect srcRect = toBottomLeftRect(deviceWindowRect.translated(offset-windowOffset()), m_textureSize.height());
         const QMatrix3x3 source = QOpenGLTextureBlitter::sourceTransform(srcRect,
                                                                          m_textureSize,

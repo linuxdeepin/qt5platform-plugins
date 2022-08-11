@@ -1,23 +1,7 @@
-/*
- * Copyright (C) 2017 ~ 2019 Uniontech Technology Co., Ltd.
- *
- * Author:     WangPeng <wangpenga@uniontech.com>
- *
- * Maintainer: AlexOne  <993381@qq.com>
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- */
+// SPDX-FileCopyrightText: 2017 - 2022 Uniontech Software Technology Co.,Ltd.
+//
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 #include "dnotitlebarwindowhelper_wl.h"
 #include "vtablehook.h"
 
@@ -146,18 +130,16 @@ void DNoTitlebarWlWindowHelper::updateEnableSystemMoveFromProperty()
     m_enableSystemMove = !v.isValid() || v.toBool();
 
     if (m_enableSystemMove) {
-        HookOverride(m_window, &QWindow::event, &DNoTitlebarWlWindowHelper::windowEvent);
+        using namespace std::placeholders;
+        auto hook = std::bind(&DNoTitlebarWlWindowHelper::windowEvent, _1, _2, this);
+        HookOverride(m_window, &QWindow::event, hook);
     } else if (VtableHook::hasVtable(m_window)) {
         HookReset(m_window, &QWindow::event);
     }
 }
 
-bool DNoTitlebarWlWindowHelper::windowEvent(QWindow *w, QEvent *event)
+bool DNoTitlebarWlWindowHelper::windowEvent(QWindow *w, QEvent *event, DNoTitlebarWlWindowHelper *self)
 {
-    DNoTitlebarWlWindowHelper *self = mapped.value(w);
-
-    if (!self)
-        return VtableHook::callOriginalFun(w, &QWindow::event, event);
     // m_window 的 event 被 override 以后，在 windowEvent 里面获取到的 this 就成 m_window 了，
     // 而不是 DNoTitlebarWlWindowHelper，所以此处 windowEvent 改为 static 并传 self 进来
     {
