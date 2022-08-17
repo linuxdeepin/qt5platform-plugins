@@ -461,14 +461,20 @@ void Utility::setNoTitlebar(quint32 WId, bool on)
 
 void Utility::splitWindowOnScreen(quint32 WId, quint32 type)
 {
+    splitWindowOnScreenByType(WId, type, 1);
+}
+
+void Utility::splitWindowOnScreenByType(quint32 WId, quint32 position, quint32 type)
+{
     xcb_client_message_event_t xev;
 
     xev.response_type = XCB_CLIENT_MESSAGE;
     xev.type = internAtom("_DEEPIN_SPLIT_WINDOW", false);
     xev.window = WId;
     xev.format = 32;
-    xev.data.data32[0] = type; /* 1: 左 2: 右 15: 全屏 */
-    xev.data.data32[1] = type < 15 ? 1 : 0; /* 1: 左右 0: 全屏 */
+    xev.data.data32[0] = position; /* enum class SplitType in kwin-dev, Left=0x1, Right=0x10, Top=0x100, Bottom=0x1000*/
+    xev.data.data32[1] = position == 15 ? 0 : 1; /* 0: not preview 1: preview*/
+    xev.data.data32[2] = type; /* 1:two splitting 2:three splitting 4:four splitting*/
 
     xcb_send_event(QX11Info::connection(), false, QX11Info::appRootWindow(QX11Info::appScreen()),
                    SubstructureNotifyMask, (const char *)&xev);
@@ -477,14 +483,19 @@ void Utility::splitWindowOnScreen(quint32 WId, quint32 type)
 
 bool Utility::supportForSplittingWindow(quint32 WId)
 {
+    return Utility::supportForSplittingWindowByType(WId, 1);
+}
+
+// screenSplittingType: 0: can't splitting, 1:two splitting, 2: four splitting(includ three splitting)
+bool Utility::supportForSplittingWindowByType(quint32 WId, quint32 screenSplittingType)
+{
     auto propAtom = internAtom("_DEEPIN_NET_SUPPORTED");
     QByteArray data = windowProperty(WId, propAtom, XCB_ATOM_CARDINAL, 4);
 
-    bool supported = false;
     if (const char *cdata = data.constData())
-        supported = *(reinterpret_cast<const quint8 *>(cdata));
+        return *(reinterpret_cast<const quint8 *>(cdata)) >= screenSplittingType;
 
-    return supported;
+    return false;
 }
 
 bool Utility::setEnableBlurWindow(const quint32 WId, bool enable)
