@@ -1,6 +1,6 @@
-# qt5dxcb-plugin
+# qt5platform-plugins
 
-qt5dxcb-plugin is the Qt platform integration plugin for Deepin Desktop Environment.
+qt5platform-plugins is the Qt platform integration plugin for Deepin Desktop Environment.
 
 ## Dependencies
 
@@ -50,11 +50,10 @@ val:
 - DISABLE_XCB
 
 ```
-$ cd qt5dxcb-plugin
-$ mkdir build
-$ cd build
-$ qmake ..
-$ make
+mkdir build
+cd build
+qmake ..
+make
 ```
 
 3. Install:
@@ -70,8 +69,9 @@ To be done.
 
 You may also find these channels useful if you encounter any other issues:
 
-* [Gitter](https://gitter.im/orgs/linuxdeepin/rooms)
-* [IRC Channel](https://webchat.freenode.net/?channels=deepin)
+* [Telegram group](https://t.me/deepin)
+* [Matrix](https://matrix.to/#/#deepin-community:matrix.org)
+* [IRC (libera.chat)](https://web.libera.chat/#deepin-community)
 * [Official Forum](https://bbs.deepin.org/)
 * [Wiki](https://wiki.deepin.org/)
 
@@ -79,18 +79,17 @@ You may also find these channels useful if you encounter any other issues:
 
 We encourage you to report issues and contribute changes
 
-* [Contribution guide for developers](https://github.com/linuxdeepin/developer-center/wiki/Contribution-Guidelines-for-Developers-en). (English)
-* [开发者代码贡献指南](https://github.com/linuxdeepin/developer-center/wiki/Contribution-Guidelines-for-Developers) (中文)
+* [Contribution guide for developers](https://github.com/linuxdeepin/developer-center/wiki/Contribution-Guidelines-for-Developers-en).
 
 ## License
 
-qt5dxcb-plugin is licensed under [GPLv3](LICENSE).
+qt5platform-plugins is licensed under [LGPLv3](LICENSE).
 
-## 环境变量
+## Environment variable
 
-* DXCB_PRINT_WINDOW_CREATE 在本地窗口被创建时打印对应的 QWindow 的信息
-* DXCB_PAINTENGINE_DISABLE_FEATURES 指定要禁用的 QPaintEngine::PaintEngineFeatures，只对 QPainter 绘图系统有效
-* DXCB_FAKE_PLATFORM_NAME_XCB 将 QGuiApplication::platformName 属性的值将被强制设置为 "xcb"
-* DXCB_DISABLE_HOOK_CURSOR 禁止使用 QWindow::devicePixelRatio 的值自动缩放光标在此窗口上的大小
-* DXCB_REDIRECT_CONTENT 设置是否允许对开启了 dxcb 模式的窗口使用 XDamage 重定向窗口绘制的内容，值为 "true" 表示允许，值为 "false" 表示不允许。否则将使用窗口自己设置的值，如果窗口未设置任何值，则窗口的 surfaceType 为 QSurface::OpenGLSurface 时会开启重定向模式，否则不开启
-* DXCB_REDIRECT_CONTENT_WITH_NO_COMPOSITE 强制允许在未开启窗口特效的模式下使用 XDamage 重定向窗口绘制的内容，未设置或值为空时，在窗口管理器不支持 Composite 的情况下，将不使用 XDamage 重定向窗口绘制的内容
+* DXCB_PRINT_WINDOW_CREATE: Print the information of the QWindow when the local window is created
+* DXCB_PAINTENGINE_DISABLE_FEATURES: Specify the qpaintengine:: paintenginefeatures to disable, which is only valid for the QPainter drawing system
+* DXCB_FAKE_PLATFORM_NAME_XCB: Force the value of qguiapplication:: platformname property to be "xcb"
+* DXCB_DISABLE_HOOK_CURSOR: It is prohibited to use the value of qwindow:: devicepixelratio to automatically scale the size of the cursor on this window
+* DXCB_REDIRECT_CONTENT: Set whether to allow XDamage to redirect the content drawn in the window with dxcb mode enabled. "true" indicates that it is allowed, and "false" indicates that it is not allowed. Otherwise, the value set by the window itself will be used. If the window does not set any value, the redirection mode will be enabled when the surface type of the window is QSurface:: OpenGLSurface. Otherwise, it will not be enabled
+* DXCB_REDIRECT_CONTENT_WITH_NO_COMPOSITE: It is mandatory to allow the content drawn in the XDamage redirected window in the mode without window effects. If it is not set or the value is empty, the content drawn in the XDamage redirected window will not be used if the window manager does not support Composite
