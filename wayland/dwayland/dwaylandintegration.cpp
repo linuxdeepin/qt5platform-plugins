@@ -127,21 +127,39 @@ static void onPrimaryScreenChanged(xcb_connection_t *connection, const QByteArra
 
         // 设置新的主屏
         auto screens = DWaylandIntegration::instance()->display()->screens();
+        QtWaylandClient::QWaylandScreen *primaryScreen = nullptr;
+
+        // 名称一致，认定为主屏
         for (auto screen : screens) {
-            if (screen->model().startsWith(primaryScreenName)) {
-#if QT_VERSION >= QT_VERSION_CHECK(5, 12, 0)
-                QWindowSystemInterface::handlePrimaryScreenChanged(screen);
-#else
-                DWaylandIntegration::instance()->setPrimaryScreen(screen);
-#endif
+            if (screen->name() == primaryScreenName) {
+                primaryScreen = screen;
+                break;
             }
         }
+
+        // 次之，名称部分一致，认为是主屏
+        if (!primaryScreen) {
+            for (auto screen : screens) {
+                if (screen->name().startsWith(primaryScreenName) || screen->model().startsWith(primaryScreenName)) {
+                    primaryScreen = screen;
+                    break;
+                }
+            }
+        }
+        if (primaryScreen) {
+#if QT_VERSION >= QT_VERSION_CHECK(5, 12, 0)
+            QWindowSystemInterface::handlePrimaryScreenChanged(primaryScreen);
+#else
+            DWaylandIntegration::instance()->setPrimaryScreen(primaryScreen);
+#endif
+        }
+
         break;
     }
     default:
         break;
     }
-    qDebug() << "primary screen info:" << QGuiApplication::primaryScreen()->model() << QGuiApplication::primaryScreen()->geometry();
+    qDebug() << "primary screen info:" << QGuiApplication::primaryScreen()->name() << QGuiApplication::primaryScreen()->model() << QGuiApplication::primaryScreen()->geometry();
 }
 
 DWaylandIntegration::DWaylandIntegration()
