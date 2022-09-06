@@ -93,6 +93,7 @@ DEFINE_CONST_CHAR(clearNativeSettings);
 DEFINE_CONST_CHAR(setWMClassName);
 DEFINE_CONST_CHAR(splitWindowOnScreen);
 DEFINE_CONST_CHAR(supportForSplittingWindow);
+DEFINE_CONST_CHAR(sendEndStartupNotifition);
 
 // others
 DEFINE_CONST_CHAR(WmWindowTypes);
