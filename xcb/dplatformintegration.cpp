@@ -110,6 +110,8 @@ DPlatformIntegration::DPlatformIntegration(const QStringList &parameters, int &a
 
 DPlatformIntegration::~DPlatformIntegration()
 {
+    sendEndStartupNotifition();
+
 #ifdef Q_OS_LINUX
     if (m_eventFilter) {
         qApp->removeNativeEventFilter(m_eventFilter);
@@ -1207,6 +1209,38 @@ void DPlatformIntegration::inputContextHookFunc()
         QObject::connect(DPlatformInputContextHook::instance(), &ComDeepinImInterface::imActiveChanged,
                              inputContext(), &QPlatformInputContext::emitInputPanelVisibleChanged);
 //    }
+}
+
+void DPlatformIntegration::sendEndStartupNotifition()
+{
+    QByteArray message, startupid;
+    if (QPlatformNativeInterface *ni = QGuiApplication::platformNativeInterface())
+        startupid = (const char *)ni->nativeResourceForIntegration(QByteArrayLiteral("startupid"));
+
+    if (startupid.isEmpty())
+        return ;
+		
+    message =  QByteArrayLiteral("remove: ID=") + startupid;
+    xcb_client_message_event_t ev;
+    ev.response_type = XCB_CLIENT_MESSAGE;
+    ev.format = 8;
+    ev.type = xcbConnection()->atom(QXcbAtom::_NET_STARTUP_INFO_BEGIN);
+    ev.sequence = 0;
+    ev.window = xcbConnection()->rootWindow();
+    int sent = 0;
+    int length = message.length() + 1; // include NUL byte
+    const char *data = message.constData();
+    do {
+        if (sent == 20)
+            ev.type = xcbConnection()->atom(QXcbAtom::_NET_STARTUP_INFO);
+
+        const int start = sent;
+        const int numBytes = qMin(length - start, 20);
+        memcpy(ev.data.data8, data + start, numBytes);
+        xcb_send_event(xcbConnection()->xcb_connection(), false, xcbConnection()->rootWindow(), XCB_EVENT_MASK_PROPERTY_CHANGE, (const char *) &ev);
+
+        sent += numBytes;
+    } while (sent < length);
 }
 
 DPP_END_NAMESPACE

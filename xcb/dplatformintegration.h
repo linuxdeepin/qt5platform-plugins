@@ -83,6 +83,8 @@ private:
     DXcbXSettings *xSettings(bool onlyExists = false) const;
     static DXcbXSettings *xSettings(QXcbConnection *connection);
 
+    static void sendEndStartupNotifition();
+
 private:
     XcbNativeEventFilter *m_eventFilter = Q_NULLPTR;
     static DXcbXSettings *m_xsettings;
