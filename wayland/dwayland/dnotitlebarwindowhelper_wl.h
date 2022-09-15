@@ -26,6 +26,7 @@ public:
     ~DNoTitlebarWlWindowHelper();
 
     static void setWindowProperty(QWindow *window, const char *name, const QVariant &value);
+    static void requestByWindowProperty(QWindow *window, const char *name);
     static void popupSystemWindowMenu(quintptr wid);
 
 private slots:

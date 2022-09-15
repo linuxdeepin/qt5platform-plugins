@@ -106,6 +106,16 @@ void DNoTitlebarWlWindowHelper::setWindowProperty(QWindow *window, const char *n
     }
 }
 
+void DNoTitlebarWlWindowHelper::requestByWindowProperty(QWindow *window, const char *name)
+{
+    if (window && window->handle()) {
+        QtWaylandClient::QWaylandWindow *wl_window = static_cast<QtWaylandClient::QWaylandWindow *>(window->handle());
+
+        if (wl_window && wl_window->shellSurface())
+            wl_window->sendProperty(name, QVariant());
+    }
+}
+
 void DNoTitlebarWlWindowHelper::popupSystemWindowMenu(quintptr wid)
 {
     QWindow *window = fromQtWinId(wid);
