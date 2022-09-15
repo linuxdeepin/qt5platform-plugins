@@ -171,7 +171,7 @@ bool DWaylandInterfaceHook::supportForSplittingWindow(WId wid)
     QWindow *window = fromQtWinId(wid);
     if(!window || !window->handle())
         return false;
-    DNoTitlebarWlWindowHelper::setWindowProperty(window, ::supportForSplittingWindow, false);
+    DNoTitlebarWlWindowHelper::requestByWindowProperty(window, ::supportForSplittingWindow);
     return window->property(::supportForSplittingWindow).toBool();
 }
 
