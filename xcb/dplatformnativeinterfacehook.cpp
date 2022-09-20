@@ -76,8 +76,8 @@ static QFunctionPointer getFunction(const QByteArray &function)
         {clearNativeSettings, reinterpret_cast<QFunctionPointer>(&DPlatformIntegration::clearNativeSettings)},
         {setWMClassName, reinterpret_cast<QFunctionPointer>(&DPlatformIntegration::setWMClassName)},
         {splitWindowOnScreen, reinterpret_cast<QFunctionPointer>(&Utility::splitWindowOnScreen)},
-        {supportForSplittingWindow, reinterpret_cast<QFunctionPointer>(&Utility::supportForSplittingWindow),},
-        {sendEndStartupNotifition, reinterpret_cast<QFunctionPointer>(&DPlatformIntegration::sendEndStartupNotifition),}
+        {supportForSplittingWindow, reinterpret_cast<QFunctionPointer>(&Utility::supportForSplittingWindow)},
+        {sendEndStartupNotifition, reinterpret_cast<QFunctionPointer>(&DPlatformIntegration::sendEndStartupNotifition)}
     };
 
     return functionCache.value(function);
