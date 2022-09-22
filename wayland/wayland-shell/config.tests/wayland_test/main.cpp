@@ -1,6 +1,6 @@
 // SPDX-FileCopyrightText: 2022 Uniontech Software Technology Co.,Ltd.
 //
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: LGPL-3.0-or-later
 
 #include <QGuiApplication>
 #include <private/qguiapplication_p.h>
