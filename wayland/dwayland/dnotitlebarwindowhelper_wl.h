@@ -34,7 +34,7 @@ private slots:
     Q_SLOT void updateEnableSystemMoveFromProperty();
 
 private:
-    static bool windowEvent(QWindow *w, QEvent *event, DNoTitlebarWlWindowHelper *self);
+    static bool windowEvent(QWindow *w, QEvent *event);
     bool isEnableSystemMove();
     static void startMoveWindow(QWindow *window);
 
