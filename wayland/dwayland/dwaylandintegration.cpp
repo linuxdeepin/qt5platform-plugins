@@ -193,7 +193,7 @@ void DWaylandIntegration::initialize()
     // qt屏幕添加信号可能晚于xsetting，当设置主屏时，屏幕还未添加，这里监听qt屏幕添加信号，避免主屏设置不对
     QObject::connect(qApp, &QGuiApplication::screenAdded, [] {
         onPrimaryScreenChanged(nullptr, XSETTINGS_PRIMARY_MONITOR_NAME, QVariant(), reinterpret_cast<void*>(XSettingType::Gdk_PrimaryMonitorName));
-    }
+    });
 }
 
 QStringList DWaylandIntegration::themeNames() const
