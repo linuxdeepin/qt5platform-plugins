@@ -79,11 +79,11 @@ Copyright: None
 License: CC0-1.0
 
 # qt-oldfile-1
-Files: xcb/libqt5xcbqpa-dev/5.3.0/qxcbeglsurface.h xcb/libqt5xcbqpa-dev/5.3.0/qxlibconvenience.h xcb/libqt5xcbqpa-dev/5.3.1/qxcbeglsurface.h xcb/libqt5xcbqpa-dev/5.3.1/qxlibconvenience.h xcb/libqt5xcbqpa-dev/5.3.2/qxcbeglsurface.h xcb/libqt5xcbqpa-dev/5.3.2/qxlibconvenience.h xcb/libqt5xcbqpa-dev/5.4.0/qxcbeglsurface.h xcb/libqt5xcbqpa-dev/5.4.0/qxlibconvenience.h xcb/libqt5xcbqpa-dev/5.4.1/qxcbeglsurface.h xcb/libqt5xcbqpa-dev/5.4.1/qxlibconvenience.h xcb/libqt5xcbqpa-dev/5.4.2/qxcbeglsurface.h xcb/libqt5xcbqpa-dev/5.4.2/qxlibconvenience.h xcb/libqt5xcbqpa-dev/5.5.0/qxlibconvenience.h xcb/libqt5xcbqpa-dev/5.5.1/qxlibconvenience.h xcb/libqt5xcbqpa-dev/5.6.1/qxlibconvenience.h xcb/libqt5xcbqpa-dev/5.6.2/qxlibconvenience.h xcb/libqt5xcbqpa-dev/5.7.0/qxlibconvenience.h
+Files: xcb/libqt5xcbqpa-dev/5.3.*/* xcb/libqt5xcbqpa-dev/5.4.*/* xcb/libqt5xcbqpa-dev/5.5.*/* xcb/libqt5xcbqpa-dev/5.6.*/* xcb/libqt5xcbqpa-dev/5.7.*/*
 Copyright: Digia Plc and/or its subsidiary(-ies)
 License: LGPL-2.1-only or GPL-3.0-only
 
 # qt-oldfile-2
-Files: xcb/libqt5xcbqpa-dev/5.11.0/qxcbxkbcommon.h xcb/libqt5xcbqpa-dev/5.11.1/qxcbxkbcommon.h xcb/libqt5xcbqpa-dev/5.11.2/qxcbxkbcommon.h xcb/libqt5xcbqpa-dev/5.11.3/qxcbxkbcommon.h xcb/libqt5xcbqpa-dev/5.12.0/qxcbxkbcommon.h xcb/libqt5xcbqpa-dev/5.12.1/qxcbxkbcommon.h xcb/libqt5xcbqpa-dev/5.12.2/qxcbxkbcommon.h xcb/libqt5xcbqpa-dev/5.12.3/qxcbxkbcommon.h xcb/libqt5xcbqpa-dev/5.12.4/qxcbxkbcommon.h xcb/libqt5xcbqpa-dev/5.12.5/qxcbxkbcommon.h xcb/libqt5xcbqpa-dev/5.12.6/qxcbxkbcommon.h xcb/libqt5xcbqpa-dev/5.12.7/qxcbxkbcommon.h xcb/libqt5xcbqpa-dev/5.12.8/qxcbxkbcommon.h xcb/libqt5xcbqpa-dev/5.12.9/qxcbxkbcommon.h
+Files: xcb/libqt5xcbqpa-dev/5.1*.*/*
 Copyright: The Qt Company Ltd.
 License: LGPL-3.0-only or GPL-2.0-only or GPL-3.0-or-later
