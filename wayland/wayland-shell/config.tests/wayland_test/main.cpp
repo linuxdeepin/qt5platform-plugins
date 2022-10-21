@@ -11,9 +11,9 @@
 #include <qpa/qplatforminputcontext.h>
 #include <qpa/qplatformintegration.h>
 #include <qpa/qwindowsysteminterface.h>
-#include <KWayland/Client/registry.h>
+#include <DWayland/Client/registry.h>
 #include <private/qxkbcommon_p.h>
-#include <KWayland/Client/ddeshell.h>
+#include <DWayland/Client/ddeshell.h>
 
 using namespace QtWaylandClient;
 
