@@ -750,9 +750,21 @@ void DWaylandShellManager::setEnableBlurWidow(QWaylandWindow *wlWindow, const QV
         }
         blur->setRegion(region);
         blur->commit();
+        if (!kwayland_surface) {
+            qCWarning(dwlp) << "invalid kwayland_surface";
+            return;
+        }
         kwayland_surface->commit(Surface::CommitFlag::None);
     } else {
+        if (!kwayland_blur_manager) {
+            qCWarning(dwlp) << "invalid kwayland_blur_manager";
+            return;
+        }
         kwayland_blur_manager->removeBlur(surface);
+        if (!kwayland_surface) {
+            qCWarning(dwlp) << "invalid kwayland_surface";
+            return;
+        }
         kwayland_surface->commit(Surface::CommitFlag::None);
         // 取消模糊效果的更新需要主动调用应用侧的窗口
         if (QWidgetWindow *widgetWin = static_cast<QWidgetWindow*>(wlWindow->window())) {
