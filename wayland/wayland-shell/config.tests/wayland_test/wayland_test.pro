@@ -11,8 +11,8 @@ QT += waylandclient-private
 
 TARGET = wayland_test
 
-QT       += KWaylandClient
-LIBS     += -lKF5WaylandClient
+QT       += DWaylandClient
+LIBS     += -lDWaylandClient
 CONFIG += link_pkgconfig
 PKGCONFIG += Qt5WaylandClient
 # xkb

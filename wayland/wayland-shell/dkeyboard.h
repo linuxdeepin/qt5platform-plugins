@@ -6,7 +6,7 @@
 #define DKEYBOARD_H
 
 #include <QObject>
-#include <KWayland/Client/ddekeyboard.h>
+#include <DWayland/Client/ddekeyboard.h>
 using namespace KWayland::Client;
 
 namespace QtWaylandClient {

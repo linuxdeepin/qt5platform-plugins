@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: LGPL-3.0-or-later
 
-#include <KWayland/Client/plasmashell.h>
+#include <DWayland/Client/plasmashell.h>
 
 int main()
 {
