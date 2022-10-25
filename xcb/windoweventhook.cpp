@@ -318,21 +318,6 @@ void WindowEventHook::handleClientMessageEvent(QXcbWindow *window, const xcb_cli
     }
 }
 
-bool WindowEventHook::relayFocusToModalWindow(QWindow *w, QXcbConnection *connection)
-{
-    QWindow *modal_window = 0;
-    if (QGuiApplicationPrivate::instance()->isWindowBlocked(w,&modal_window) && modal_window != w) {
-        if (!modal_window->isExposed())
-            return false;
-
-        modal_window->requestActivate();
-        connection->flush();
-        return true;
-    }
-
-    return false;
-}
-
 void WindowEventHook::handleFocusInEvent(QXcbWindow *window, const xcb_focus_in_event_t *event)
 {
     // Ignore focus events that are being sent only because the pointer is over
@@ -349,63 +334,7 @@ void WindowEventHook::handleFocusInEvent(QXcbWindow *window, const xcb_focus_in_
             return;
     }
 
-    if (relayFocusToModalWindow(w, window->connection()))
-        return;
-
-#if QT_VERSION >= QT_VERSION_CHECK(5, 13, 0)
-    window->connection()->focusInTimer().stop();
-#endif
-
-#if QT_VERSION >= QT_VERSION_CHECK(5, 9, 0)
-    window->connection()->setFocusWindow(w);
-#else
-    window->connection()->setFocusWindow(static_cast<QXcbWindow *>(w->handle()));
-#endif
-
-    QWindowSystemInterface::handleWindowActivated(w, Qt::ActiveWindowFocusReason);
-}
-
-enum QX11EmbedMessageType {
-    XEMBED_EMBEDDED_NOTIFY = 0,
-    XEMBED_WINDOW_ACTIVATE = 1,
-    XEMBED_WINDOW_DEACTIVATE = 2,
-    XEMBED_REQUEST_FOCUS = 3,
-    XEMBED_FOCUS_IN = 4,
-    XEMBED_FOCUS_OUT = 5,
-    XEMBED_FOCUS_NEXT = 6,
-    XEMBED_FOCUS_PREV = 7,
-    XEMBED_MODALITY_ON = 10,
-    XEMBED_MODALITY_OFF = 11,
-    XEMBED_REGISTER_ACCELERATOR = 12,
-    XEMBED_UNREGISTER_ACCELERATOR = 13,
-    XEMBED_ACTIVATE_ACCELERATOR = 14
-};
-
-static bool focusInPeeker(QXcbConnection *connection, xcb_generic_event_t *event)
-{
-    if (!event) {
-        // FocusIn event is not in the queue, proceed with FocusOut normally.
-        QWindowSystemInterface::handleWindowActivated(0, Qt::ActiveWindowFocusReason);
-        return true;
-    }
-    uint response_type = event->response_type & ~0x80;
-    if (response_type == XCB_FOCUS_IN) {
-        // Ignore focus events that are being sent only because the pointer is over
-        // our window, even if the input focus is in a different window.
-        xcb_focus_in_event_t *e = (xcb_focus_in_event_t *) event;
-        if (e->detail != XCB_NOTIFY_DETAIL_POINTER)
-            return true;
-    }
-
-    /* We are also interested in XEMBED_FOCUS_IN events */
-    if (response_type == XCB_CLIENT_MESSAGE) {
-        xcb_client_message_event_t *cme = (xcb_client_message_event_t *)event;
-        if (cme->type == connection->atom(QXcbAtom::_XEMBED)
-            && cme->data.data32[1] == XEMBED_FOCUS_IN)
-            return true;
-    }
-
-    return false;
+    VtableHook::callOriginalFun(window, &QXcbWindow::handleFocusInEvent, event);
 }
 
 void WindowEventHook::handleFocusOutEvent(QXcbWindow *window, const xcb_focus_out_event_t *event)
@@ -420,20 +349,7 @@ void WindowEventHook::handleFocusOutEvent(QXcbWindow *window, const xcb_focus_ou
     if (event->detail == XCB_NOTIFY_DETAIL_POINTER)
         return;
 
-    QWindow *w = static_cast<QWindowPrivate *>(QObjectPrivate::get(window->window()))->eventReceiver();
-
-    if (relayFocusToModalWindow(w, window->connection()))
-        return;
-
-    window->connection()->setFocusWindow(0);
-    // Do not set the active window to 0 if there is a FocusIn coming.
-    // There is however no equivalent for XPutBackEvent so register a
-    // callback for QXcbConnection instead.
-#if QT_VERSION >= QT_VERSION_CHECK(5, 13, 0)
-    window->connection()->focusInTimer().start(100);
-#else
-    window->connection()->addPeekFunc(focusInPeeker);
-#endif
+    VtableHook::callOriginalFun(window, &QXcbWindow::handleFocusOutEvent, event);
 }
 
 void WindowEventHook::handlePropertyNotifyEvent(QXcbWindowEventListener *el, const xcb_property_notify_event_t *event)

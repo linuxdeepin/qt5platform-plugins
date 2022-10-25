@@ -31,9 +31,6 @@ public:
 #else
     static bool windowEvent(QXcbWindow *window, QEvent *event);
 #endif
-
-private:
-    static bool relayFocusToModalWindow(QWindow *w, QXcbConnection *connection);
 };
 
 DPP_END_NAMESPACE
