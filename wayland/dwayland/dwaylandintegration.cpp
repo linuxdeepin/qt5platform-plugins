@@ -220,6 +220,8 @@ QVariant DWaylandIntegration::styleHint(QPlatformIntegration::StyleHint hint) co
     case MouseDoubleClickInterval:
         GET_VALID_XSETTINGS(XSETTINGS_DOUBLE_CLICK_TIME);
         break;
+    case ShowShortcutsInContextMenus:
+        return false;
     default:
         break;
     }
