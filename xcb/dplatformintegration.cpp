@@ -536,6 +536,8 @@ QVariant DPlatformIntegration::styleHint(QPlatformIntegration::StyleHint hint) c
     case MouseDoubleClickInterval:
         GET_VALID_XSETTINGS(XSETTINGS_DOUBLE_CLICK_TIME);
         break;
+    case ShowShortcutsInContextMenus:
+        return false;
     default:
         break;
     }
