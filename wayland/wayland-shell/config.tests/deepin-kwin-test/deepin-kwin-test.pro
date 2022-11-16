@@ -1,3 +1,3 @@
 CONFIG += qt
-QT += DWaylandClient
+include(../../wayland_depends.pri)
 SOURCES += main.cpp

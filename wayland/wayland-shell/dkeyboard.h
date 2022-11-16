@@ -6,7 +6,11 @@
 #define DKEYBOARD_H
 
 #include <QObject>
+#ifndef D_DEEPIN_IS_DWAYLAND
+#include <KWayland/Client/ddekeyboard.h>
+#else
 #include <DWayland/Client/ddekeyboard.h>
+#endif
 using namespace KWayland::Client;
 
 namespace QtWaylandClient {
