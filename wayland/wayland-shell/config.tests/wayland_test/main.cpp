@@ -11,9 +11,15 @@
 #include <qpa/qplatforminputcontext.h>
 #include <qpa/qplatformintegration.h>
 #include <qpa/qwindowsysteminterface.h>
-#include <DWayland/Client/registry.h>
 #include <private/qxkbcommon_p.h>
+#ifndef D_DEEPIN_IS_DWAYLAND
+#include <KWayland/Client/registry.h>
+#include <KWayland/Client/ddeshell.h>
+#else
+#include <DWayland/Client/registry.h>
 #include <DWayland/Client/ddeshell.h>
+#endif
+
 
 using namespace QtWaylandClient;
 

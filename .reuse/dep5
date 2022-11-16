@@ -39,7 +39,7 @@ Copyright: None
 License: CC0-1.0
 
 # wayland-shell config
-Files: wayland/wayland-shell/*.json wayland/wayland-shell/*.pro wayland/wayland-shell/config.tests/deepin-kwin-test/*.pro wayland/wayland-shell/config.tests/wayland-test/*.pro
+Files: wayland/wayland-shell/*.json wayland/wayland-shell/*.pro wayland/wayland-shell/*.pri wayland/wayland-shell/config.tests/deepin-kwin-test/*.pro wayland/wayland-shell/config.tests/wayland-test/*.pro
 Copyright: None
 License: CC0-1.0
 

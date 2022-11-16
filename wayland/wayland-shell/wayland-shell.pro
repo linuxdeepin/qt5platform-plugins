@@ -4,8 +4,8 @@
 #
 #-------------------------------------------------
 
-QT       += DWaylandClient
-LIBS     += -lDWaylandClient
+include(wayland_depends.pri)
+
 # qtCompileTest 容易失败，加 recheck 更新缓存
 CONFIG += link_pkgconfig plugin recheck
 PKGCONFIG += Qt5WaylandClient

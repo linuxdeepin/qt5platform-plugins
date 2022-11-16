@@ -17,6 +17,20 @@
 #include "QtWaylandClient/private/qwaylandscreen_p.h"
 #undef private
 
+#ifndef D_DEEPIN_IS_DWAYLAND
+#include <KWayland/Client/registry.h>
+#include <KWayland/Client/plasmashell.h>
+#include <KWayland/Client/server_decoration.h>
+#include <KWayland/Client/ddeshell.h>
+#include <KWayland/Client/ddeseat.h>
+#include <KWayland/Client/ddekeyboard.h>
+#include <KWayland/Client/strut.h>
+#include <KWayland/Client/fakeinput.h>
+#include <KWayland/Client/compositor.h>
+#include <KWayland/Client/blur.h>
+#include <KWayland/Client/region.h>
+#include <KWayland/Client/surface.h>
+#else
 #include <DWayland/Client/registry.h>
 #include <DWayland/Client/plasmashell.h>
 #include <DWayland/Client/server_decoration.h>
@@ -29,6 +43,7 @@
 #include <DWayland/Client/blur.h>
 #include <DWayland/Client/region.h>
 #include <DWayland/Client/surface.h>
+#endif
 
 #include <QGuiApplication>
 #include <QPointer>

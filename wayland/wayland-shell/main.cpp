@@ -33,10 +33,17 @@ public:
 #include "QtWaylandClient/private/qwaylandwindow_p.h"
 #undef private
 
+#ifndef D_DEEPIN_IS_DWAYLAND
+#include <KWayland/Client/registry.h>
+#include <KWayland/Client/plasmashell.h>
+#include <KWayland/Client/server_decoration.h>
+#include <KWayland/Client/ddeshell.h>
+#else
 #include <DWayland/Client/registry.h>
 #include <DWayland/Client/plasmashell.h>
 #include <DWayland/Client/server_decoration.h>
 #include <DWayland/Client/ddeshell.h>
+#endif
 
 #include <QGuiApplication>
 #include <QPointer>
