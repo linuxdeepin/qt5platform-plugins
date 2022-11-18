@@ -25,11 +25,11 @@ DPP_BEGIN_NAMESPACE
 
 #define XSETTINGS_DOUBLE_CLICK_TIME QByteArrayLiteral("Net/DoubleClickTime")
 #define XSETTINGS_CURSOR_THEME_NAME QByteArrayLiteral("Gtk/CursorThemeName")
-#define XSETTINGS_PRIMARY_MONITOR_NAME QByteArrayLiteral("Gdk/PrimaryMonitorName")
+#define XSETTINGS_PRIMARY_MONITOR_RECT QByteArrayLiteral("DDE/PrimaryMonitorRect")
 
 enum XSettingType:quint64 {
     Gtk_CursorThemeName,
-    Gdk_PrimaryMonitorName
+    Dde_PrimaryMonitorRect
 };
 
 static void overrideChangeCursor(QPlatformCursor *cursorHandle, QCursor * cursor, QWindow * widget)
@@ -111,41 +111,42 @@ static void onXSettingsChanged(xcb_connection_t *connection, const QByteArray &n
     }
 }
 
-static void onPrimaryScreenChanged(xcb_connection_t *connection, const QByteArray &name, const QVariant &property, void *handle)
+static void onPrimaryRectChanged(xcb_connection_t *connection, const QByteArray &name, const QVariant &property, void *handle)
 {
     Q_UNUSED(connection)
     Q_UNUSED(property)
 
     quint64 type = reinterpret_cast<quint64>(handle);
     switch (type) {
-    case Gdk_PrimaryMonitorName:
+    case Dde_PrimaryMonitorRect:
     {
-        // 如果设置的主屏与当前获取的主屏一样，则不处理
-        const QString &primaryScreenName = dXSettings->globalSettings()->setting(name).toString();
-        if (QGuiApplication::primaryScreen()->model().startsWith(primaryScreenName))
-            break;
+        auto screens = DWaylandIntegration::instance()->display()->screens();
+        const QString &primaryScreenRect = dXSettings->globalSettings()->setting(name).toString();
+        auto list = primaryScreenRect.split('-');
+        if (list.size() != 4)
+            return;
+
+        QRect xsettingsRect(list.at(0).toInt(), list.at(1).toInt(), list.at(2).toInt(), list.at(3).toInt());
+
+        qDebug() << "primary rect from xsettings:" << primaryScreenRect << ", key:" << name;
+        for (auto s : screens) {
+            qDebug() << "screen info:"
+                     << s->screen()->name() << s->screen()->model()
+                     << s->name() << s->model();
+        }
 
         // 设置新的主屏
-        auto screens = DWaylandIntegration::instance()->display()->screens();
         QtWaylandClient::QWaylandScreen *primaryScreen = nullptr;
 
-        // 名称一致，认定为主屏
+        // 坐标一致，认定为主屏
         for (auto screen : screens) {
-            if (screen->name() == primaryScreenName) {
+            if (screen->geometry().topLeft() == xsettingsRect.topLeft() && screen->screen() != qApp->primaryScreen()) {
                 primaryScreen = screen;
+                qDebug() << "got primary:" << primaryScreen->name() << primaryScreen->geometry();
                 break;
             }
         }
 
-        // 次之，名称部分一致，认为是主屏
-        if (!primaryScreen) {
-            for (auto screen : screens) {
-                if (screen->name().startsWith(primaryScreenName) || screen->model().startsWith(primaryScreenName)) {
-                    primaryScreen = screen;
-                    break;
-                }
-            }
-        }
         if (primaryScreen) {
 #if QT_VERSION >= QT_VERSION_CHECK(5, 12, 0)
             QWindowSystemInterface::handlePrimaryScreenChanged(primaryScreen);
@@ -187,12 +188,14 @@ void DWaylandIntegration::initialize()
     }
     // 监听xsettings的信号，用于更新程序状态（如更新光标主题）
     dXSettings->globalSettings()->registerCallbackForProperty(XSETTINGS_CURSOR_THEME_NAME, onXSettingsChanged, reinterpret_cast<void*>(XSettingType::Gtk_CursorThemeName));
-    // 处理主屏设置，并监听xsettings的信号用于更新
-    onPrimaryScreenChanged(nullptr, XSETTINGS_PRIMARY_MONITOR_NAME, QVariant(), reinterpret_cast<void*>(XSettingType::Gdk_PrimaryMonitorName));
-    dXSettings->globalSettings()->registerCallbackForProperty(XSETTINGS_PRIMARY_MONITOR_NAME, onPrimaryScreenChanged, reinterpret_cast<void*>(XSettingType::Gdk_PrimaryMonitorName));
+
+    // 增加rect的属性，保存主屏的具体坐标，不依靠其name判断(根据name查找对应的屏幕时概率性出错，根据主屏的rect确定哪一个QScreen才是主屏)
+    onPrimaryRectChanged(nullptr, XSETTINGS_PRIMARY_MONITOR_RECT, QVariant(), reinterpret_cast<void*>(XSettingType::Dde_PrimaryMonitorRect));
+    dXSettings->globalSettings()->registerCallbackForProperty(XSETTINGS_PRIMARY_MONITOR_RECT, onPrimaryRectChanged, reinterpret_cast<void*>(XSettingType::Dde_PrimaryMonitorRect));
+
     // qt屏幕添加信号可能晚于xsetting，当设置主屏时，屏幕还未添加，这里监听qt屏幕添加信号，避免主屏设置不对
     QObject::connect(qApp, &QGuiApplication::screenAdded, [] {
-        onPrimaryScreenChanged(nullptr, XSETTINGS_PRIMARY_MONITOR_NAME, QVariant(), reinterpret_cast<void*>(XSettingType::Gdk_PrimaryMonitorName));
+        onPrimaryRectChanged(nullptr, XSETTINGS_PRIMARY_MONITOR_RECT, QVariant(), reinterpret_cast<void*>(XSettingType::Dde_PrimaryMonitorRect));
     });
 }
 
