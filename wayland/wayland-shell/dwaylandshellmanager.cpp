@@ -7,7 +7,6 @@
 #include "global.h"
 #include "../xcb/utility.h"
 
-
 #define protected public
 #include <qwindow.h>
 #undef protected
@@ -49,6 +48,7 @@ namespace {
     BlurManager *kwayland_blur_manager = nullptr;
     Surface *kwayland_surface = nullptr;
     Compositor *kwayland_compositor = nullptr;
+    PlasmaWindowManagement *kwayland_manage = nullptr;
 };
 
 QList<QPointer<QWaylandWindow>> DWaylandShellManager::send_property_window_list;
@@ -260,6 +260,11 @@ void DWaylandShellManager::sendProperty(QWaylandShellSurface *self, const QStrin
     if (QStringLiteral(_DWAYALND_ "window-position") == name) {
         ksurface->setPosition(value.toPoint());
     }
+
+    if (QStringLiteral(_DWAYALND_ "dock-appitem-geometry") == name) {
+        setDockAppItemMinimizedGeometry(self, value);
+    }
+
     static const QMap<PlasmaShellSurface::Role, QStringList> role2type = {
         {PlasmaShellSurface::Role::Normal, {"normal"}},
         {PlasmaShellSurface::Role::Desktop, {"desktop"}},
@@ -551,6 +556,11 @@ void DWaylandShellManager::createSurface()
     }
 }
 
+void DWaylandShellManager::createPlasmaWindowManagement(KWayland::Client::Registry *registry, quint32 name, quint32 version)
+{
+    kwayland_manage = registry->createPlasmaWindowManagement(name, version, registry->parent());
+}
+
 void DWaylandShellManager::requestActivateWindow(QPlatformWindow *self)
 {
     HookCall(self, &QPlatformWindow::requestActivateWindow);
@@ -716,6 +726,45 @@ void DWaylandShellManager::setDockStrut(QWaylandShellSurface *surface, const QVa
     }
 
     kwayland_strut->setStrutPartial(getWindowWLSurface(surface->window()), dockStrut);
+}
+
+/*
+ * @brief setDockAppItemMinimizedGeometry 设置驻留任务栏应用窗口最小化的位置信息
+ * @param surface
+ * @param var[0]:应用 窗口Id
+ *        var[1]:app window x
+ *        var[2]:app window y
+ *        var[3]:app window width
+ *        var[4]:app window height
+ */
+void DWaylandShellManager::setDockAppItemMinimizedGeometry(QWaylandShellSurface *surface, const QVariant var)
+{
+    if (!surface) {
+        return;
+    }
+
+    for (auto w : kwayland_manage->windows()){
+        if (w->windowId() == var.toList()[0].toUInt()) {
+            auto x = var.toList()[1].toInt();
+            auto y = var.toList()[2].toInt();
+            auto width = var.toList()[3].toInt();
+            auto height = var.toList()[4].toInt();
+
+            QRect r(QPoint(x, y), QSize(width, height));
+
+            if (w) {
+                auto s = ensureSurface(surface->window());
+                if (!s) {
+                    qCWarning(dwlp) << "invalid surface";
+                    return;
+                }
+
+                w->setMinimizedGeometry(s, r);
+            }
+
+            return;
+        }
+    }
 }
 
 /*
