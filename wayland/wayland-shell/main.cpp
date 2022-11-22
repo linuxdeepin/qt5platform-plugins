@@ -112,6 +112,10 @@ QWaylandShellIntegration *QKWaylandShellIntegrationPlugin::create(const QString 
         DWaylandShellManager::createSurface();
     });
 
+    connect(registry, &KWayland::Client::Registry::plasmaWindowManagementAnnounced, [registry](quint32 name, quint32 version) {
+        DWaylandShellManager::createPlasmaWindowManagement(registry, name, version);
+    });
+
     wl_display *wlDisplay = reinterpret_cast<wl_display*>(platformNativeDisplay);
 
     registry->create(wlDisplay);

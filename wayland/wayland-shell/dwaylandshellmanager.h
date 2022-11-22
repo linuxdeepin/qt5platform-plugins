@@ -30,6 +30,7 @@
 #include <KWayland/Client/blur.h>
 #include <KWayland/Client/region.h>
 #include <KWayland/Client/surface.h>
+#include <KWayland/Client/plasmawindowmanagement.h>
 #else
 #include <DWayland/Client/registry.h>
 #include <DWayland/Client/plasmashell.h>
@@ -43,6 +44,7 @@
 #include <DWayland/Client/blur.h>
 #include <DWayland/Client/region.h>
 #include <DWayland/Client/surface.h>
+#include <DWayland/Client/plasmawindowmanagement.h>
 #endif
 
 #include <QGuiApplication>
@@ -91,6 +93,7 @@ public:
     static void createBlurManager(quint32 name, quint32 version);
     static void createCompositor(quint32 name, quint32 version);
     static void createSurface();
+    static void createPlasmaWindowManagement(KWayland::Client::Registry *registry, quint32 name, quint32 version);
     static void handleGeometryChange(QWaylandWindow *window);
     static void handleWindowStateChanged(QWaylandWindow *window);
     static void setWindowStaysOnTop(QWaylandShellSurface *surface, const bool state);
@@ -98,6 +101,7 @@ public:
     static void setCursorPoint(QPointF pos);
     static void setEnableBlurWidow(QWaylandWindow *wlWindow, const QVariant &value);
     static void updateWindowBlurAreasForWM(QWaylandWindow *wlWindow, const QString &name, const QVariant &value);
+    static void setDockAppItemMinimizedGeometry(QWaylandShellSurface *surface, const QVariant var);
 
 private:
     // 用于记录设置过以_DWAYALND_开头的属性，当kwyalnd_shell对象创建以后要使这些属性生效
