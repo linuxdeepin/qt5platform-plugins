@@ -18,8 +18,8 @@ Files: debian/*
 Copyright: None
 License: CC0-1.0
 
-# github
-Files: .github/*
+# github yaml files
+Files: .github/* *.yml *.yaml
 Copyright: None
 License: CC0-1.0
 
