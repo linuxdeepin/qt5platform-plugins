@@ -18,6 +18,8 @@
 #include <QtWaylandClientVersion>
 
 #include <QDebug>
+#include <QTimer>
+
 #include <qpa/qplatformnativeinterface.h>
 #include <private/qguiapplication_p.h>
 
@@ -131,8 +133,8 @@ static void onPrimaryRectChanged(xcb_connection_t *connection, const QByteArray 
         qDebug() << "primary rect from xsettings:" << primaryScreenRect << ", key:" << name;
         for (auto s : screens) {
             qDebug() << "screen info:"
-                     << s->screen()->name() << s->screen()->model()
-                     << s->name() << s->model();
+                     << s->screen()->name() << s->screen()->model() << s->screen()->geometry() << s->geometry()
+                     << s->name() << s->model() << s->screen()->geometry() << s->geometry();
         }
 
         // 设置新的主屏
@@ -190,13 +192,41 @@ void DWaylandIntegration::initialize()
     dXSettings->globalSettings()->registerCallbackForProperty(XSETTINGS_CURSOR_THEME_NAME, onXSettingsChanged, reinterpret_cast<void*>(XSettingType::Gtk_CursorThemeName));
 
     // 增加rect的属性，保存主屏的具体坐标，不依靠其name判断(根据name查找对应的屏幕时概率性出错，根据主屏的rect确定哪一个QScreen才是主屏)
-    onPrimaryRectChanged(nullptr, XSETTINGS_PRIMARY_MONITOR_RECT, QVariant(), reinterpret_cast<void*>(XSettingType::Dde_PrimaryMonitorRect));
     dXSettings->globalSettings()->registerCallbackForProperty(XSETTINGS_PRIMARY_MONITOR_RECT, onPrimaryRectChanged, reinterpret_cast<void*>(XSettingType::Dde_PrimaryMonitorRect));
 
-    // qt屏幕添加信号可能晚于xsetting，当设置主屏时，屏幕还未添加，这里监听qt屏幕添加信号，避免主屏设置不对
-    QObject::connect(qApp, &QGuiApplication::screenAdded, [] {
+    QTimer *m_delayTimer = new QTimer;
+    m_delayTimer->setInterval(10);
+    m_delayTimer->setSingleShot(true);
+    QObject::connect(qApp, &QGuiApplication::aboutToQuit, m_delayTimer, &QObject::deleteLater);
+
+    QObject::connect(m_delayTimer, &QTimer::timeout, []{
         onPrimaryRectChanged(nullptr, XSETTINGS_PRIMARY_MONITOR_RECT, QVariant(), reinterpret_cast<void*>(XSettingType::Dde_PrimaryMonitorRect));
     });
+
+    // 显示器信息发生变化时，刷新主屏信息
+    auto handleScreenInfoChanged = [ = ](QScreen *s) {
+#define HANDLE_SCREEN_SIGNAL(signal) \
+    QObject::connect(s, signal, m_delayTimer, static_cast<void (QTimer::*)()>(&QTimer::start));
+
+        HANDLE_SCREEN_SIGNAL(&QScreen::geometryChanged);
+        HANDLE_SCREEN_SIGNAL(&QScreen::availableGeometryChanged);
+        HANDLE_SCREEN_SIGNAL(&QScreen::physicalSizeChanged);
+        HANDLE_SCREEN_SIGNAL(&QScreen::physicalDotsPerInchChanged);
+        HANDLE_SCREEN_SIGNAL(&QScreen::logicalDotsPerInchChanged);
+        HANDLE_SCREEN_SIGNAL(&QScreen::virtualGeometryChanged);
+        HANDLE_SCREEN_SIGNAL(&QScreen::primaryOrientationChanged);
+        HANDLE_SCREEN_SIGNAL(&QScreen::orientationChanged);
+        HANDLE_SCREEN_SIGNAL(&QScreen::refreshRateChanged);
+
+        m_delayTimer->start();
+    };
+
+    for (auto s : qApp->screens()) {
+        handleScreenInfoChanged(s);
+    }
+
+    QObject::connect(qApp, &QGuiApplication::screenAdded, handleScreenInfoChanged);
+    QObject::connect(qApp, &QGuiApplication::screenAdded, m_delayTimer, static_cast<void (QTimer::*)()>(&QTimer::start));
 }
 
 QStringList DWaylandIntegration::themeNames() const
