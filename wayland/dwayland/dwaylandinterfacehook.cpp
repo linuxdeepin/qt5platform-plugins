@@ -39,7 +39,9 @@ static QFunctionPointer getFunction(const QByteArray &function)
         {enableDwayland, reinterpret_cast<QFunctionPointer>(&DWaylandInterfaceHook::enableDwayland)},
         {isEnableDwayland, reinterpret_cast<QFunctionPointer>(&DWaylandInterfaceHook::isEnableDwayland)},
         {splitWindowOnScreen, reinterpret_cast<QFunctionPointer>(&DWaylandInterfaceHook::splitWindowOnScreen)},
-        {supportForSplittingWindow, reinterpret_cast<QFunctionPointer>(&DWaylandInterfaceHook::supportForSplittingWindow)}
+        {supportForSplittingWindow, reinterpret_cast<QFunctionPointer>(&DWaylandInterfaceHook::supportForSplittingWindow)},
+        {splitWindowOnScreenByType, reinterpret_cast<QFunctionPointer>(&DWaylandInterfaceHook::splitWindowOnScreenByType)},
+        {supportForSplittingWindowByType, reinterpret_cast<QFunctionPointer>(&DWaylandInterfaceHook::supportForSplittingWindowByType)}
     };
     return functionCache.value(function);
 }
@@ -149,30 +151,42 @@ bool DWaylandInterfaceHook::isEnableDwayland(const QWindow *window)
 
 void DWaylandInterfaceHook::splitWindowOnScreen(WId wid, quint32 type)
 {
+    return splitWindowOnScreenByType(wid, 1, type);
+}
+
+void DWaylandInterfaceHook::splitWindowOnScreenByType(WId wid, quint32 position, quint32 type)
+{
     QWindow *window = fromQtWinId(wid);
     if(!window || !window->handle())
         return;
-    // 1 left,2 right,15 fullscreen
-    if (type == 15) {
+    // position: 15 not preview
+    if (position == 15) {
         if (window->windowStates().testFlag(Qt::WindowMaximized)) {
             window->showNormal();
         } else {
             window->showMaximized();
         }
-    } else if (type == 1 || type == 2) {
-        DNoTitlebarWlWindowHelper::setWindowProperty(window, ::splitWindowOnScreen, type);
     } else {
-        qCWarning(dwli) << "invalid split type: " << type;
+        // type 1:two splitting 2:three splitting 4:four splitting
+        // position enum class SplitType in kwin-dev, Left=0x1, Right=0x10, Top=0x100, Bottom=0x1000
+        QVariantList value{position, type};
+        DNoTitlebarWlWindowHelper::setWindowProperty(window, ::splitWindowOnScreen, value);
     }
 }
 
 bool DWaylandInterfaceHook::supportForSplittingWindow(WId wid)
 {
+    return supportForSplittingWindowByType(wid, 1);
+}
+
+// screenSplittingType: 0: can't splitting, 1:two splitting, 2: four splitting(includ three splitting)
+bool DWaylandInterfaceHook::supportForSplittingWindowByType(quint32 wid, quint32 screenSplittingType)
+{
     QWindow *window = fromQtWinId(wid);
     if(!window || !window->handle())
         return false;
-    DNoTitlebarWlWindowHelper::requestByWindowProperty(window, ::supportForSplittingWindow);
-    return window->property(::supportForSplittingWindow).toBool();
+    DNoTitlebarWlWindowHelper::setWindowProperty(window, ::supportForSplittingWindow, false);
+    return window->property(::supportForSplittingWindow).toInt() >= screenSplittingType;
 }
 
 DPP_END_NAMESPACE
