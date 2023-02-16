@@ -91,7 +91,9 @@ contains(QT_CONFIG, xcb-qt) {
     DEFINES += XCB_USE_RENDER
 }
 
-exists($$PWD/libqt5xcbqpa-dev/$$QT_VERSION) {
+!isEmpty(QT_XCB_PRIVATE_INCLUDE) {
+    INCLUDEPATH += $$QT_XCB_PRIVATE_INCLUDE
+} else:exists($$PWD/libqt5xcbqpa-dev/$$QT_VERSION) {
     INCLUDEPATH += $$PWD/libqt5xcbqpa-dev/$$QT_VERSION
 } else:exists($$[QT_INSTALL_HEADERS]/QtXcb/$$[QT_VERSION]) {
     INCLUDEPATH += $$[QT_INSTALL_HEADERS]/QtXcb/$$[QT_VERSION]/QtXcb/private

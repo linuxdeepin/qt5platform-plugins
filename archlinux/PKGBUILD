@@ -28,7 +28,7 @@ prepare() {
 
 build() {
   cd $deepin_source_name
-  qmake-qt5 PREFIX=/usr
+  qmake-qt5 PREFIX=/usr QT_XCB_PRIVATE_INCLUDE=/usr/include/qtxcb-private
   make
 }
 
