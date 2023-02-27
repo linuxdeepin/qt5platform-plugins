@@ -29,7 +29,8 @@ QPlatformIntegration* DPlatformIntegrationPlugin::create(const QString& system, 
         loadDXcb = false;
     } else if (system == "dxcb") {
         loadDXcb = true;
-    } else if (QString(qgetenv("XDG_CURRENT_DESKTOP")).toLower().startsWith("deepin")) {
+    } else if (QString(qgetenv("XDG_CURRENT_DESKTOP")).toLower().startsWith("deepin") ||
+               (qgetenv("XDG_CURRENT_DESKTOP") == QByteArrayLiteral("DDE"))) {
         loadDXcb = true;
     }
 
