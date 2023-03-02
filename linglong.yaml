@@ -18,10 +18,6 @@ depends:
   - id: qtwayland/5.15.7
   - id: dwayland/5.24.3.1
   - id: gsettings-qt/0.3.1
-  - id: dtkcommon/5.6.3
-  - id: dtkcore/5.6.3
-  - id: dtkgui/5.6.3
-  - id: dtkwidget/5.6.3
     #- id: googletest/1.8.1
 
 source:
