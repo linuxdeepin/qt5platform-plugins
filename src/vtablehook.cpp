@@ -33,27 +33,56 @@ bool VtableHook::copyVtable(quintptr **obj)
     if (vtable_size == 0)
         return false;
 
-    // 多开辟一个元素, 新的虚表结构如下:
-    // 假设obj对象原虚表长度为2, 表结构为:
-    // ┏━━┳━━┳━━┓其中v1 v2为虚函数地址, 0为数组结尾
-    // ┃v1┃v2┃\0┃
-    // ┗━━┻━━┻━━┛
+// 多开辟一个元素, 新的虚表结构如下:
+    // 假设原虚表内存布局如下(考虑多继承):
+    //                                             C Vtable (7 entities)
+    //                                             +--------------------+
+    // struct C                                     | offset_to_top (0)  |
+    // object                                       +--------------------+
+    // 0 - struct A (primary base)                  |     RTTI for C     |
+    // 0 -   vptr_A ----------------------------->  +--------------------+
+    // 8 -   int ax                                 |       C::f0()      |
+    // 16 - struct B                                +--------------------+
+    // 16 -   vptr_B ----------------------+        |       C::f1()      |
+    // 24 -   int bx                       |        +--------------------+
+    // 28 - int cx                         |        | offset_to_top (-16)|
+    // sizeof(C): 32    align: 8           |        +--------------------+
+    //                                     |        |     RTTI for C     |
+    //                                     +------> +--------------------+
+    //                                              |    Thunk C::f1()   |
+    //                                              +--------------------+
     // 则新的表结构为:
-    // ┏━━┳━━┳━━┳━━┓其中前三个元素为原虚表的复制, sv为原虚表入口地址
-    // ┃v1┃v2┃\0┃sv┃
-    // ┗━━┻━━┻━━┻━━┛
-    vtable_size += 2;
+    //                                              C Vtable (7 entities)            C hooked Vtable (7 entities)
+    //                                              +--------------------+           +--------------------+
+    // struct C                                     | offset_to_top (0)  |           | offset_to_top (0)  |
+    // object                                       +--------------------+           +--------------------+
+    // 0 - struct A (primary base)                  |     RTTI for C     |           |     RTTI for C     |
+    // 0 -   vptr_A -----------------------------// +--------------------+ //------> +--------------------+
+    // 8 -   int ax                                 |       C::f0()      |\          |       C::f0()      | (or override custom function pointer)
+    // 16 - struct B                                +--------------------+ \         +--------------------+
+    // 16 -   vptr_B ----------------------+        |       C::f1()      |  \        |       C::f1()      | (or override custom function pointer)
+    // 24 -   int bx                       |        +--------------------+   \       +--------------------+
+    // 28 - int cx                         |        | offset_to_top (-16)|    \      | offset_to_top (-16)|
+    // sizeof(C): 32    align: 8           |        +--------------------+     \     +--------------------+
+    //                                     |        |     RTTI for C     |      +    |     RTTI for C     |
+    //                                     +------> +--------------------+      |    +--------------------+
+    //                                              |    Thunk C::f1()   |      |    |    Thunk C::f1()   |
+    //                                              +--------------------+      |    +--------------------+
+    //                                                                          |    |          0         |
+    //                                                                          |    +--------------------+
+    //                                                                          +----|   original entry  |
+    //                                                                               +--------------------+
+    quintptr *new_vtable = new quintptr[vtable_size + 2];
 
-    quintptr *new_vtable = new quintptr[vtable_size];
-
-    memcpy(new_vtable, *obj, (vtable_size - 1) * sizeof(quintptr));
+    memcpy(new_vtable, adjustToTop(*obj), vtable_size * sizeof(quintptr));
+    new_vtable[vtable_size] = 0;
 
     //! save original vfptr
     objToOriginalVfptr[obj] = *obj;
     // 存储对象原虚表入口地址
-    new_vtable[vtable_size - 1] = quintptr(*obj);
+    new_vtable[vtable_size + 1] = quintptr(*obj);
 
-    *obj = new_vtable;
+    *obj = adjustToEntry(new_vtable);
     //! save ghost vfptr
     objToGhostVfptr[obj] = new_vtable;
 
@@ -62,7 +91,8 @@ bool VtableHook::copyVtable(quintptr **obj)
 
 bool VtableHook::clearGhostVtable(const void *obj)
 {
-    objToOriginalVfptr.remove((quintptr**)obj);
+    if (!objToOriginalVfptr.remove((quintptr **)obj)) // Uninitialized memory may have values, for resetVtable
+        return false;
     objDestructFun.remove(obj);
 
     quintptr *vtable = objToGhostVfptr.take(obj);
@@ -120,14 +150,14 @@ int VtableHook::getDestructFunIndex(quintptr **obj, std::function<void(void)> de
         return -1;
 
     quintptr *new_vtable = new quintptr[vtable_size];
-    std::fill(new_vtable, new_vtable + vtable_size, quintptr(&_DestoryProbe::nothing));
+    std::fill(adjustToEntry(new_vtable), new_vtable + vtable_size, quintptr(&_DestoryProbe::nothing));
 
     // 给对象设置新的虚表
-    *obj = new_vtable;
+    *obj = adjustToEntry(new_vtable);
 
     int index = -1;
 
-    for (int i = 0; i < vtable_size; ++i) {
+    for (int i = adjustToEntry(0); i < vtable_size; ++i) {
         new_vtable[i] = quintptr(&_DestoryProbe::probe);
 
         // 尝试销毁此对象, 且观察_DestoryProbe::probe是否被调用
@@ -135,7 +165,7 @@ int VtableHook::getDestructFunIndex(quintptr **obj, std::function<void(void)> de
         destoryObjFun();
 
         if (_DestoryProbe::probe(0) == quintptr(obj)) {
-            index = i;
+            index = adjustToTop(i);
             break;
         }
     }
@@ -156,7 +186,7 @@ void VtableHook::autoCleanVtable(const void *obj)
         return;
 
     typedef void(*Destruct)(const void*);
-    Destruct destruct = *reinterpret_cast<Destruct*>(&fun);
+    Destruct destruct = reinterpret_cast<Destruct>(fun);
     // call origin destruct function
     destruct(obj);
 
@@ -172,7 +202,7 @@ bool VtableHook::ensureVtable(const void *obj, std::function<void ()> destoryObj
 
     if (objToOriginalVfptr.contains(_obj)) {
         // 不知道什么原因, 此时obj对象的虚表已经被还原
-        if (objToGhostVfptr.value((void*)obj) != *_obj) {
+        if (objToGhostVfptr.value((void *)obj) != adjustToTop(*_obj)) {
             clearGhostVtable((void*)obj);
         } else {
             return true;
@@ -187,8 +217,7 @@ bool VtableHook::ensureVtable(const void *obj, std::function<void ()> destoryObj
 
     // 虚析构函数查找失败
     if (index < 0) {
-        qWarning("Failed do override destruct function");
-        qDebug() << "object:" << obj;
+        qCWarning(vtableHook) << "Failed do override destruct function: " << obj;
         abort();
     }
 
@@ -222,7 +251,8 @@ void VtableHook::resetVtable(const void *obj)
     quintptr **_obj = (quintptr**)obj;
     int vtable_size = getVtableSize(_obj);
     // 获取obj对象原本虚表的入口
-    quintptr *vfptr_t2 = (quintptr*)(*_obj)[vtable_size + 1];
+    auto vtableHead = adjustToTop(*_obj);
+    quintptr *vfptr_t2 = (quintptr*)vtableHead[vtable_size + 1]; // _obj - 2 + vtable_size + 1
 
     if (!vfptr_t2)
         return;
@@ -242,7 +272,7 @@ void VtableHook::resetVtable(const void *obj)
  */
 quintptr VtableHook::resetVfptrFun(const void *obj, quintptr functionOffset)
 {
-    quintptr *vfptr_t1 = *(quintptr**)obj;
+    quintptr *vfptr_t1 = *(quintptr **)obj;
     quintptr current_fun = *(vfptr_t1 + functionOffset / sizeof(quintptr));
     quintptr origin_fun = originalFun(obj, functionOffset);
 
@@ -264,24 +294,35 @@ quintptr VtableHook::resetVfptrFun(const void *obj, quintptr functionOffset)
  */
 quintptr VtableHook::originalFun(const void *obj, quintptr functionOffset)
 {
-    quintptr **_obj = (quintptr**)obj;
-    int vtable_size = getVtableSize(_obj);
-    // 获取obj对象原本虚表的入口
-    quintptr *vfptr_t2 = (quintptr*)(*_obj)[vtable_size + 1];
-
-    if (!vfptr_t2) {
-        qWarning() << "Not override the object virtual table" << obj;
-
+    quintptr **_obj = (quintptr **)obj;
+    if (!hasVtable(obj)) {
+        qCWarning(vtableHook) << "Not override the object virtual table: " << obj;
         return 0;
     }
+    if (!isFinalClass((quintptr *)*_obj))
+        _obj = adjustThis((quintptr *)*_obj);
+    Q_CHECK_PTR(_obj);
+    int vtable_size = getVtableSize(_obj);
+    // 获取obj对象原本虚表的入口
+    quintptr *vfptr_t2 = (quintptr*)(*_obj)[vtable_size - 1];
 
     if (functionOffset > UINT_LEAST16_MAX) {
-        qWarning() << "Is not a virtual function, function address: 0x" << hex << functionOffset;
-
+        qCWarning(vtableHook, "Is not a virtual function, function address: 0X%llx", functionOffset);
         return 0;
     }
 
     return *(vfptr_t2 + functionOffset / sizeof(quintptr));
+}
+
+bool VtableHook::isFinalClass(quintptr *obj) {
+    return *(obj - 2) == 0 ? true : false;
+}
+
+quintptr **VtableHook::adjustThis(quintptr *obj) {
+    qint64 offset = *(quintptr *)(obj - 2);
+    if (offset > 0)  // invalid offset
+        return nullptr;
+    return (quintptr **)(obj + offset);
 }
 
 #if defined(Q_OS_LINUX)
