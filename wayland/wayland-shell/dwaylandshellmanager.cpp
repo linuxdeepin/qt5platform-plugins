@@ -349,7 +349,7 @@ QWaylandShellSurface *DWaylandShellManager::createShellSurface(QWaylandShellInte
     HookOverride(window, &QPlatformWindow::frameMargins, DWaylandShellManager::frameMargins);
     HookOverride(window, &QPlatformWindow::setWindowFlags, DWaylandShellManager::setWindowFlags);
 
-    QObject::connect(window, &QWaylandWindow::shellSurfaceCreated, [window] {
+    QObject::connect(window, &QWaylandWindow::wlSurfaceCreated, [window] {
         handleGeometryChange(window);
         handleWindowStateChanged(window);
     });
@@ -388,7 +388,7 @@ QWaylandShellSurface *DWaylandShellManager::createShellSurface(QWaylandShellInte
 
     // 如果kwayland的server窗口装饰已转变完成，则为窗口创建边框
     if (kwayland_ssd) {
-        QObject::connect(window, &QWaylandWindow::shellSurfaceCreated, std::bind(createServerDecoration, window));
+        QObject::connect(window, &QWaylandWindow::wlSurfaceCreated, std::bind(createServerDecoration, window));
     } else {
         qDebug()<<"====kwayland_ssd creat failed";
     }
