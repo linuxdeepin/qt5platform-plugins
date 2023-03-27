@@ -299,8 +299,7 @@ quintptr VtableHook::originalFun(const void *obj, quintptr functionOffset)
         qCWarning(vtableHook) << "Not override the object virtual table: " << obj;
         return 0;
     }
-    if (!isFinalClass((quintptr *)*_obj))
-        _obj = adjustThis((quintptr *)*_obj);
+
     Q_CHECK_PTR(_obj);
     int vtable_size = getVtableSize(_obj);
     // 获取obj对象原本虚表的入口
@@ -312,17 +311,6 @@ quintptr VtableHook::originalFun(const void *obj, quintptr functionOffset)
     }
 
     return *(vfptr_t2 + functionOffset / sizeof(quintptr));
-}
-
-bool VtableHook::isFinalClass(quintptr *obj) {
-    return *(obj - 2) == 0 ? true : false;
-}
-
-quintptr **VtableHook::adjustThis(quintptr *obj) {
-    qint64 offset = *(quintptr *)(obj - 2);
-    if (offset > 0)  // invalid offset
-        return nullptr;
-    return (quintptr **)(obj + offset);
 }
 
 #if defined(Q_OS_LINUX)

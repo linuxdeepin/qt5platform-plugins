@@ -182,14 +182,7 @@ public:
 
         if (fun1_offset < 0 || fun1_offset > UINT_LEAST16_MAX)
             return false;
-        if (!isFinalClass(vfptr_t1)) {
-            vfptr_t1 = (quintptr *)adjustThis(vfptr_t1);
-            if (!vfptr_t1) {
-                qCWarning(vtableHook) << "The type of target object isn't the last item of inheritance chain and can't adjust pointer "
-                          "'This' to correct address, abort. " << vfptr_t1;
-                return false;
-            }
-        }
+
         quintptr *vfun = vfptr_t1 + fun1_offset / sizeof(quintptr);
 
         if (forceWrite)
@@ -247,7 +240,7 @@ public:
      * \note 因为如果分开写为&B::foo1和&C::foo2的话，指针转换内部会记录多张虚表，重载多份析构函数，可能导致最开始的部分无法正常析构！
      */
     template<typename Fun1, typename Fun2>
-    static bool overrideVfptrFun(const typename QtPrivate::FunctionPointer<Fun1>::Object *t1, Fun1 fun1, Fun2 fun2)
+    static bool overrideVfptrFun(const typename QtPrivate::FunctionPointer<Fun1>::Object *t1, Fun1 fun1, Fun2 fun2) //THIS
     {
         typedef QtPrivate::FunctionPointer<Fun1> FunInfo1;
         // 检查析构函数是否为虚
@@ -336,8 +329,6 @@ private:
     static bool copyVtable(quintptr **obj);
     static bool clearGhostVtable(const void *obj);
     static void clearAllGhostVtable();
-    static bool isFinalClass(quintptr *obj);
-    static quintptr **adjustThis(quintptr *obj);
 
     template <typename T>
     static T adjustToTop(T obj)  // vtableTop: vtable start address, Usually refers to offset_to_top
