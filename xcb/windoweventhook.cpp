@@ -370,6 +370,21 @@ void WindowEventHook::handlePropertyNotifyEvent(QXcbWindowEventListener *el, con
                 frame->m_contentWindow->setProperty(netWmStates, (int)states);
         }
     }
+    //NOTE(yeshanshan): nativeWindow不接收窗口状态改变事件，导致部分场景下nativeWindow窗口调用setvisible等接口失效
+    //  在包含·https://codereview.qt-project.org/c/qt/qtbase/+/235138 的环境中，m_wmStateValid需要接收到窗管发送的消息才能被重置
+    //      但nativeWindow不接收窗管消息，导致m_wmStateValid状态错误，现在手动调用nativewWindow去刷新状态值。
+    //  在不含有此提交的环境中，此代码目前不产生影响
+    if (event->window == window->xcb_window()
+            && event->atom == window->atom(QXcbAtom::WM_STATE)) {
+        if (const DFrameWindow *frame = qobject_cast<DFrameWindow*>(ww)) {
+            if (auto helper = DPlatformWindowHelper::mapped.value(frame->contentWindow()->handle())) {
+                xcb_property_notify_event_t e(*event);
+                e.state = XCB_PROPERTY_DELETE; //·避免扩大影响
+                e.window = helper->m_nativeWindow->winId(); // 需要处理的winId
+                helper->m_nativeWindow->handlePropertyNotifyEvent(&e);
+            }
+        }
+    }
 }
 
 #ifdef XCB_USE_XINPUT22
