@@ -2,6 +2,9 @@
 pkgname=deepin-qt5platform-plugins-git
 pkgver=5.0.40.r14.gf817781
 pkgrel=1
+sourcename=dde-qt5platform-plugins
+sourcetars=("$sourcename"_"$pkgver".tar.xz)
+sourcedir="qt5platform-plugins"
 pkgdesc='Qt platform plugins for DDE'
 arch=('x86_64' 'aarch64')
 url="https://github.com/linuxdeepin/qt5platform-plugins"
@@ -11,11 +14,11 @@ conflicts=('deepin-qt5platform-plugins')
 depends=('cairo' 'kwayland' 'qt5-wayland' 'qt5-x11extras')
 makedepends=('git' 'expac' 'qt5-xcb-private-headers' 'libglvnd' 'libxcb')
 groups=('deepin-git')
-source=('source.tar.gz')
+source=("${sourcetars[@]}")
 sha512sums=('SKIP')
 
 prepare() {
-    cd $deepin_source_name
+  cd $sourcedir
 
   rm -r xcb/libqt5xcbqpa-dev wayland/qtwayland-dev
   # Disable wayland for now: https://github.com/linuxdeepin/qt5platform-plugins/issues/47
@@ -27,12 +30,12 @@ prepare() {
 }
 
 build() {
-  cd $deepin_source_name
+  cd $sourcedir
   qmake-qt5 PREFIX=/usr QT_XCB_PRIVATE_INCLUDE=/usr/include/qtxcb-private
   make
 }
 
 package() {
-  cd $deepin_source_name
+  cd $sourcedir
   make INSTALL_ROOT="$pkgdir" install
 }
