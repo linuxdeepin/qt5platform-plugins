@@ -15,6 +15,7 @@
 #include <QMetaProperty>
 #include <QScreen>
 #include <qpa/qplatformwindow.h>
+#include <QtWaylandClientVersion>
 
 #define private public
 #include "QtWaylandClient/private/qwaylandintegration_p.h"
@@ -215,10 +216,9 @@ void DNoTitlebarWlWindowHelper::startMoveWindow(QWindow *window)
 {
     // QWaylandWindow::startSystemMove
     if (window && window->handle()) {
-#if QT_VERSION < QT_VERSION_CHECK(5, 15, 0)
+#if QTWAYLANDCLIENT_VERSION < QT_VERSION_CHECK(5, 15, 0)
                 static_cast<QtWaylandClient::QWaylandWindow *>(window->handle())->startSystemMove(QCursor::pos());
-#endif
-#if QT_VERSION > QT_VERSION_CHECK(5, 14, 9)
+#else
                 static_cast<QtWaylandClient::QWaylandWindow *>(window->handle())->startSystemMove();
 #endif
     }
