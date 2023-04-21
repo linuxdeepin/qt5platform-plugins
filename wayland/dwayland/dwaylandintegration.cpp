@@ -268,6 +268,9 @@ void DWaylandIntegration::initialize()
     dXSettings->globalSettings()->registerCallbackForProperty(XSETTINGS_PRIMARY_MONITOR_NAME, onPrimaryNameChanged, reinterpret_cast<void*>(XSettingType::Gtk_PrimaryMonitorName));
     dXSettings->globalSettings()->registerCallbackForProperty(XSETTINGS_PRIMARY_MONITOR_RECT, onPrimaryRectChanged, reinterpret_cast<void*>(XSettingType::Dde_PrimaryMonitorRect));
 
+    //初始化时应该设一次主屏，防止应用启动时主屏闪变
+    onPrimaryRectChanged(nullptr, XSETTINGS_PRIMARY_MONITOR_RECT, QVariant(), reinterpret_cast<void*>(XSettingType::Dde_PrimaryMonitorRect));
+
     QTimer *m_delayTimer = new QTimer;
     m_delayTimer->setInterval(10);
     m_delayTimer->setSingleShot(true);
