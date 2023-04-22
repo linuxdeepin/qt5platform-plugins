@@ -116,7 +116,9 @@ QDpi DHighDpi::logicalDpi(QXcbScreen *s)
     }
 
     // fallback
-    if (!ok) {
+    if (!ok || dpi == 0) {
+        qWarning() << "dpi is invalid got from xsettings(Qt/DPI/ and Xft/DPI), "
+                      "fallback to get dpi from QXcbScreen::logicalDpi()";
         return s->QXcbScreen::logicalDpi();
     }
 
