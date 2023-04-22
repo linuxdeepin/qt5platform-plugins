@@ -107,7 +107,9 @@ QDpi DHighDpi::logicalDpi(QtWaylandClient::QWaylandScreen *s)
 
     int dpi = 0;
 
-    QVariant value = dXSettings->globalSettings()->setting("Qt/DPI/" + s->name().toLocal8Bit());    bool ok = false;
+    QVariant value = dXSettings->globalSettings()->setting("Qt/DPI/" + s->name().toLocal8Bit());
+
+    bool ok = false;
 
     dpi = value.toInt(&ok);
 
@@ -118,7 +120,9 @@ QDpi DHighDpi::logicalDpi(QtWaylandClient::QWaylandScreen *s)
     }
 
     // fallback
-    if (!ok) {
+    if (!ok || dpi == 0) {
+        qWarning() << "dpi is invalid got from xsettings(Qt/DPI/ and Xft/DPI), "
+                      "fallback to get dpi from QWaylandScreen::logicalDpi()";
         return s->QtWaylandClient::QWaylandScreen::logicalDpi();
     }
 
