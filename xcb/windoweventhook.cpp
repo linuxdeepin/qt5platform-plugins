@@ -263,6 +263,10 @@ void WindowEventHook::handleClientMessageEvent(QXcbWindow *window, const xcb_cli
         dropData->setProperty("IsDirectSaveMode", directSaveMode);
 
 #if QT_VERSION >= QT_VERSION_CHECK(5, 12, 0)
+        // Drop coming from another app? Update buttons.
+        if (!drag->currentDrag())
+            QGuiApplicationPrivate::mouse_buttons = window->connection()->queryMouseButtons();
+
         QPlatformDropQtResponse response = QWindowSystemInterface::handleDrop(drag->currentWindow.data(),
                                                                             dropData, drag->currentPosition,
                                                                               supported_drop_actions,
