@@ -1,3 +1,11 @@
+dde-qt5platform-plugins (5.6.11) unstable; urgency=medium
+
+  * Release 5.6.11
+  * FIX dtk#63
+  * FIX bug-195723 primary screen not right at startup
+
+ -- Deepin Packages Builder <packages@deepin.com>  Mon, 08 May 2023 13:57:30 +0800
+
 dde-qt5platform-plugins (5.6.9) unstable; urgency=medium
 
   * Release 5.6.9
