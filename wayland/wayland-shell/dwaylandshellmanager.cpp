@@ -349,10 +349,10 @@ QWaylandShellSurface *DWaylandShellManager::createShellSurface(QWaylandShellInte
     HookOverride(window, &QPlatformWindow::frameMargins, DWaylandShellManager::frameMargins);
     HookOverride(window, &QPlatformWindow::setWindowFlags, DWaylandShellManager::setWindowFlags);
 
-    QObject::connect(window, &QWaylandWindow::wlSurfaceCreated, [window] {
-        handleGeometryChange(window);
-        handleWindowStateChanged(window);
-    });
+    if (window->wlSurface())
+        onWlSurfaceCreated(window);
+    else
+        QObject::connect(window, &QWaylandWindow::wlSurfaceCreated, std::bind(onWlSurfaceCreated, window));
 
     // 设置窗口位置, 默认都需要设置，同时判断如果窗口并没有移动过，则不需要再设置位置，而是由窗管默认平铺显示
     bool bSetPosition = true;
@@ -384,13 +384,6 @@ QWaylandShellSurface *DWaylandShellManager::createShellSurface(QWaylandShellInte
     //将拖拽图标窗口置顶，QShapedPixmapWindow是Qt中拖拽图标窗口专用类
     if (widgetWin->inherits("QShapedPixmapWindow")) {
         window->sendProperty(QStringLiteral(_DWAYALND_ "staysontop"), true);
-    }
-
-    // 如果kwayland的server窗口装饰已转变完成，则为窗口创建边框
-    if (kwayland_ssd) {
-        QObject::connect(window, &QWaylandWindow::wlSurfaceCreated, std::bind(createServerDecoration, window));
-    } else {
-        qDebug()<<"====kwayland_ssd creat failed";
     }
 
     return surface;
@@ -781,6 +774,13 @@ void DWaylandShellManager::setDockAppItemMinimizedGeometry(QWaylandShellSurface 
     }
 }
 
+void DWaylandShellManager::onWlSurfaceCreated(QWaylandWindow *window)
+{
+    handleGeometryChange(window);
+    handleWindowStateChanged(window);
+    createServerDecoration(window);
+}
+
 /*
  * @brief setCursorPoint  设置光标在屏幕中的绝对位置
  * @param pos
@@ -901,6 +901,12 @@ bool DWaylandShellManager::disableClientDecorations(QWaylandShellSurface *surfac
 
 void DWaylandShellManager::createServerDecoration(QWaylandWindow *window)
 {
+    // 如果kwayland的server窗口装饰已转变完成，则为窗口创建边框
+    if (!kwayland_ssd) {
+        qDebug()<<"====kwayland_ssd creat failed";
+        return;
+    }
+
     // 通过窗口属性控制是否显示最小化和最大化按钮
     QWaylandShellSurface *q_shell_surface = window->shellSurface();
     if (q_shell_surface) {
