@@ -103,6 +103,7 @@ public:
     static void updateWindowBlurAreasForWM(QWaylandWindow *wlWindow, const QString &name, const QVariant &value);
     static void setDockAppItemMinimizedGeometry(QWaylandShellSurface *surface, const QVariant var);
 
+    static void onWlSurfaceCreated(QWaylandWindow *window);
 private:
     // 用于记录设置过以_DWAYALND_开头的属性，当kwyalnd_shell对象创建以后要使这些属性生效
     static QList<QPointer<QWaylandWindow>> send_property_window_list;
