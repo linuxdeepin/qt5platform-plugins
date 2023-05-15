@@ -1,3 +1,10 @@
+dde-qt5platform-plugins (5.6.12) unstable; urgency=medium
+
+  * Release 5.6.12
+  * FIX qt app server decoration not created in wayland
+
+ -- Deepin Packages Builder <packages@deepin.com>  Mon, 15 May 2023 11:32:41 +0800
+
 dde-qt5platform-plugins (5.6.11) unstable; urgency=medium
 
   * Release 5.6.11
