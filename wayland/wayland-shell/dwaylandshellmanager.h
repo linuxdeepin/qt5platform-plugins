@@ -78,7 +78,7 @@ public:
     static bool disableClientDecorations(QWaylandShellSurface *surface);
     static QMargins frameMargins(QPlatformWindow *self);
     static void setWindowFlags(QPlatformWindow *self, Qt::WindowFlags flags);
-    static void createServerDecoration(QWaylandWindow *window);
+    static void createServerDecoration(QWaylandShellSurface *shellSurface);
     static void setGeometry(QPlatformWindow *self, const QRect &rect);
     static void pointerEvent(const QPointF &pointF, QEvent::Type type);
     static QWaylandShellSurface *createShellSurface(QWaylandShellIntegration *self, QWaylandWindow *window);
@@ -94,8 +94,8 @@ public:
     static void createCompositor(quint32 name, quint32 version);
     static void createSurface();
     static void createPlasmaWindowManagement(KWayland::Client::Registry *registry, quint32 name, quint32 version);
-    static void handleGeometryChange(QWaylandWindow *window);
-    static void handleWindowStateChanged(QWaylandWindow *window);
+    static void handleGeometryChange(QWaylandShellSurface *shellSurface);
+    static void handleWindowStateChanged(QWaylandShellSurface *shellSurface);
     static void setWindowStaysOnTop(QWaylandShellSurface *surface, const bool state);
     static void setDockStrut(QWaylandShellSurface *surface, const QVariant var);
     static void setCursorPoint(QPointF pos);
@@ -103,7 +103,7 @@ public:
     static void updateWindowBlurAreasForWM(QWaylandWindow *wlWindow, const QString &name, const QVariant &value);
     static void setDockAppItemMinimizedGeometry(QWaylandShellSurface *surface, const QVariant var);
 
-    static void onWlSurfaceCreated(QWaylandWindow *window);
+    static void onShellSurfaceCreated(QWaylandShellSurface *shellSurface);
 private:
     // 用于记录设置过以_DWAYALND_开头的属性，当kwyalnd_shell对象创建以后要使这些属性生效
     static QList<QPointer<QWaylandWindow>> send_property_window_list;
