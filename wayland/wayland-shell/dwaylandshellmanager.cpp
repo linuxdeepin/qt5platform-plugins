@@ -80,25 +80,24 @@ static PlasmaShellSurface *ensureKWaylandSurface(QWaylandShellSurface *self)
     return createKWayland(self->window());
 }
 
-static DDEShellSurface* createDDESurface(QWaylandWindow *window)
+static DDEShellSurface* createDDESurface(QWaylandShellSurface *shellSurface)
 {
-    if (!window || !ddeShell)
+    if (!shellSurface || !ddeShell)
         return nullptr;
 
-    auto surface = window->shellSurface();
-    return ddeShell->createShellSurface(getWindowWLSurface(window), surface);
+    return ddeShell->createShellSurface(getWindowWLSurface(shellSurface->window()), shellSurface);
 }
 
-static DDEShellSurface *ensureDDEShellSurface(QWaylandShellSurface *self)
+static DDEShellSurface *ensureDDEShellSurface(QWaylandShellSurface *shellSurface)
 {
-    if (!self)
+    if (!shellSurface)
         return nullptr;
 
-    if (auto *shell_surface = self->findChild<DDEShellSurface*>(QString(), Qt::FindDirectChildrenOnly)) {
+    if (auto *shell_surface = shellSurface->findChild<DDEShellSurface*>(QString(), Qt::FindDirectChildrenOnly)) {
         return shell_surface;
     }
 
-    return createDDESurface(self->window());
+    return createDDESurface(shellSurface);
 }
 
 static Surface *ensureSurface(QWaylandWindow *wlWindow)
@@ -349,10 +348,7 @@ QWaylandShellSurface *DWaylandShellManager::createShellSurface(QWaylandShellInte
     HookOverride(window, &QPlatformWindow::frameMargins, DWaylandShellManager::frameMargins);
     HookOverride(window, &QPlatformWindow::setWindowFlags, DWaylandShellManager::setWindowFlags);
 
-    if (window->wlSurface())
-        onWlSurfaceCreated(window);
-    else
-        QObject::connect(window, &QWaylandWindow::wlSurfaceCreated, std::bind(onWlSurfaceCreated, window));
+    onShellSurfaceCreated(surface);
 
     // 设置窗口位置, 默认都需要设置，同时判断如果窗口并没有移动过，则不需要再设置位置，而是由窗管默认平铺显示
     bool bSetPosition = true;
@@ -459,7 +455,7 @@ void DWaylandShellManager::createDDEFakeInput()
     kwayland_dde_fake_input = registry()->createFakeInput(registry()->interface(Registry::Interface::FakeInput).name,
                                                         registry()->interface(Registry::Interface::FakeInput).version);
     if (!kwayland_dde_fake_input || !kwayland_dde_fake_input->isValid()) {
-        qInfo() << "fake input create failed.";
+        qCWarning(dwlp) << "fake input create failed.";
         return;
     }
     // 打开设置光标位置的开关
@@ -604,16 +600,16 @@ void DWaylandShellManager::setWindowFlags(QPlatformWindow *self, Qt::WindowFlags
     setWindowStaysOnTop(qwlWindow->shellSurface(), flags.testFlag(Qt::WindowStaysOnTopHint));
 }
 
-void DWaylandShellManager::handleGeometryChange(QWaylandWindow *window)
+void DWaylandShellManager::handleGeometryChange(QWaylandShellSurface *shellSurface)
 {
-    auto ddeShellSurface = ensureDDEShellSurface(window->shellSurface());
-    if (!ddeShellSurface) {
+    auto ddeShellSurface = ensureDDEShellSurface(shellSurface);
+    if (!ddeShellSurface || !shellSurface->window()) {
         return;
     }
-    QObject::connect(ddeShellSurface, &DDEShellSurface::geometryChanged,
+    QObject::connect(ddeShellSurface, &DDEShellSurface::geometryChanged, shellSurface->window(),
                      [=] (const QRect &geom) {
-        QRect newRect(geom.topLeft(), window->geometry().size());
-        QWindowSystemInterface::handleGeometryChange(window->window(), newRect);
+        QRect newRect(geom.topLeft(), shellSurface->window()->geometry().size());
+        QWindowSystemInterface::handleGeometryChange(shellSurface->window()->window(), newRect);
     });
 }
 
@@ -632,10 +628,14 @@ Qt::WindowStates getwindowStates(KCDFace *surface)
     return state;
 }
 
-void DWaylandShellManager::handleWindowStateChanged(QWaylandWindow *window)
+void DWaylandShellManager::handleWindowStateChanged(QWaylandShellSurface *shellSurface)
 {
-    auto surface = window->shellSurface();
-    auto ddeShellSurface = ensureDDEShellSurface(surface);
+    if (!shellSurface) {
+        qCWarning(dwlp) << "shellSurface is null";
+        return;
+    }
+    QWaylandWindow *window = shellSurface->window();
+    auto ddeShellSurface = ensureDDEShellSurface(shellSurface);
     if (!ddeShellSurface)
         return;
 
@@ -774,11 +774,11 @@ void DWaylandShellManager::setDockAppItemMinimizedGeometry(QWaylandShellSurface 
     }
 }
 
-void DWaylandShellManager::onWlSurfaceCreated(QWaylandWindow *window)
+void DWaylandShellManager::onShellSurfaceCreated(QWaylandShellSurface *shellSurface)
 {
-    handleGeometryChange(window);
-    handleWindowStateChanged(window);
-    createServerDecoration(window);
+    handleGeometryChange(shellSurface);
+    handleWindowStateChanged(shellSurface);
+    createServerDecoration(shellSurface);
 }
 
 /*
@@ -787,11 +787,11 @@ void DWaylandShellManager::onWlSurfaceCreated(QWaylandWindow *window)
  */
 void DWaylandShellManager::setCursorPoint(QPointF pos) {
     if (!kwayland_dde_fake_input) {
-        qInfo() << "kwayland_dde_fake_input is nullptr";
+        qCCritical(dwlp) << "kwayland_dde_fake_input is nullptr";
         return;
     }
     if (!kwayland_dde_fake_input->isValid()) {
-        qInfo() << "kwayland_dde_fake_input is invalid";
+        qCCritical(dwlp) << "kwayland_dde_fake_input is invalid";
         return;
     }
     kwayland_dde_fake_input->requestPointerMoveAbsolute(pos);
@@ -899,8 +899,13 @@ bool DWaylandShellManager::disableClientDecorations(QWaylandShellSurface *surfac
     return false;
 }
 
-void DWaylandShellManager::createServerDecoration(QWaylandWindow *window)
+void DWaylandShellManager::createServerDecoration(QWaylandShellSurface *shellSurface)
 {
+    if (!shellSurface) {
+        qCWarning(dwlp) << "shellSurface is null";
+        return;
+    }
+    QWaylandWindow *window = shellSurface->window();
     // 如果kwayland的server窗口装饰已转变完成，则为窗口创建边框
     if (!kwayland_ssd) {
         qDebug()<<"====kwayland_ssd creat failed";
@@ -908,9 +913,8 @@ void DWaylandShellManager::createServerDecoration(QWaylandWindow *window)
     }
 
     // 通过窗口属性控制是否显示最小化和最大化按钮
-    QWaylandShellSurface *q_shell_surface = window->shellSurface();
-    if (q_shell_surface) {
-        auto *dde_shell_surface = ensureDDEShellSurface(q_shell_surface);
+    if (shellSurface) {
+        auto *dde_shell_surface = ensureDDEShellSurface(shellSurface);
         if (dde_shell_surface) {
             if (!(window->window()->flags() & Qt::WindowMinimizeButtonHint)) {
                 dde_shell_surface->requestMinizeable(false);
@@ -947,6 +951,7 @@ void DWaylandShellManager::createServerDecoration(QWaylandWindow *window)
     if (window->window()->flags() & Qt::BypassWindowManagerHint)
         decoration = false;
 
+    qCDebug(dwlp) << "create decoration ?" << decoration;
     if (!decoration)
         return;
 
@@ -956,7 +961,7 @@ void DWaylandShellManager::createServerDecoration(QWaylandWindow *window)
         return;
 
     // 创建由kwin server渲染的窗口边框对象
-    if (auto ssd = kwayland_ssd->create(surface, q_shell_surface)) {
+    if (auto ssd = kwayland_ssd->create(surface, shellSurface)) {
         ssd->requestMode(ServerSideDecoration::Mode::Server);
     }
 }
