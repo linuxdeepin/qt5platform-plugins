@@ -50,7 +50,11 @@ static void drawCornerImage(const QImage &source, const QPoint &source_offset, Q
                       GL_RGBA, GL_UNSIGNED_BYTE, tmp_image.bits());
 
     tmp_image = tmp_image.mirrored();
+#if (QT_VERSION >= QT_VERSION_CHECK(6, 0, 0))
+    brush.setTransform(QTransform(1, 0, 0, 1, -source_offset.x() - br.x(), -source_offset.y() - br.y()));
+#else
     brush.setMatrix(QMatrix(1, 0, 0, 1, -source_offset.x() - br.x(), -source_offset.y() - br.y()));
+#endif
 
     QPainter pa(&tmp_image);
 
@@ -96,8 +100,11 @@ void DPlatformOpenGLContextHelper::swapBuffers(QPlatformSurface *surface)
             const QRect &content_rect = QRect(window_helper->m_frameWindow->contentOffsetHint() * device_pixel_ratio, window_size);
             QBrush border_brush(window_helper->m_frameWindow->platformBackingStore->toImage());
 
+#if (QT_VERSION >= QT_VERSION_CHECK(6, 0, 0))
+            border_brush.setTransform(QTransform(1, 0, 0, 1, -content_rect.x(), -content_rect.y()));
+#else
             border_brush.setMatrix(QMatrix(1, 0, 0, 1, -content_rect.x(), -content_rect.y()));
-
+#endif
             pa_device.fillPath(path, border_brush);
         } else {
             const QImage &frame_image = window_helper->m_frameWindow->platformBackingStore->toImage();

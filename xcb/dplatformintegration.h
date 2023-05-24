@@ -22,7 +22,7 @@ typedef QWindowsGdiIntegration DPlatformIntegrationParent;
 
 DPP_BEGIN_NAMESPACE
 
-class DPlatformWindowHook;
+    class DPlatformWindowHook;
 class XcbNativeEventFilter;
 class DPlatformBackingStoreHelper;
 class DPlatformOpenGLContextHelper;
@@ -74,8 +74,13 @@ private:
     { return static_cast<DPlatformIntegration*>(DPlatformIntegrationParent::instance());}
 
     inline static QXcbConnection *xcbConnection()
-    { return instance()->defaultConnection();}
-
+    {
+#if (QT_VERSION >= QT_VERSION_CHECK(6, 0, 0))
+            return instance()->connection();
+#else
+            return instance()->defaultConnection();
+#endif
+    }
     inline XcbNativeEventFilter *eventFilter()
     { return m_eventFilter;}
 

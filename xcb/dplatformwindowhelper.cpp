@@ -604,9 +604,16 @@ bool DPlatformWindowHelper::eventFilter(QObject *watched, QEvent *event)
                     && !qFuzzyCompare(posF.y(), rectF.height())
                     && rectF.contains(posF)) {
                 m_frameWindow->unsetCursor();
+
+#if (QT_VERSION >= QT_VERSION_CHECK(6, 0, 0))
+                QMouseEvent mouseEvent(e->type(), m_nativeWindow->window()->mapFromGlobal(e->globalPos()),
+                                       m_nativeWindow->window()->mapFromGlobal(e->globalPos()), e->globalPosition(),
+                                       e->button(), e->buttons(), e->modifiers(), e->m_source);
+                qApp->sendEvent(m_nativeWindow->window(), e);
+#else
                 e->l = e->w = m_nativeWindow->window()->mapFromGlobal(e->globalPos());
                 qApp->sendEvent(m_nativeWindow->window(), e);
-
+#endif
                 return true;
             }
 
@@ -638,7 +645,11 @@ bool DPlatformWindowHelper::eventFilter(QObject *watched, QEvent *event)
         case QEvent::DragMove:
         case QEvent::Drop: {
             DQDropEvent *e = static_cast<DQDropEvent*>(event);
+#if (QT_VERSION >= QT_VERSION_CHECK(6, 0, 0))
+            e->m_pos -= m_frameWindow->contentOffsetHint();
+#else
             e->p -= m_frameWindow->contentOffsetHint();
+#endif
 #if QT_VERSION >= QT_VERSION_CHECK(5, 8, 0)
             Q_FALLTHROUGH();
 #endif
@@ -683,10 +694,15 @@ bool DPlatformWindowHelper::eventFilter(QObject *watched, QEvent *event)
             if (!event->isAccepted()) {
                 DQMouseEvent *e = static_cast<DQMouseEvent*>(event);
 
+#if (QT_VERSION >= QT_VERSION_CHECK(6, 0, 0))
+                QMouseEvent mouseEvent(e->type(), m_frameWindow->mapFromGlobal(e->globalPos()), m_frameWindow->mapFromGlobal(e->globalPos()),
+                                       e->globalPosition(), e->button(), e->buttons(), e->modifiers(), Qt::MouseEventSynthesizedByQt);
+                m_frameWindow->mouseMoveEvent(&mouseEvent);
+#else
                 e->l = e->w = m_frameWindow->mapFromGlobal(e->globalPos());
                 QGuiApplicationPrivate::setMouseEventSource(e, Qt::MouseEventSynthesizedByQt);
                 m_frameWindow->mouseMoveEvent(e);
-
+#endif
                 return true;
             }
             break;
@@ -758,8 +774,11 @@ bool DPlatformWindowHelper::eventFilter(QObject *watched, QEvent *event)
             const DeviceType type = DPlatformIntegration::instance()->eventFilter()->xiEventSource(ev);
 
             if (type != UnknowDevice)
+#if (QT_VERSION >= QT_VERSION_CHECK(6, 0, 0))
+                ev->m_mouseState |= Qt::MouseButton(static_cast<int>(Qt::MaxMouseButton) + type);
+#else
                 ev->mouseState |= Qt::MouseButton(Qt::MaxMouseButton + type);
-
+#endif
             break;
         }
 #endif

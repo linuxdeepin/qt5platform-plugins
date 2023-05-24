@@ -6,9 +6,9 @@
 
 #include <private/qxkbcommon_p.h>
 #include <private/qguiapplication_p.h>
-#include <private/qwaylanddisplay_p.h>
-#include <private/qwaylandintegration_p.h>
-#include <private/qwaylandwindow_p.h>
+#include <QtWaylandClient/private/qwaylanddisplay_p.h>
+#include <QtWaylandClient/private/qwaylandintegration_p.h>
+#include <QtWaylandClient/private/qwaylandwindow_p.h>
 
 #include <qpa/qwindowsysteminterface.h>
 #include <qpa/qplatformintegration.h>

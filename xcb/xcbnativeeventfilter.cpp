@@ -67,7 +67,11 @@ static inline bool isXIEvent(xcb_generic_event_t *event, int opCode)
     return e->extension == opCode;
 }
 
+#if (QT_VERSION >= QT_VERSION_CHECK(6, 0, 0))
+bool XcbNativeEventFilter::nativeEventFilter(const QByteArray &eventType, void *message, qintptr *result)
+#else
 bool XcbNativeEventFilter::nativeEventFilter(const QByteArray &eventType, void *message, long *result)
+#endif
 {
     Q_UNUSED(eventType)
     Q_UNUSED(result)

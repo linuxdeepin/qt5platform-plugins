@@ -2,6 +2,10 @@
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#define private public
+#include <QGuiApplication>
+#undef private
+
 #include "dplatformintegration.h"
 #include "global.h"
 #include "dforeignplatformwindow.h"
@@ -461,7 +465,7 @@ QPaintEngine *DPlatformIntegration::createImagePaintEngine(QPaintDevice *paintDe
     static QPaintEngine::PaintEngineFeatures disable_features = QPaintEngine::PaintEngineFeatures(-1);
 
     if (int(disable_features) < 0) {
-        disable_features = 0;
+        disable_features = static_cast<QPaintEngine::PaintEngineFeatures>(0);
 
         QByteArray data = qgetenv("DXCB_PAINTENGINE_DISABLE_FEATURES");
 
@@ -473,12 +477,14 @@ QPaintEngine *DPlatformIntegration::createImagePaintEngine(QPaintDevice *paintDe
                 if (ok)
                     break;
 
-                disable_features = 0;
+                disable_features = static_cast<QPaintEngine::PaintEngineFeatures>(0);
             }
 
             QSettings settings(QSettings::IniFormat, QSettings::UserScope, "deepin", "qt-theme");
 
+#if (QT_VERSION < QT_VERSION_CHECK(6, 0, 0))
             settings.setIniCodec("utf-8");
+#endif
             settings.beginGroup("Platform");
 
             bool ok = false;
@@ -486,7 +492,7 @@ QPaintEngine *DPlatformIntegration::createImagePaintEngine(QPaintDevice *paintDe
             disable_features = QPaintEngine::PaintEngineFeatures(settings.value("PaintEngineDisableFeatures").toByteArray().toInt(&ok, 16));
 
             if (!ok)
-                disable_features = 0;
+                disable_features = static_cast<QPaintEngine::PaintEngineFeatures>(0);
         } while (false);
     }
 
@@ -714,7 +720,12 @@ static xcb_cursor_t qt_xcb_createCursorXRender(QXcbScreen *screen, const QImage 
         free(formatsReply);
         return XCB_NONE;
     }
+
+#if (QT_VERSION >= QT_VERSION_CHECK(6, 0, 0))
+    memcpy(xi->data, img.constBits(), img.sizeInBytes());
+#else
     memcpy(xi->data, img.constBits(), img.byteCount());
+#endif
 
     xcb_pixmap_t pix = xcb_generate_id(conn);
     xcb_create_pixmap(conn, 32, pix, screen->root(), w, h);
@@ -1024,7 +1035,11 @@ void DPlatformIntegration::initialize()
     }
 
 #ifdef Q_OS_LINUX
+#if (QT_VERSION >= QT_VERSION_CHECK(6, 0, 0))
+    m_eventFilter = new XcbNativeEventFilter(connection());
+#else
     m_eventFilter = new XcbNativeEventFilter(defaultConnection());
+#endif
     qApp->installNativeEventFilter(m_eventFilter);
 
     if (!qEnvironmentVariableIsSet("DXCB_DISABLE_HOOK_CURSOR")) {

@@ -1,0 +1,23 @@
+PROJECT(wayland_test)
+CMAKE_MINIMUM_REQUIRED(VERSION 3.14)
+
+find_package(KF5Wayland REQUIRED)
+
+set(CMAKE_AUTOMOC ON)
+set(CMAKE_AUTORCC ON)
+set(CMAKE_INCLUDE_CURRENT_DIR ON)
+set(AUTOMOC_COMPILER_PREDEFINES ON)
+
+add_executable(${PROJECT_NAME} main.cpp)
+
+set(COMMON_LIBS
+    KF5::WaylandClient
+)
+
+target_link_libraries(${PROJECT_NAME} PUBLIC ${COMMON_LIBS})
+
+target_include_directories(${PROJECT_NAME} PUBLIC
+    ${CMAKE_CURRENT_BINARY_DIR}
+    ${CMAKE_SOURCE_DIR}
+    ${Qt5WaylandClient_PRIVATE_INCLUDE_DIRS}
+)

@@ -452,7 +452,11 @@ public:
     void init(xcb_window_t setting_window, DXcbXSettings *object)
     {
         x_settings_window = setting_window;
+#if (QT_VERSION >= QT_VERSION_CHECK(6, 0, 0))
+        mapped.insert(x_settings_window, object);
+#else
         mapped.insertMulti(x_settings_window, object);
+#endif
         initialized = true;
 
         populateSettings(getSettings());

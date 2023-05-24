@@ -10,10 +10,12 @@
 #include <wayland-cursor.h>
 
 #define private public
+#define protected public
 #include <QtWaylandClient/private/qwaylanddisplay_p.h>
 #include <QtWaylandClient/private/qwaylandscreen_p.h>
 #include <QtWaylandClient/private/qwaylandcursor_p.h>
 #include <QtWaylandClient/private/qwaylandinputdevice_p.h>
+#undef protected
 #undef private
 #include <QtWaylandClientVersion>
 
@@ -74,16 +76,25 @@ static void onXSettingsChanged(xcb_connection_t *connection, const QByteArray &n
         const auto &cursor_map = DWaylandIntegration::instance()->display()->mCursorThemesBySize;
 #elif QTWAYLANDCLIENT_VERSION < QT_VERSION_CHECK(5, 16, 0)
         const auto &cursor_map = DWaylandIntegration::instance()->display()->mCursorThemes;
+#else
+        const auto &cursor_map = DWaylandIntegration::instance()->display()->mCursorThemes;
 #endif
         // 处理光标主题变化
+#if QTWAYLANDCLIENT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+        for (auto cursor = cursor_map.cbegin(); cursor != cursor_map.cend(); ++cursor) {
+            QtWaylandClient::QWaylandCursorTheme *ct = cursor->theme.get();
+#else
         for (auto cursor = cursor_map.constBegin(); cursor != cursor_map.constEnd(); ++cursor) {
             QtWaylandClient::QWaylandCursorTheme *ct = cursor.value();
+#endif
             // 根据大小记载新的主题
 
 #if QTWAYLANDCLIENT_VERSION < QT_VERSION_CHECK(5, 13, 0)
             auto theme = wl_cursor_theme_load(cursor_name.constData(), cursor.key(), DWaylandIntegration::instance()->display()->shm()->object());
 #elif QTWAYLANDCLIENT_VERSION < QT_VERSION_CHECK(5, 16, 0)
             auto theme = wl_cursor_theme_load(cursor_name.constData(), cursor.key().second, DWaylandIntegration::instance()->display()->shm()->object());
+#else
+            auto theme = wl_cursor_theme_load(cursor_name.constData(), cursor->pixelSize, DWaylandIntegration::instance()->display()->shm()->object());
 #endif
             // 如果新主题创建失败则不更新数据
             if (!theme)
@@ -95,7 +106,12 @@ static void onXSettingsChanged(xcb_connection_t *connection, const QByteArray &n
             }
 
             // 清理缓存数据
+#if QTWAYLANDCLIENT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+            for (auto &cursor : ct->m_cursors)
+                cursor = {};
+#else
             ct->m_cursors.clear();
+#endif
             ct->m_theme = theme;
         }
 
