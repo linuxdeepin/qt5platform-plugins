@@ -309,7 +309,10 @@ void DNativeSettings::onPropertyChanged(const QByteArray &name, const QVariant &
 
             // 数量无变化时说明值无变化
             if (old_count != keys.count()) {
-                handle->m_base->setProperty(ALL_KEYS, QVariant::fromValue(keys));
+                QObject obj;
+                QObject::connect(&obj, &QObject::destroyed, handle->m_base, [handle, keys]() {
+                    handle->m_base->setProperty(ALL_KEYS, QVariant::fromValue(keys));
+                });
             }
         } else {
             bool changed = false;
@@ -326,7 +329,10 @@ void DNativeSettings::onPropertyChanged(const QByteArray &name, const QVariant &
             }
 
             if (changed) {
-                handle->m_base->setProperty(ALL_KEYS, QVariant::fromValue(keys));
+                QObject obj;
+                QObject::connect(&obj, &QObject::destroyed, handle->m_base, [handle, keys]() {
+                    handle->m_base->setProperty(ALL_KEYS, QVariant::fromValue(keys));
+                });
             }
         }
     }
@@ -345,7 +351,10 @@ void DNativeSettings::onPropertyChanged(const QByteArray &name, const QVariant &
         if (ok) {
             qint64 flag = (1 << property_index);
             flags = property.isValid() ? flags | flag : flags & ~flag;
-            handle->m_base->setProperty(VALID_PROPERTIES, flags);
+            QObject obj;
+            QObject::connect(&obj, &QObject::destroyed, handle->m_base, [handle, flags]() {
+                handle->m_base->setProperty(VALID_PROPERTIES, flags);
+            });
         }
     }
 
