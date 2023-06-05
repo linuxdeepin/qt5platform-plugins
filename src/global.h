@@ -94,8 +94,6 @@ DEFINE_CONST_CHAR(setWMClassName);
 DEFINE_CONST_CHAR(splitWindowOnScreen);
 DEFINE_CONST_CHAR(supportForSplittingWindow);
 DEFINE_CONST_CHAR(sendEndStartupNotifition);
-DEFINE_CONST_CHAR(splitWindowOnScreenByType);
-DEFINE_CONST_CHAR(supportForSplittingWindowByType);
 
 // others
 DEFINE_CONST_CHAR(WmWindowTypes);

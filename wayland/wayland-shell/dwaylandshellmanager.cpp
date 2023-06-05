@@ -141,13 +141,6 @@ static Region *ensureRegion(QObject *parent = nullptr)
     return kwayland_compositor->createRegion(parent);
 }
 
-static void checkIsDWayland(const QString &function)
-{
-#ifndef D_DEEPIN_IS_DWAYLAND
-    qCWarning(dwlp) << "This package is not compiled as dwayland, and [" << function << "] not support in this version.";
-#endif
-}
-
 DWaylandShellManager::DWaylandShellManager()
     : m_registry (new Registry())
 {
@@ -203,25 +196,18 @@ void DWaylandShellManager::sendProperty(QWaylandShellSurface *self, const QStrin
         }
         if (!name.compare(splitWindowOnScreen)) {
             using KWayland::Client::DDEShellSurface;
-            const auto tmp = value.toList();
-            if (tmp.size() >= 2) {
-                const auto &position = tmp[0].toInt();
-                const auto &type = tmp[1].toInt();
-                checkIsDWayland("requestSplitWindow()");
-#ifdef D_DEEPIN_IS_DWAYLAND
-                dde_shell_surface->requestSplitWindow(DDEShellSurface::SplitType(position), DDEShellSurface::SplitMode(type));
-                qCDebug(dwlp) << "requestSplitWindow splitType: " << position << " mode: " << type;
-#endif
+            bool ok = false;
+            qreal leftOrRight  = value.toInt(&ok);
+            if (ok) {
+                dde_shell_surface->requestSplitWindow(DDEShellSurface::SplitType(leftOrRight));
+                qCDebug(dwlp) << "requestSplitWindow value: " << leftOrRight;
             } else {
                 qCWarning(dwlp) << "invalid property: " << name << value;
             }
             wlWindow->window()->setProperty(splitWindowOnScreen, 0);
         }
         if (!name.compare(supportForSplittingWindow)) {
-            checkIsDWayland("getSplitable()");
-#ifdef D_DEEPIN_IS_DWAYLAND
-            wlWindow->window()->setProperty(supportForSplittingWindow, dde_shell_surface->getSplitable());
-#endif
+            wlWindow->window()->setProperty(supportForSplittingWindow, dde_shell_surface->isSplitable());
             return;
         }
         if (!name.compare(windowInWorkSpace)) {

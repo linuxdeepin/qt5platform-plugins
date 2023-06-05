@@ -43,9 +43,7 @@ public:
     static bool enableDwayland(QWindow *window);
     static bool isEnableDwayland(const QWindow *window);
     static void splitWindowOnScreen(WId wid, quint32 type);
-    static void splitWindowOnScreenByType(WId wid, quint32 position, quint32 type);
     static bool supportForSplittingWindow(WId wid);
-    static bool supportForSplittingWindowByType(quint32 wid, quint32 screenSplittingType);
 };
 
 DPP_END_NAMESPACE
