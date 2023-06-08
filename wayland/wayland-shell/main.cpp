@@ -15,6 +15,7 @@ public:
     QWaylandShellIntegration *create(const QString &key, const QStringList &paramList) override {
         Q_UNUSED(key);
         Q_UNUSED(paramList);
+        qWarning() << "shell is nullptr" << shellVersion;
         return nullptr;
     }
 };
@@ -127,8 +128,10 @@ QWaylandShellIntegration *QKWaylandShellIntegrationPlugin::create(const QString 
     QString shellVersion = registry->hasInterface(Registry::Interface::XdgShellUnstableV6) ? "xdg-shell-v6" : "xdg-shell";
     QWaylandShellIntegration *shell = wayland_integration->createShellIntegration(shellVersion);
 
-    if (!shell)
+    if (!shell) {
+        qInfo() << "Failed to create kwayland-shell and the shell is nullptr.";
         return nullptr;
+    }
 
     HookOverride(shell, &QWaylandShellIntegration::createShellSurface, DWaylandShellManager::createShellSurface);
 
