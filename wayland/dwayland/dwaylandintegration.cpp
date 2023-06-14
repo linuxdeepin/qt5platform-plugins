@@ -27,12 +27,10 @@ DPP_BEGIN_NAMESPACE
 
 #define XSETTINGS_DOUBLE_CLICK_TIME QByteArrayLiteral("Net/DoubleClickTime")
 #define XSETTINGS_CURSOR_THEME_NAME QByteArrayLiteral("Gtk/CursorThemeName")
-#define XSETTINGS_PRIMARY_MONITOR_NAME QByteArrayLiteral("Gdk/PrimaryMonitorName")
 #define XSETTINGS_PRIMARY_MONITOR_RECT QByteArrayLiteral("DDE/PrimaryMonitorRect")
 
 enum XSettingType:quint64 {
     Gtk_CursorThemeName,
-    Gtk_PrimaryMonitorName,
     Dde_PrimaryMonitorRect
 };
 
@@ -115,101 +113,30 @@ static void onXSettingsChanged(xcb_connection_t *connection, const QByteArray &n
     }
 }
 
-static bool isCopyMode()
-{
-    auto screens = DWaylandIntegration::instance()->display()->screens();
-    if (screens.size() < 1)
-        return false;
-
-    bool isCopy = true;
-    for (int i = 1; i < screens.size(); ++i) {
-        if (screens[i]->geometry() != screens[0]->geometry()) {
-            return false;
-        }
-    }
-
-    return isCopy;
-}
-
-static void onPrimaryNameChanged(xcb_connection_t *connection, const QByteArray &key, const QVariant &property, void *handle)
+static void onPrimaryRectChanged(xcb_connection_t *connection, const QByteArray &name, const QVariant &property, void *handle)
 {
     Q_UNUSED(connection)
     Q_UNUSED(property)
-
-    // TODO 判断主屏的逻辑实际可以仅依赖Gdk/PrimaryMonitorName配置项目来确定，目前已经统一了qt接口中的屏幕名称和com.deepin.daemon.Display服务中的屏幕名称
-
-    // 非复制模式下依赖DDE/PrimaryMonitorRect配置确定主屏
-    if (!isCopyMode())
-        return;
-
-    quint64 type = reinterpret_cast<quint64>(handle);
-    switch (type) {
-    case Gtk_PrimaryMonitorName:
-    {
-        auto screens = DWaylandIntegration::instance()->display()->screens();
-        const QString &primaryName = dXSettings->globalSettings()->setting(key).toString();
-        qDebug() << "primary name from xsettings:" << primaryName << ", key:" << key;
-
-        for (auto s : screens) {
-            qDebug() << "screen info:"
-                     << s->screen()->name() << s->screen()->model() << s->screen()->geometry() << s->geometry()
-                     << s->name() << s->model() << s->screen()->geometry() << s->geometry();
-        }
-        // 设置新的主屏
-        QtWaylandClient::QWaylandScreen *primaryScreen = nullptr;
-
-        // 屏幕名称一致，认定为主屏
-        for (auto screen : screens) {
-            if (screen->name() == primaryName) {
-                primaryScreen = screen;
-                qDebug() << "got primary:" << primaryScreen->name() << primaryScreen->geometry();
-                break;
-            }
-        }
-
-        if (primaryScreen) {
-#if QT_VERSION >= QT_VERSION_CHECK(5, 12, 0)
-            QWindowSystemInterface::handlePrimaryScreenChanged(primaryScreen);
-#else
-            DWaylandIntegration::instance()->setPrimaryScreen(primaryScreen);
-#endif
-        }
-
-        break;
-    }
-    default:
-        break;
-    }
-    qDebug() << "primary screen info:" << QGuiApplication::primaryScreen()->name() << QGuiApplication::primaryScreen()->model() << QGuiApplication::primaryScreen()->geometry();
-}
-
-static void onPrimaryRectChanged(xcb_connection_t *connection, const QByteArray &key, const QVariant &property, void *handle)
-{
-    Q_UNUSED(connection)
-    Q_UNUSED(property)
-
-    // 复制模式下依赖Gdk/PrimaryMonitorName配置确定主屏
-    if (isCopyMode())
-        return;
 
     quint64 type = reinterpret_cast<quint64>(handle);
     switch (type) {
     case Dde_PrimaryMonitorRect:
     {
         auto screens = DWaylandIntegration::instance()->display()->screens();
-        const QString &primaryScreenRect = dXSettings->globalSettings()->setting(key).toString();
+        const QString &primaryScreenRect = dXSettings->globalSettings()->setting(name).toString();
         auto list = primaryScreenRect.split('-');
         if (list.size() != 4)
             return;
 
         QRect xsettingsRect(list.at(0).toInt(), list.at(1).toInt(), list.at(2).toInt(), list.at(3).toInt());
 
-        qDebug() << "primary rect from xsettings:" << primaryScreenRect << ", key:" << key;
+        qDebug() << "primary rect from xsettings:" << primaryScreenRect << ", key:" << name;
         for (auto s : screens) {
             qDebug() << "screen info:"
                      << s->screen()->name() << s->screen()->model() << s->screen()->geometry() << s->geometry()
                      << s->name() << s->model() << s->screen()->geometry() << s->geometry();
         }
+
         // 设置新的主屏
         QtWaylandClient::QWaylandScreen *primaryScreen = nullptr;
 
@@ -264,8 +191,7 @@ void DWaylandIntegration::initialize()
     // 监听xsettings的信号，用于更新程序状态（如更新光标主题）
     dXSettings->globalSettings()->registerCallbackForProperty(XSETTINGS_CURSOR_THEME_NAME, onXSettingsChanged, reinterpret_cast<void*>(XSettingType::Gtk_CursorThemeName));
 
-    // 根据xsettings中的屏幕名称和屏幕坐标去区分哪个屏幕才是主屏
-    dXSettings->globalSettings()->registerCallbackForProperty(XSETTINGS_PRIMARY_MONITOR_NAME, onPrimaryNameChanged, reinterpret_cast<void*>(XSettingType::Gtk_PrimaryMonitorName));
+    // 增加rect的属性，保存主屏的具体坐标，不依靠其name判断(根据name查找对应的屏幕时概率性出错，根据主屏的rect确定哪一个QScreen才是主屏)
     dXSettings->globalSettings()->registerCallbackForProperty(XSETTINGS_PRIMARY_MONITOR_RECT, onPrimaryRectChanged, reinterpret_cast<void*>(XSettingType::Dde_PrimaryMonitorRect));
 
     QTimer *m_delayTimer = new QTimer;
@@ -274,7 +200,6 @@ void DWaylandIntegration::initialize()
     QObject::connect(qApp, &QGuiApplication::aboutToQuit, m_delayTimer, &QObject::deleteLater);
 
     QObject::connect(m_delayTimer, &QTimer::timeout, []{
-        onPrimaryNameChanged(nullptr, XSETTINGS_PRIMARY_MONITOR_NAME, QVariant(), reinterpret_cast<void*>(XSettingType::Gtk_PrimaryMonitorName));
         onPrimaryRectChanged(nullptr, XSETTINGS_PRIMARY_MONITOR_RECT, QVariant(), reinterpret_cast<void*>(XSettingType::Dde_PrimaryMonitorRect));
     });
 
