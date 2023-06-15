@@ -6,7 +6,13 @@
 
 #include <QGuiApplication>
 #include <QInputEvent>
+
+#if (QT_VERSION >= QT_VERSION_CHECK(6, 0, 0))
+#include <QPointingDevice>
+typedef QPointingDevice QTouchDevice;
+#else
 #include <QTouchDevice>
+#endif
 
 DPP_BEGIN_NAMESPACE
 
@@ -58,8 +64,11 @@ DApplicationEventMonitor::InputDeviceType DApplicationEventMonitor::eventType(QE
     case QEvent::TouchEnd:
     case QEvent::TouchCancel: {
         QTouchEvent *pTouchEvent = static_cast<QTouchEvent *>(event);
-
+#if (QT_VERSION >= QT_VERSION_CHECK(6, 0, 0))
+        if (pTouchEvent->device()->type() == QInputDevice::DeviceType::TouchScreen) {
+#else
         if (pTouchEvent->device()->type() == QTouchDevice::TouchScreen) {
+#endif
             last_input_device_type = TouchScreen;
         }
         break;

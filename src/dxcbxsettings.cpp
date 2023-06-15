@@ -452,7 +452,7 @@ public:
     void init(xcb_window_t setting_window, DXcbXSettings *object)
     {
         x_settings_window = setting_window;
-        mapped.insertMulti(x_settings_window, object);
+        mapped.insert(x_settings_window, object);
         initialized = true;
 
         populateSettings(getSettings());

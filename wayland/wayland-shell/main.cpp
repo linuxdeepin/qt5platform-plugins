@@ -15,7 +15,6 @@ public:
     QWaylandShellIntegration *create(const QString &key, const QStringList &paramList) override {
         Q_UNUSED(key);
         Q_UNUSED(paramList);
-        qWarning() << "shell is nullptr" << shellVersion;
         return nullptr;
     }
 };

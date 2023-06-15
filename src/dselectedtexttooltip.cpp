@@ -51,7 +51,7 @@ void DSelectedTextTooltip::onFontChanged()
     QFontMetrics font_metrics(qApp->font());
     int tooltip_width = 0;
     for (auto &font_info : m_textInfoVec) {
-        int tmp_width = font_metrics.width(font_info.optName);
+        int tmp_width = font_metrics.horizontalAdvance(font_info.optName);
         font_info.textWidth = tmp_width + 2 * TEXT_SPACINGWIDGET;
         tooltip_width += font_info.textWidth;
     }
@@ -64,7 +64,8 @@ void DSelectedTextTooltip::onFontChanged()
 void DSelectedTextTooltip::updateColor()
 {
     // 参考DtkGui
-    QColor rgb_color = qApp->palette().background().color().toRgb();
+    QColor rgb_color = qApp->palette().window().color().toRgb();
+
     float luminance = 0.299 * rgb_color.redF() + 0.587 * rgb_color.greenF() + 0.114 * rgb_color.blueF();
 
     if (qRound(luminance * 255) > 191) {

@@ -338,9 +338,11 @@ void DForeignPlatformWindow::updateWindowState()
 
 void DForeignPlatformWindow::updateWindowTypes()
 {
-    QXcbWindowFunctions::WmWindowTypes window_types = wmWindowTypes();
-    Qt::WindowFlags window_flags = 0;
-
+    auto window_types = wmWindowTypes();
+    Qt::WindowFlags window_flags = (Qt::WindowFlags)0;
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+    typedef QXcbWindow QXcbWindowFunctions ;
+#endif
     if (window_types & QXcbWindowFunctions::Normal)
         window_flags |= Qt::Window;
     if (window_types & QXcbWindowFunctions::Desktop)

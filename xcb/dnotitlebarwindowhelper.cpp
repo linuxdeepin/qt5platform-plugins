@@ -2,6 +2,9 @@
 //
 // SPDX-License-Identifier: LGPL-3.0-or-later
 
+#define protected public
+#include <QWindow>
+#undef protected
 #include "dnotitlebarwindowhelper.h"
 #include "vtablehook.h"
 #include "utility.h"
@@ -9,9 +12,6 @@
 #include "dnativesettings.h"
 #include "dplatformintegration.h"
 
-#define protected public
-#include <QWindow>
-#undef protected
 #include <QMouseEvent>
 #include <QTimer>
 #include <QMetaProperty>
@@ -57,7 +57,7 @@ DNoTitlebarWindowHelper::DNoTitlebarWindowHelper(QWindow *window, quint32 window
         updateWindowBlurPathsFromProperty();
         updateAutoInputMaskByClipPathFromProperty();
     } else {
-        qWarning() << "native settings is invalid for window: 0x" << hex << windowID;
+        qWarning() << "native settings is invalid for window: 0x" << /*hex <<*/ windowID;
     }
 
     connect(DWMSupport::instance(), &DXcbWMSupport::hasScissorWindowChanged, this, &DNoTitlebarWindowHelper::updateWindowShape);
