@@ -4,14 +4,19 @@
 
 project(dxcb)
 
-find_package(Qt5 ${REQUIRED_QT_VERSION} REQUIRED COMPONENTS Core Gui Widgets DBus XcbQpa X11Extras EdidSupport XkbCommonSupport)
+find_package(Qt${QT_VERSION_MAJOR} ${REQUIRED_QT_VERSION} REQUIRED COMPONENTS Core Gui Widgets DBus)
+if(${QT_VERSION_MAJOR} STREQUAL "5")
+    find_package(Qt5 REQUIRED COMPONENTS XcbQpa X11Extras EdidSupport XkbCommonSupport)
+else()
+    find_package(Qt6 REQUIRED COMPONENTS OpenGL)
+endif()
 
 # NOTE(sbw): 禁止语法树上的 vrp 优化，-O2/-O3 默认开启，会导致测试虚析构函数 HOOK 失败
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-tree-vrp" CACHE STRING "disable vrp optimization" FORCE)
 
-add_definitions(-DDXCB_VERSION=\"${VERSION}\")
+add_definitions(-DDXCB_VERSION=\"${DTK_VERSION}\")
 if(CMAKE_BUILD_TYPE STREQUAL "Release")
-    add_definitions(-DQT_NO_DEBUG_OUTPUT=true)
+    add_definitions(-DQT_NO_DEBUG_OUTPUT=TRUE)
 endif()
 file(GLOB GLOBAL_HEADERS ${CMAKE_CURRENT_LIST_DIR}/*.h)
 file(GLOB GLOBAL_SOURCES ${CMAKE_CURRENT_LIST_DIR}/*.cpp ${CMAKE_CURRENT_LIST_DIR}/3rdparty/*.c)
@@ -29,8 +34,13 @@ endif()
 
 include(${CMAKE_SOURCE_DIR}/src/src.cmake)
 
-qt5_add_dbus_interface(DBUS_INTERFACE_XMLS ${CMAKE_SOURCE_DIR}/misc/com.deepin.im.xml im_interface)
-qt5_add_dbus_interface(DBUS_INTERFACE_XMLS ${CMAKE_SOURCE_DIR}/misc/org.freedesktop.DBus.xml dbus_interface)
+if(${QT_VERSION_MAJOR} STREQUAL "5")
+    qt5_add_dbus_interface(DBUS_INTERFACE_XMLS ${CMAKE_SOURCE_DIR}/misc/com.deepin.im.xml im_interface)
+    qt5_add_dbus_interface(DBUS_INTERFACE_XMLS ${CMAKE_SOURCE_DIR}/misc/org.freedesktop.DBus.xml dbus_interface)
+else()
+    qt6_add_dbus_interface(DBUS_INTERFACE_XMLS ${CMAKE_SOURCE_DIR}/misc/com.deepin.im.xml im_interface)
+    qt6_add_dbus_interface(DBUS_INTERFACE_XMLS ${CMAKE_SOURCE_DIR}/misc/org.freedesktop.DBus.xml dbus_interface)
+endif()
 
 set(LIBRARY_OUTPUT_PATH ${CMAKE_SOURCE_DIR}/bin/plugins/platforms)
 
@@ -40,20 +50,27 @@ include(${CMAKE_CURRENT_LIST_DIR}/linux.cmake)
 
 target_link_libraries(${PROJECT_NAME}
 PRIVATE
-    Qt5::Core
-    Qt5::CorePrivate
-    Qt5::Gui
-    Qt5::GuiPrivate
-    Qt5::Widgets
-    Qt5::XcbQpa
-    Qt5::EdidSupport
-    Qt5::EdidSupportPrivate
-    Qt5::XkbCommonSupport
-    Qt5::XkbCommonSupportPrivate
-    Qt5::X11Extras
+    Qt${QT_VERSION_MAJOR}::Core
+    Qt${QT_VERSION_MAJOR}::CorePrivate
+    Qt${QT_VERSION_MAJOR}::Gui
+    Qt${QT_VERSION_MAJOR}::GuiPrivate
+    Qt${QT_VERSION_MAJOR}::Widgets
 )
+if(${QT_VERSION_MAJOR} STREQUAL "5")
+    target_link_libraries(${PROJECT_NAME}
+    PRIVATE
+        Qt5::XcbQpa
+        Qt5::EdidSupport
+        Qt5::EdidSupportPrivate
+        Qt5::XkbCommonSupport
+        Qt5::XkbCommonSupportPrivate
+        Qt5::X11Extras
+    )
+else()
+    target_link_libraries(${PROJECT_NAME} PRIVATE Qt6::OpenGL Qt6::OpenGLPrivate)
+endif()
 
 if(NOT INSTALL_PATH)
-    set(INSTALL_PATH ${CMAKE_INSTALL_LIBDIR}/qt5/plugins/platforms)
+    set(INSTALL_PATH ${CMAKE_INSTALL_LIBDIR}/qt${QT_VERSION_MAJOR}/plugins/platforms)
 endif()
 install(TARGETS ${PROJECT_NAME} DESTINATION ${INSTALL_PATH})

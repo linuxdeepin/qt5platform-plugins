@@ -14,7 +14,12 @@
 #include <QPainter>
 #include <QCursor>
 #include <QDebug>
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+#include <private/qtx11extras_p.h>
+#else
 #include <QtX11Extras/QX11Info>
+#endif
+
 #include <QGuiApplication>
 #include <qpa/qplatformwindow.h>
 #include <qpa/qplatformcursor.h>
@@ -224,7 +229,6 @@ void Utility::setFrameExtents(WId wid, const QMargins &margins)
     data[1] = int32_t(margins.right());
     data[2] = int32_t(margins.top());
     data[3] = int32_t(margins.bottom());
-
     xcb_change_property_checked(QX11Info::connection(), XCB_PROP_MODE_REPLACE, xcb_window_t(wid), frameExtents, XCB_ATOM_CARDINAL, 32, 4, data);
 }
 
@@ -233,7 +237,18 @@ static QVector<xcb_rectangle_t> qregion2XcbRectangles(const QRegion &region)
     QVector<xcb_rectangle_t> rectangles;
 
     rectangles.reserve(region.rectCount());
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+    for (auto rect = region.cbegin(); rect != region.cend(); ++rect) {
+        xcb_rectangle_t r;
 
+        r.x = rect->x();
+        r.y = rect->y();
+        r.width = rect->width();
+        r.height = rect->height();
+
+        rectangles << r;
+    }
+#else
     for (const QRect &rect : region.rects()) {
         xcb_rectangle_t r;
 
@@ -244,6 +259,7 @@ static QVector<xcb_rectangle_t> qregion2XcbRectangles(const QRegion &region)
 
         rectangles << r;
     }
+#endif
 
     return rectangles;
 }
@@ -286,6 +302,19 @@ void Utility::setShapePath(quint32 WId, const QPainterPath &path, bool onlyInput
     QVector<xcb_rectangle_t> rectangles;
 
     foreach(const QPolygonF &polygon, path.toFillPolygons()) {
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+        QRegion region(polygon.toPolygon());
+        for (auto area = region.cbegin(); area != region.cend(); ++area) {
+            xcb_rectangle_t rectangle;
+
+            rectangle.x = area->x();
+            rectangle.y = area->y();
+            rectangle.width = area->width();
+            rectangle.height = area->height();
+
+            rectangles.append(std::move(rectangle));
+        }
+#else
         foreach(const QRect &area, QRegion(polygon.toPolygon()).rects()) {
             xcb_rectangle_t rectangle;
 
@@ -296,6 +325,7 @@ void Utility::setShapePath(quint32 WId, const QPainterPath &path, bool onlyInput
 
             rectangles.append(std::move(rectangle));
         }
+#endif
     }
 
     ::setShapeRectangles(WId, rectangles, onlyInput, transparentInput);
@@ -402,11 +432,15 @@ bool Utility::setWindowCursor(quint32 WId, Utility::CornerEdge ce)
 QRegion Utility::regionAddMargins(const QRegion &region, const QMargins &margins, const QPoint &offset)
 {
     QRegion tmp;
-
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+    for(auto rect = region.cbegin(); rect != region.cend(); ++rect) {
+        tmp += rect->translated(offset) + margins;
+    }
+#else
     for (const QRect &rect : region.rects()) {
         tmp += rect.translated(offset) + margins;
     }
-
+#endif
     return tmp;
 }
 
@@ -556,9 +590,16 @@ bool Utility::blurWindowBackground(const quint32 WId, const QVector<BlurArea> &a
                 path.addRoundedRect(area.x, area.y, area.width, area.height, area.xRadius, area.yRaduis);
 
                 foreach(const QPolygonF &polygon, path.toFillPolygons()) {
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+                    QRegion region(polygon.toPolygon());
+                    for(auto area = region.cbegin(); area != region.cend(); ++area) {
+                        rects << area->x() << area->y() << area->width() << area->height();
+                    }
+#else
                     foreach(const QRect &area, QRegion(polygon.toPolygon()).rects()) {
                         rects << area.x() << area.y() << area.width() << area.height();
                     }
+#endif
                 }
             }
         }
@@ -610,9 +651,16 @@ bool Utility::blurWindowBackgroundByPaths(const quint32 WId, const QList<QPainte
 
         foreach (const QPainterPath &path, paths) {
             foreach(const QPolygonF &polygon, path.toFillPolygons()) {
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+                QRegion region(polygon.toPolygon());
+                for(auto area = region.cbegin(); area != region.cend(); ++area) {
+                    rects << area->x() << area->y() << area->width() << area->height();
+                }
+#else
                 foreach(const QRect &area, QRegion(polygon.toPolygon()).rects()) {
                     rects << area.x() << area.y() << area.width() << area.height();
                 }
+#endif
             }
         }
 
@@ -632,10 +680,9 @@ bool Utility::blurWindowBackgroundByImage(const quint32 WId, const QRect &blurRe
 
     area.reserve(5);
     area << blurRect.x() << blurRect.y() << blurRect.width() << blurRect.height() << maskImage.bytesPerLine();
-
-    array.reserve(area.size() * sizeof(qint32) / sizeof(char) * area.size() + maskImage.byteCount());
+    array.reserve(area.size() * sizeof(qint32) / sizeof(char) * area.size() + maskImage.sizeInBytes());
     array.append((const char*)area.constData(), sizeof(qint32) / sizeof(char) * area.size());
-    array.append((const char*)maskImage.constBits(), maskImage.byteCount());
+    array.append((const char*)maskImage.constBits(), maskImage.sizeInBytes());
 
     clearWindowProperty(WId, DXcbWMSupport::instance()->_net_wm_deepin_blur_region_rounded_atom);
     setWindowProperty(WId, DXcbWMSupport::instance()->_net_wm_deepin_blur_region_mask,

@@ -379,7 +379,7 @@ void WindowEventHook::handlePropertyNotifyEvent(QXcbWindowEventListener *el, con
 #ifdef XCB_USE_XINPUT22
 static Qt::KeyboardModifiers translateModifiers(const QXcbKeyboard::_mod_masks &rmod_masks, int s)
 {
-    Qt::KeyboardModifiers ret = 0;
+    Qt::KeyboardModifiers ret = Qt::KeyboardModifiers();
     if (s & XCB_MOD_MASK_SHIFT)
         ret |= Qt::ShiftModifier;
     if (s & XCB_MOD_MASK_CONTROL)
@@ -485,7 +485,11 @@ bool WindowEventHook::windowEvent(QXcbWindow *window, QEvent *event)
         Qt::DropActions support_actions = qvariant_cast<Qt::DropActions>(ev->mimeData()->property("_d_dxcb_support_actions"));
 
         if (support_actions != Qt::IgnoreAction) {
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+            ev->m_actions = support_actions;
+#else
             ev->act = support_actions;
+#endif
         }
     }
     default:

@@ -32,7 +32,12 @@ public:
     XcbNativeEventFilter(QXcbConnection *connection);
 
     QClipboard::Mode clipboardModeForAtom(xcb_atom_t a) const;
+
+#if (QT_VERSION >= QT_VERSION_CHECK(6, 0, 0))
+    bool nativeEventFilter(const QByteArray &eventType, void *message, qintptr *result) Q_DECL_OVERRIDE;
+#else
     bool nativeEventFilter(const QByteArray &eventType, void *message, long *result) Q_DECL_OVERRIDE;
+#endif
 
     DeviceType xiEventSource(const QInputEvent *event) const;
 

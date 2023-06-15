@@ -22,7 +22,13 @@
 #include <X11/extensions/XInput2.h>
 
 #include <cmath>
+#include <QApplication>
 
+#if (QT_VERSION >= QT_VERSION_CHECK(6, 0, 0))
+#define CONNECTION DPlatformIntegration::instance()->connection()
+#else
+#define CONNECTION DPlatformIntegration::instance()->defaultConnection()
+#endif
 DPP_BEGIN_NAMESPACE
 
 XcbNativeEventFilter::XcbNativeEventFilter(QXcbConnection *connection)
@@ -67,7 +73,11 @@ static inline bool isXIEvent(xcb_generic_event_t *event, int opCode)
     return e->extension == opCode;
 }
 
+#if (QT_VERSION >= QT_VERSION_CHECK(6, 0, 0))
+bool XcbNativeEventFilter::nativeEventFilter(const QByteArray &eventType, void *message, qintptr *result)
+#else
 bool XcbNativeEventFilter::nativeEventFilter(const QByteArray &eventType, void *message, long *result)
+#endif
 {
     Q_UNUSED(eventType)
     Q_UNUSED(result)
@@ -120,13 +130,13 @@ bool XcbNativeEventFilter::nativeEventFilter(const QByteArray &eventType, void *
             } else if (pn->atom == DXcbWMSupport::instance()->_deepin_wallpaper_shared_key) {
                     DXcbWMSupport::instance()->wallpaperSharedChanged();
             } else {
-                if (pn->window != DPlatformIntegration::instance()->defaultConnection()->rootWindow()) {
+                if (pn->window != CONNECTION->rootWindow()) {
                     return false;
                 }
 
-                if (pn->atom == DPlatformIntegration::instance()->defaultConnection()->atom(QXcbAtom::_NET_SUPPORTED)) {
+                if (pn->atom == CONNECTION->atom(QXcbAtom::_NET_SUPPORTED)) {
                     DXcbWMSupport::instance()->updateNetWMAtoms();
-                } else if (pn->atom == DPlatformIntegration::instance()->defaultConnection()->atom(QXcbAtom::_NET_SUPPORTING_WM_CHECK)) {
+                } else if (pn->atom == CONNECTION->atom(QXcbAtom::_NET_SUPPORTING_WM_CHECK)) {
                     DXcbWMSupport::instance()->updateWMName();
                 } else if (pn->atom == DXcbWMSupport::instance()->_kde_net_wm_blur_rehind_region_atom) {
                     DXcbWMSupport::instance()->updateRootWindowProperties();

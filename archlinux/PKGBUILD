@@ -11,23 +11,22 @@ url="https://github.com/linuxdeepin/qt5platform-plugins"
 license=('GPL3')
 provides=('deepin-qt5platform-plugins')
 conflicts=('deepin-qt5platform-plugins')
-depends=('cairo' 'kwayland' 'qt5-wayland' 'qt5-x11extras')
-makedepends=('git' 'expac' 'qt5-xcb-private-headers' 'libglvnd' 'libxcb')
+depends=('cairo' 'kwayland' 'qt5-wayland' 'qt5-x11extras' 'qtbase5-private-dev')
+makedepends=('git' 'expac' 'qt5-xcb-private-headers' 'libglvnd' 'ninja' 'cmake' 'libxcb')
 groups=('deepin-git')
 source=("${sourcetars[@]}")
 sha512sums=('SKIP')
 
 build() {
-  cd $sourcedir
-  cmake . -GNinja \
-      -DMKSPECS_INSTALL_DIR=lib/qt/mkspecs/modules/\
-      -DCMAKE_INSTALL_LIBDIR=lib \
-      -DCMAKE_INSTALL_PREFIX=/usr \
-      -DCMAKE_BUILD_TYPE=Release
-  ninja
+	cd $sourcedir
+	cmake . -GNinja \
+		-DCMAKE_INSTALL_LIBDIR=lib \
+		-DCMAKE_INSTALL_PREFIX=/usr \
+		-DCMAKE_BUILD_TYPE=Release
+	ninja
 }
 
 package() {
-  cd $sourcedir
-  make INSTALL_ROOT="$pkgdir" install
+	cd $sourcedir
+	make INSTALL_ROOT="$pkgdir" install
 }

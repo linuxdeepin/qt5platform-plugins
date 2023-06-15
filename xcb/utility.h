@@ -194,9 +194,16 @@ inline QRegion operator *(const QRegion &pointRegion, qreal scale)
         return pointRegion;
 
     QRegion pixelRegon;
+#if (QT_VERSION >= QT_VERSION_CHECK(6, 0, 0))
+    for (auto region = pointRegion.begin(); region != pointRegion.end();
+         ++region) {
+        pixelRegon += (*region) * scale;
+    }
+#else
     foreach (const QRect &rect, pointRegion.rects()) {
         pixelRegon += rect * scale;
     }
+#endif
     return pixelRegon;
 }
 QT_END_NAMESPACE

@@ -90,7 +90,12 @@ void DNativeSettings::init(const QMetaObject *metaObject)
     int allKeyPropertyTyep = 0;
 
     QMetaObjectBuilder &ob = m_objectBuilder;
+
+#if (QT_VERSION >= QT_VERSION_CHECK(6, 0, 0))
+    ob.setFlags(ob.flags() | DynamicMetaObject);
+#else
     ob.setFlags(ob.flags() | QMetaObjectBuilder::DynamicMetaObject);
+#endif
 
     // 先删除所有的属性，等待重构
     while (ob.propertyCount() > 0) {
@@ -177,7 +182,8 @@ void DNativeSettings::init(const QMetaObject *metaObject)
 
     // 将所有属性名称设置给对象
     if (allKeyPropertyTyep == qMetaTypeId<QSet<QByteArray>>()) {
-        m_base->setProperty(ALL_KEYS, QVariant::fromValue(m_settings->settingKeys().toSet()));
+        QSet<QString> set(m_settings->settingKeys().begin(), m_settings->settingKeys().end());
+        m_base->setProperty(ALL_KEYS, QVariant::fromValue(set));
     } else {
         m_base->setProperty(ALL_KEYS, QVariant::fromValue(m_settings->settingKeys()));
     }
@@ -438,13 +444,21 @@ int DNativeSettings::metaCall(QMetaObject::Call _c, int _id, void ** _a)
 
             // 0为return type, 因此参数值下标从1开始
             if (signal_method.parameterCount() > 0) {
+#if (QT_VERSION >= QT_VERSION_CHECK(6, 0, 0))
+                QVariant arg(signal_method.parameterMetaType(0), _a[1]);
+#else
                 QVariant arg(signal_method.parameterType(0), _a[1]);
+#endif
                 // 获取参数1，获取参数2
                 data1 = arg.toInt();
             }
 
             if (signal_method.parameterCount() > 1) {
+#if (QT_VERSION >= QT_VERSION_CHECK(6, 0, 0))
+                QVariant arg(signal_method.parameterMetaType(1), _a[2]);
+#else
                 QVariant arg(signal_method.parameterType(1), _a[2]);
+#endif
                 data2 = arg.toInt();
             }
         }
