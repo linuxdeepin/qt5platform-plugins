@@ -84,6 +84,6 @@ Copyright: Digia Plc and/or its subsidiary(-ies)
 License: LGPL-2.1-only or GPL-3.0-only
 
 # qt-oldfile-2
-Files: xcb/libqt5xcbqpa-dev/5.1*.*/*
+Files: xcb/libqt5xcbqpa-dev/5.1*.*/* xcb/libqt6xcbqpa-dev/6.*.*/*
 Copyright: The Qt Company Ltd.
 License: LGPL-3.0-only or GPL-2.0-only or GPL-3.0-or-later
