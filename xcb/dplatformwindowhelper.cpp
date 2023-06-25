@@ -607,8 +607,8 @@ bool DPlatformWindowHelper::eventFilter(QObject *watched, QEvent *event)
 
 #if (QT_VERSION >= QT_VERSION_CHECK(6, 0, 0))
                 QScopedPointer<QMutableSinglePointEvent> mevent(QMutableSinglePointEvent::from(e->clone()));
-                mevent->mutablePoint().setPosition(m_nativeWindow->window()->mapFromGlobal(e->globalPos()));
-                mevent->mutablePoint().setScenePosition(m_nativeWindow->window()->mapFromGlobal(e->globalPos()));
+                mevent->mutablePoint().setPosition(m_nativeWindow->window()->mapFromGlobal(e->globalPosition()));
+                mevent->mutablePoint().setScenePosition(m_nativeWindow->window()->mapFromGlobal(e->globalPosition()));
                 qApp->sendEvent(m_nativeWindow->window(), mevent.data());
 #else
                 e->l = e->w = m_nativeWindow->window()->mapFromGlobal(e->globalPos());
@@ -696,9 +696,11 @@ bool DPlatformWindowHelper::eventFilter(QObject *watched, QEvent *event)
 
 #if (QT_VERSION >= QT_VERSION_CHECK(6, 0, 0))
                 QScopedPointer<QMutableSinglePointEvent> mevent(QMutableSinglePointEvent::from(e->clone()));
-                mevent->mutablePoint().setPosition(m_frameWindow->mapFromGlobal(e->globalPos()));
-                mevent->mutablePoint().setScenePosition(m_frameWindow->mapFromGlobal(e->globalPos()));
-                m_frameWindow->mouseMoveEvent(dynamic_cast<QMouseEvent *>(mevent.data()));
+                mevent->mutablePoint().setPosition(m_frameWindow->mapFromGlobal(e->globalPosition()));
+                mevent->mutablePoint().setScenePosition(m_frameWindow->mapFromGlobal(e->globalPosition()));
+                mevent->setSource(Qt::MouseEventSynthesizedByQt);
+                QMouseEvent *me = dynamic_cast<QMouseEvent *>(static_cast<QSinglePointEvent *>(mevent.data()));
+                m_frameWindow->mouseMoveEvent(me);
 #else
                 e->l = e->w = m_frameWindow->mapFromGlobal(e->globalPos());
                 QGuiApplicationPrivate::setMouseEventSource(e, Qt::MouseEventSynthesizedByQt);
