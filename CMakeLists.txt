@@ -16,6 +16,10 @@ project(qt5platform-plugins
     LANGUAGES CXX C
 )
 
+if (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
+    set(CMAKE_INSTALL_PREFIX /usr)
+endif ()
+
 include(GNUInstallDirs)
 include(CMakePackageConfigHelpers)
 
