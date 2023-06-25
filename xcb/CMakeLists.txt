@@ -8,7 +8,7 @@ find_package(Qt${QT_VERSION_MAJOR} ${REQUIRED_QT_VERSION} REQUIRED COMPONENTS Co
 if(${QT_VERSION_MAJOR} STREQUAL "5")
     find_package(Qt5 REQUIRED COMPONENTS XcbQpa X11Extras EdidSupport XkbCommonSupport)
 else()
-    find_package(Qt6 REQUIRED COMPONENTS OpenGL)
+    find_package(Qt6 REQUIRED COMPONENTS OpenGL XcbQpaPrivate)
 endif()
 
 # NOTE(sbw): 禁止语法树上的 vrp 优化，-O2/-O3 默认开启，会导致测试虚析构函数 HOOK 失败
@@ -67,7 +67,7 @@ if(${QT_VERSION_MAJOR} STREQUAL "5")
         Qt5::X11Extras
     )
 else()
-    target_link_libraries(${PROJECT_NAME} PRIVATE Qt6::OpenGL Qt6::OpenGLPrivate)
+    target_link_libraries(${PROJECT_NAME} PRIVATE Qt6::OpenGL Qt6::OpenGLPrivate Qt6::XcbQpaPrivate)
 endif()
 
 if(NOT INSTALL_PATH)
