@@ -130,11 +130,7 @@ void DPlatformBackingStoreHelper::flush(QWindow *window, const QRegion &region, 
             const QPoint &offset = (window_helper->m_frameWindow->m_contentGeometry.topLeft()
                                     - 2 * window_helper->m_frameWindow->contentOffsetHint()) * device_pixel_ratio;
 
-#if (QT_VERSION >= QT_VERSION_CHECK(6, 0, 0))
             border_brush.setTransform(QTransform(1, 0, 0, 1, offset.x(), offset.y()));
-#else
-            border_brush.setMatrix(QMatrix(1, 0, 0, 1, offset.x(), offset.y()));
-#endif
 
             pa.setRenderHint(QPainter::Antialiasing);
             pa.setCompositionMode(QPainter::CompositionMode_Source);

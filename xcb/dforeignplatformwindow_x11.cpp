@@ -339,7 +339,7 @@ void DForeignPlatformWindow::updateWindowState()
 void DForeignPlatformWindow::updateWindowTypes()
 {
     auto window_types = wmWindowTypes();
-    Qt::WindowFlags window_flags = (Qt::WindowFlags)0;
+    Qt::WindowFlags window_flags = Qt::WindowFlags();
 #if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
     typedef QXcbWindow QXcbWindowFunctions ;
 #endif

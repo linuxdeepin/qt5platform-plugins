@@ -41,7 +41,6 @@
 #include "dhighdpi.h"
 
 #include "qxcbscreen.h"
-#include "qxcbbackingstore.h"
 
 #include <X11/cursorfont.h>
 #include <xcb/xcb_image.h>
@@ -721,11 +720,7 @@ static xcb_cursor_t qt_xcb_createCursorXRender(QXcbScreen *screen, const QImage 
         return XCB_NONE;
     }
 
-#if (QT_VERSION >= QT_VERSION_CHECK(6, 0, 0))
     memcpy(xi->data, img.constBits(), img.sizeInBytes());
-#else
-    memcpy(xi->data, img.constBits(), img.byteCount());
-#endif
 
     xcb_pixmap_t pix = xcb_generate_id(conn);
     xcb_create_pixmap(conn, 32, pix, screen->root(), w, h);
