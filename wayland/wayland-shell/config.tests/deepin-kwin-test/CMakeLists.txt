@@ -2,6 +2,8 @@
 #
 # SPDX-License-Identifier: LGPL-3.0-or-later
 
+cmake_minimum_required(VERSION 3.13)
+
 project(deepin-kwin-test)
 
 set(REQUIRED_QT_VERSION 5.15.0)
