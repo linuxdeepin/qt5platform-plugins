@@ -2,9 +2,10 @@
 #
 # SPDX-License-Identifier: LGPL-3.0-or-later
 
-project(dxcb)
+project(ut-platformplugins)
 
-find_package(Qt${QT_VERSION_MAJOR} ${REQUIRED_QT_VERSION} REQUIRED COMPONENTS Core Gui Widgets DBus)
+find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Gui Widgets Test)
+find_package(GTest REQUIRED)
 if(${QT_VERSION_MAJOR} STREQUAL "5")
     find_package(Qt5 REQUIRED COMPONENTS XcbQpa X11Extras EdidSupport XkbCommonSupport)
 else()
@@ -19,14 +20,28 @@ if(CMAKE_BUILD_TYPE STREQUAL "Release")
     add_definitions(-DQT_NO_DEBUG_OUTPUT=TRUE)
 endif()
 
-include(${CMAKE_CURRENT_LIST_DIR}/xcb.cmake)
+include(${CMAKE_SOURCE_DIR}/xcb/xcb.cmake)
 include(${CMAKE_SOURCE_DIR}/src/src.cmake)
 
-set(LIBRARY_OUTPUT_PATH ${CMAKE_SOURCE_DIR}/bin/plugins/platforms)
+file(GLOB test_SRC test.h main.cpp src/*.cpp)
 
-add_library(${PROJECT_NAME} MODULE ${xcb_SRC} ${DBUS_INTERFACE_XMLS})
+add_executable(${PROJECT_NAME} ${GLOBAL_HEADERS} ${GLOBAL_SOURCES} ${test_SRC} ${xcb_SRC})
 
-include(${CMAKE_CURRENT_LIST_DIR}/linux.cmake)
+include(${CMAKE_SOURCE_DIR}/xcb/linux.cmake)
+
+target_compile_options(${PROJECT_NAME} PRIVATE -fno-access-control -fsanitize=address)
+target_link_options(${PROJECT_NAME} PRIVATE -fsanitize=address)
+
+target_link_libraries(${PROJECT_NAME} PRIVATE
+    Qt${QT_VERSION_MAJOR}::Gui
+    Qt${QT_VERSION_MAJOR}::GuiPrivate
+    Qt${QT_VERSION_MAJOR}::Test
+    GTest::GTest
+    gmock
+    pthread
+    m
+    gcov
+)
 
 target_link_libraries(${PROJECT_NAME}
 PRIVATE
@@ -49,8 +64,3 @@ if(${QT_VERSION_MAJOR} STREQUAL "5")
 else()
     target_link_libraries(${PROJECT_NAME} PRIVATE Qt6::OpenGL Qt6::OpenGLPrivate Qt6::XcbQpaPrivate)
 endif()
-
-if(NOT INSTALL_PATH)
-    set(INSTALL_PATH ${CMAKE_INSTALL_LIBDIR}/qt${QT_VERSION_MAJOR}/plugins/platforms)
-endif()
-install(TARGETS ${PROJECT_NAME} DESTINATION ${INSTALL_PATH})

@@ -11,22 +11,7 @@ endif()
 
 add_definitions(-DQT5DWAYLANDPLUGIN_LIBRARY -DQT_DEPRECATED_WARNINGS)
 
-file(GLOB GLOBAL_HEADERS
-    ${CMAKE_CURRENT_LIST_DIR}/*.h
-    ${CMAKE_SOURCE_DIR}/src/global.h
-    ${CMAKE_SOURCE_DIR}/src/vtablehook.h
-    ${CMAKE_SOURCE_DIR}/src/dxcbxsettings.h
-    ${CMAKE_SOURCE_DIR}/src/dplatformsettings.h
-    ${CMAKE_SOURCE_DIR}/src/dnativesettings.h
-)
-file(GLOB GLOBAL_SOURCES
-    ${CMAKE_CURRENT_LIST_DIR}/*.cpp
-    ${CMAKE_SOURCE_DIR}/src/global.cpp
-    ${CMAKE_SOURCE_DIR}/src/vtablehook.cpp
-    ${CMAKE_SOURCE_DIR}/src/dxcbxsettings.cpp
-    ${CMAKE_SOURCE_DIR}/src/dplatformsettings.cpp
-    ${CMAKE_SOURCE_DIR}/src/dnativesettings.cpp
-)
+include(${CMAKE_CURRENT_LIST_DIR}/dwayland.cmake)
 
 set(LIBRARY_OUTPUT_PATH ${CMAKE_SOURCE_DIR}/bin/plugins/platforms)
 
