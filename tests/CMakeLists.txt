@@ -31,6 +31,12 @@ include(${CMAKE_SOURCE_DIR}/xcb/linux.cmake)
 
 target_compile_options(${PROJECT_NAME} PRIVATE -fno-access-control -fsanitize=address)
 target_link_options(${PROJECT_NAME} PRIVATE -fsanitize=address)
+if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+  target_compile_options(${PROJECT_NAME} PRIVATE -fprofile-instr-generate -ftest-coverage)
+endif()
+if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+  target_compile_options(${PROJECT_NAME} PRIVATE -fprofile-arcs -ftest-coverage)
+endif()
 
 target_link_libraries(${PROJECT_NAME} PRIVATE
     Qt${QT_VERSION_MAJOR}::Gui
@@ -41,6 +47,7 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
     pthread
     m
     gcov
+    -ldl
 )
 
 target_link_libraries(${PROJECT_NAME}

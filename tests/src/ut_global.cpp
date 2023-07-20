@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2022 UnionTech Software Technology Co., Ltd.
+// SPDX-FileCopyrightText: 2023 UnionTech Software Technology Co., Ltd.
 //
 // SPDX-License-Identifier: LGPL-3.0-or-later
 
@@ -14,7 +14,7 @@ protected:
     void SetUp();
     void TearDown();
 
-    QWindow *window;
+    QWindow *window = nullptr;
 };
 
 void TGlobal::SetUp()
