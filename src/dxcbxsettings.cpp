@@ -381,14 +381,13 @@ public:
         xSettings.append(3, '\0'); //unused
         xSettings.append((char*)&serial, sizeof(serial)); //SERIAL
         xSettings.append((char*)&number_of_settings, sizeof(number_of_settings)); //N_SETTINGS
-        uint *number_of_settings_ptr = (uint*)(xSettings.data() + xSettings.size() - sizeof(number_of_settings));
-
+        uint number_of_settings_index = xSettings.size() - sizeof(number_of_settings);
         for (auto i = settings.constBegin(); i != settings.constEnd(); ++i) {
             const DXcbXSettingsPropertyValue &value = i.value();
 
             // 忽略无效的数据
             if (!value.value.isValid()) {
-                --*number_of_settings_ptr;
+                --number_of_settings;
                 continue;
             }
 
@@ -442,9 +441,10 @@ public:
             xSettings.append(value_data);
         }
 
-        if (*number_of_settings_ptr == 0) {
+        if (number_of_settings == 0) {
             return QByteArray();
         }
+        memcpy(xSettings.data() + number_of_settings_index, &number_of_settings, sizeof(number_of_settings));
 
         return xSettings;
     }
