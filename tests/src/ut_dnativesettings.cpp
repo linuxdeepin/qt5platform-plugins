@@ -1,10 +1,9 @@
-// SPDX-FileCopyrightText: 2022 UnionTech Software Technology Co., Ltd.
+// SPDX-FileCopyrightText: 2023 UnionTech Software Technology Co., Ltd.
 //
 // SPDX-License-Identifier: LGPL-3.0-or-later
 
 #include <gtest/gtest.h>
 #include <QWindow>
-#include <QDebug>
 
 #include "dnativesettings.h"
 
@@ -16,7 +15,7 @@ protected:
     void SetUp();
     void TearDown();
 
-    QWindow *window;
+    QWindow *window = nullptr;
 };
 
 void TDNativeSettings::SetUp()
@@ -32,7 +31,6 @@ void TDNativeSettings::TearDown()
 TEST_F(TDNativeSettings, getSettingsProperty)
 {
     QByteArray array = DNativeSettings::getSettingsProperty(window);
-    qWarning() << array;
     window->setProperty("_d_domain", "/test/test");
     array = DNativeSettings::getSettingsProperty(window);
     ASSERT_EQ(array, "_TEST_TEST");
