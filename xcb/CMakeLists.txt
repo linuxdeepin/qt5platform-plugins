@@ -24,7 +24,7 @@ include(${CMAKE_SOURCE_DIR}/src/src.cmake)
 
 set(LIBRARY_OUTPUT_PATH ${CMAKE_SOURCE_DIR}/bin/plugins/platforms)
 
-add_library(${PROJECT_NAME} MODULE ${xcb_SRC} ${DBUS_INTERFACE_XMLS})
+add_library(${PROJECT_NAME} MODULE ${GLOBAL_HEADERS} ${GLOBAL_SOURCES} ${xcb_SRC} ${DBUS_INTERFACE_XMLS})
 
 include(${CMAKE_CURRENT_LIST_DIR}/linux.cmake)
 

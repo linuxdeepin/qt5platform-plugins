@@ -15,7 +15,7 @@ include(${CMAKE_CURRENT_LIST_DIR}/dwayland.cmake)
 
 set(LIBRARY_OUTPUT_PATH ${CMAKE_SOURCE_DIR}/bin/plugins/platforms)
 
-add_library(${PROJECT_NAME} MODULE main.cpp ${GLOBAL_SOURCES} ${GLOBAL_HEADERS})
+add_library(${PROJECT_NAME} MODULE main.cpp ${wayland_SRC})
 
 target_compile_definitions(${PROJECT_NAME} 
 PRIVATE
