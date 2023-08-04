@@ -131,7 +131,7 @@ static QPair<qreal, qreal> takePair(const QVariant &value, const QPair<qreal, qr
         return defaultValue;
     }
 
-    const QStringList &l = value.toStringList();
+    const QStringList &l = value.toString().split(',');
 
     if (l.count() < 2) {
         return defaultValue;
@@ -151,7 +151,7 @@ static QMarginsF takeMargins(const QVariant &value, const QMarginsF &defaultValu
         return defaultValue;
     }
 
-    const QStringList &l = value.toStringList();
+    const QStringList &l = value.toString().split(',');
 
     if (l.count() < 4) {
         return defaultValue;
