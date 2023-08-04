@@ -222,7 +222,7 @@ void DNoTitlebarWindowHelper::setTheme(const QString &theme)
 
 void DNoTitlebarWindowHelper::setWindowRadius(const QPointF &windowRadius)
 {
-    setProperty("windowRadius", QStringList{QString::number(windowRadius.x()), QString::number(windowRadius.y())});
+    setProperty("windowRadius", QString("%1,%2").arg(windowRadius.x()).arg(windowRadius.y()));
 }
 
 void DNoTitlebarWindowHelper::setBorderWidth(qreal borderWidth)
@@ -242,7 +242,7 @@ void DNoTitlebarWindowHelper::setShadowRadius(qreal shadowRadius)
 
 void DNoTitlebarWindowHelper::setShadowOffect(const QPointF &shadowOffect)
 {
-    setProperty("shadowOffect", QStringList{QString::number(shadowOffect.x()), QString::number(shadowOffect.y())});
+    setProperty("shadowOffect", QString("%1,%2").arg(shadowOffect.x()).arg(shadowOffect.y()));
 }
 
 void DNoTitlebarWindowHelper::setShadowColor(const QColor &shadowColor)
@@ -252,8 +252,8 @@ void DNoTitlebarWindowHelper::setShadowColor(const QColor &shadowColor)
 
 void DNoTitlebarWindowHelper::setMouseInputAreaMargins(const QMarginsF &mouseInputAreaMargins)
 {
-    setProperty("mouseInputAreaMargins",QStringList{QString::number(mouseInputAreaMargins.left()), QString::number(mouseInputAreaMargins.top()),
-                                                     QString::number(mouseInputAreaMargins.right()), QString::number(mouseInputAreaMargins.bottom())});
+    setProperty("mouseInputAreaMargins", QString("%1,%2,%3,%4").arg(mouseInputAreaMargins.left()).arg(mouseInputAreaMargins.top())
+                                                               .arg(mouseInputAreaMargins.right()).arg(mouseInputAreaMargins.bottom()));
 }
 
 void DNoTitlebarWindowHelper::updateClipPathFromProperty()
