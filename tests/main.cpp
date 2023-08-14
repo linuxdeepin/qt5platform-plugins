@@ -2,9 +2,8 @@
 //
 // SPDX-License-Identifier: LGPL-3.0-or-later
 
-#include "test.h"
-
 #include <QApplication>
+#include <QTest>
 #include <gtest/gtest.h>
 
 #ifdef QT_DEBUG
@@ -13,6 +12,8 @@
 
 int main(int argc, char *argv[])
 {
+    qputenv("QT_PLUGIN_PATH", PLUGIN_OUTPUT_PATH);
+
     // gerrit编译时没有显示器，需要指定环境变量
     if (!qEnvironmentVariableIsSet("DISPLAY"))
         qputenv("QT_QPA_PLATFORM", "offscreen");

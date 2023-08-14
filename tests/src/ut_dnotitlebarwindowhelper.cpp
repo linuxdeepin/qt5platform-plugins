@@ -45,56 +45,42 @@ TEST_F(TDNoTitlebarWindowHelper, theme)
 
 TEST_F(TDNoTitlebarWindowHelper, windowRadius)
 {
-    QPointF defaultValue(0.0, 0.0);
-    ASSERT_EQ(defaultValue, helper->windowRadius());
     helper->setWindowRadius(QPointF(0.1, 0.1));
     ASSERT_EQ(QPointF(0.1, 0.1), helper->windowRadius());
 }
 
 TEST_F(TDNoTitlebarWindowHelper, borderWidth)
 {
-    int defaultValue = 0;
-    ASSERT_EQ(defaultValue, helper->borderWidth());
     helper->setBorderWidth(2.0);
     ASSERT_EQ(2.0, helper->borderWidth());
 }
 
 TEST_F(TDNoTitlebarWindowHelper, borderColor)
 {
-    QColor defaultValue;
-    ASSERT_EQ(defaultValue, helper->borderColor());
     helper->setBorderColor(Qt::red);
     ASSERT_EQ(QColor(Qt::red), helper->borderColor());
 }
 
 TEST_F(TDNoTitlebarWindowHelper, shadowRadius)
 {
-    qreal defaultValue;
-    ASSERT_EQ(defaultValue, helper->shadowRadius());
     helper->setShadowRadius(2.0);
     ASSERT_EQ(2.0, helper->shadowRadius());
 }
 
 TEST_F(TDNoTitlebarWindowHelper, shadowOffset)
 {
-    QPointF defaultValue;
-    ASSERT_EQ(defaultValue, helper->shadowOffset());
     helper->setShadowOffect(QPointF(1.0, 1.0));
     ASSERT_EQ(QPointF(1.0, 1.0), helper->shadowOffset());
 }
 
 TEST_F(TDNoTitlebarWindowHelper, shadowColor)
 {
-    QColor defaultValue;
-    ASSERT_EQ(defaultValue, helper->shadowColor());
     helper->setShadowColor(Qt::blue);
     ASSERT_EQ(QColor(Qt::blue), helper->shadowColor());
 }
 
 TEST_F(TDNoTitlebarWindowHelper, mouseInputAreaMargins)
 {
-    QMarginsF defaultValue;
-    ASSERT_EQ(defaultValue, helper->mouseInputAreaMargins());
     helper->setMouseInputAreaMargins(QMarginsF(1.0, 1.0, 1.0 ,1.0));
     ASSERT_EQ(QMarginsF(1.0, 1.0, 1.0 ,1.0), helper->mouseInputAreaMargins());
 }

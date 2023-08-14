@@ -4,6 +4,7 @@
 
 #include <gtest/gtest.h>
 #include <QWindow>
+#include <QVariant>
 
 #include "dbackingstoreproxy.h"
 
@@ -32,13 +33,13 @@ TEST_F(TDBackingStoreProxy, useGLPaint)
 {
     ASSERT_FALSE(DBackingStoreProxy::useGLPaint(window));
     window->setSurfaceType(QSurface::OpenGLSurface);
-    window->setProperty("_d_enableGLPaint", true);
+    window->setProperty("_d_enableGLPaint", QVariant::fromValue(true));
     ASSERT_TRUE(DBackingStoreProxy::useGLPaint(window));
 }
 
 TEST_F(TDBackingStoreProxy, useWallpaperPaint)
 {
     ASSERT_FALSE(DBackingStoreProxy::useWallpaperPaint(window));
-    window->setProperty("_d_dxcb_wallpaper", true);
+    window->setProperty("_d_dxcb_wallpaper", QVariant::fromValue(true));
     ASSERT_TRUE(DBackingStoreProxy::useWallpaperPaint(window));
 }

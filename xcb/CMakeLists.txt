@@ -4,7 +4,8 @@
 
 project(dxcb)
 
-find_package(Qt${QT_VERSION_MAJOR} ${REQUIRED_QT_VERSION} REQUIRED COMPONENTS Core Gui Widgets DBus)
+find_package(Qt${QT_VERSION_MAJOR} ${REQUIRED_QT_VERSION} REQUIRED COMPONENTS Core Gui Widgets)
+find_package(DtkBuildHelper REQUIRED)
 if(${QT_VERSION_MAJOR} STREQUAL "5")
     find_package(Qt5 REQUIRED COMPONENTS XcbQpa X11Extras EdidSupport XkbCommonSupport)
 else()
@@ -22,11 +23,14 @@ endif()
 include(${CMAKE_CURRENT_LIST_DIR}/xcb.cmake)
 include(${CMAKE_SOURCE_DIR}/src/src.cmake)
 
-set(LIBRARY_OUTPUT_PATH ${CMAKE_SOURCE_DIR}/bin/plugins/platforms)
-
-add_library(${PROJECT_NAME} MODULE ${GLOBAL_HEADERS} ${GLOBAL_SOURCES} ${xcb_SRC} ${DBUS_INTERFACE_XMLS})
+add_library(${PROJECT_NAME} SHARED ${GLOBAL_HEADERS} ${GLOBAL_SOURCES} ${xcb_SRC} ${DBUS_INTERFACE_XMLS})
 
 include(${CMAKE_CURRENT_LIST_DIR}/linux.cmake)
+
+set(EnableCov CACHE BOOL FALSE)
+if (EnableCov)
+    dtk_setup_code_coverage(${PROJECT_NAME})
+endif()
 
 target_link_libraries(${PROJECT_NAME}
 PRIVATE
