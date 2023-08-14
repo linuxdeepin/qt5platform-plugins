@@ -12,22 +12,19 @@ else()
     find_package(Qt6 REQUIRED COMPONENTS OpenGL XcbQpaPrivate)
 endif()
 
-# NOTE(sbw): 禁止语法树上的 vrp 优化，-O2/-O3 默认开启，会导致测试虚析构函数 HOOK 失败
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-tree-vrp" CACHE STRING "disable vrp optimization" FORCE)
-
 add_definitions(-DDXCB_VERSION=\"${DTK_VERSION}\")
 if(CMAKE_BUILD_TYPE STREQUAL "Release")
     add_definitions(-DQT_NO_DEBUG_OUTPUT=TRUE)
 endif()
 
-include(${CMAKE_SOURCE_DIR}/xcb/xcb.cmake)
-include(${CMAKE_SOURCE_DIR}/src/src.cmake)
 
 file(GLOB test_SRC test.h main.cpp src/*.cpp)
 
-add_executable(${PROJECT_NAME} ${GLOBAL_HEADERS} ${GLOBAL_SOURCES} ${test_SRC} ${xcb_SRC})
+add_executable(${PROJECT_NAME} ${test_SRC})
 
 include(${CMAKE_SOURCE_DIR}/xcb/linux.cmake)
+
+add_definitions(-DPLUGIN_OUTPUT_PATH=\"${LIBRARY_OUTPUT_PATH}/..\")
 
 target_compile_options(${PROJECT_NAME} PRIVATE -fno-access-control -fsanitize=address)
 target_link_options(${PROJECT_NAME} PRIVATE -fsanitize=address)
@@ -38,9 +35,15 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
   target_compile_options(${PROJECT_NAME} PRIVATE -fprofile-arcs -ftest-coverage)
 endif()
 
+target_include_directories(${PROJECT_NAME} PRIVATE
+    ${CMAKE_SOURCE_DIR}/src
+    ${CMAKE_SOURCE_DIR}/xcb
+)
+
 target_link_libraries(${PROJECT_NAME} PRIVATE
     Qt${QT_VERSION_MAJOR}::Gui
     Qt${QT_VERSION_MAJOR}::GuiPrivate
+    Qt${QT_VERSION_MAJOR}::Widgets
     Qt${QT_VERSION_MAJOR}::Test
     GTest::GTest
     gmock
@@ -48,16 +51,9 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
     m
     gcov
     -ldl
+    dxcb
 )
 
-target_link_libraries(${PROJECT_NAME}
-PRIVATE
-    Qt${QT_VERSION_MAJOR}::Core
-    Qt${QT_VERSION_MAJOR}::CorePrivate
-    Qt${QT_VERSION_MAJOR}::Gui
-    Qt${QT_VERSION_MAJOR}::GuiPrivate
-    Qt${QT_VERSION_MAJOR}::Widgets
-)
 if(${QT_VERSION_MAJOR} STREQUAL "5")
     target_link_libraries(${PROJECT_NAME}
     PRIVATE

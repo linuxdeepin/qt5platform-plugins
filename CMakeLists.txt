@@ -48,6 +48,7 @@ if (CMAKE_BUILD_TYPE STREQUAL "Debug")
 else ()
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Ofast")
 endif ()
+set(LIBRARY_OUTPUT_PATH ${CMAKE_SOURCE_DIR}/bin/plugins/platforms)
 
 add_subdirectory(xcb)
 if("${PROJECT_VERSION_MAJOR}" STREQUAL "5")
