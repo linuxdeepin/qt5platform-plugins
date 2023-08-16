@@ -36,12 +36,20 @@ public:
     void composeAndFlush(QWindow *window, const QRegion &region, const QPoint &offset,
                          QPlatformTextureList *textures, QOpenGLContext *context,
                          bool translucentBackground) override;
-#else
+#elif QT_VERSION <= QT_VERSION_CHECK(6, 2, 4)
     void composeAndFlush(QWindow *window, const QRegion &region, const QPoint &offset,
                          QPlatformTextureList *textures,
                          bool translucentBackground) override;
+#else
+    FlushResult rhiFlush(QWindow *window, qreal sourceDevicePixelRatio, const QRegion &region,
+                         const QPoint &offset, QPlatformTextureList *textures,
+                         bool translucentBackground) override;
 #endif
+#if QT_VERSION <= QT_VERSION_CHECK(6, 2, 4)
     GLuint toTexture(const QRegion &dirtyRegion, QSize *textureSize, TextureFlags *flags) const override;
+#else
+    QRhiTexture *toTexture(QRhiResourceUpdateBatch *resourceUpdates, const QRegion &dirtyRegion, TextureFlags *flags) const override;
+#endif
 #endif
     QImage toImage() const override;
     QPlatformGraphicsBuffer *graphicsBuffer() const override;

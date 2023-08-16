@@ -20,6 +20,7 @@
 
 #include <private/qwindow_p.h>
 #include <private/qguiapplication_p.h>
+#include <private/qeventpoint_p.h>
 #include <qpa/qplatformcursor.h>
 
 #include <QPainterPath>
@@ -604,15 +605,19 @@ bool DPlatformWindowHelper::eventFilter(QObject *watched, QEvent *event)
                     && !qFuzzyCompare(posF.y(), rectF.height())
                     && rectF.contains(posF)) {
                 m_frameWindow->unsetCursor();
-
-#if (QT_VERSION >= QT_VERSION_CHECK(6, 0, 0))
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
+                e->l = e->w = m_nativeWindow->window()->mapFromGlobal(e->globalPos());
+                qApp->sendEvent(m_nativeWindow->window(), e);
+#elif QT_VERSION <= QT_VERSION_CHECK(6, 2, 4)
                 QScopedPointer<QMutableSinglePointEvent> mevent(QMutableSinglePointEvent::from(e->clone()));
                 mevent->mutablePoint().setPosition(m_nativeWindow->window()->mapFromGlobal(e->globalPosition()));
                 mevent->mutablePoint().setScenePosition(m_nativeWindow->window()->mapFromGlobal(e->globalPosition()));
                 qApp->sendEvent(m_nativeWindow->window(), mevent.data());
 #else
-                e->l = e->w = m_nativeWindow->window()->mapFromGlobal(e->globalPos());
-                qApp->sendEvent(m_nativeWindow->window(), e);
+                QScopedPointer<QMutableSinglePointEvent> mevent(QMutableSinglePointEvent::from(e->clone()));
+                QMutableEventPoint::setPosition(mevent->point(0), m_nativeWindow->window()->mapFromGlobal(e->globalPosition()));
+                QMutableEventPoint::setScenePosition(mevent->point(0), m_nativeWindow->window()->mapFromGlobal(e->globalPosition()));
+                qApp->sendEvent(m_nativeWindow->window(), mevent.data());
 #endif
                 return true;
             }
@@ -694,17 +699,19 @@ bool DPlatformWindowHelper::eventFilter(QObject *watched, QEvent *event)
             if (!event->isAccepted()) {
                 DQMouseEvent *e = static_cast<DQMouseEvent*>(event);
 
-#if (QT_VERSION >= QT_VERSION_CHECK(6, 0, 0))
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
+                e->l = e->w = m_nativeWindow->window()->mapFromGlobal(e->globalPos());
+                qApp->sendEvent(m_nativeWindow->window(), e);
+#elif QT_VERSION <= QT_VERSION_CHECK(6, 2, 4)
                 QScopedPointer<QMutableSinglePointEvent> mevent(QMutableSinglePointEvent::from(e->clone()));
-                mevent->mutablePoint().setPosition(m_frameWindow->mapFromGlobal(e->globalPosition()));
-                mevent->mutablePoint().setScenePosition(m_frameWindow->mapFromGlobal(e->globalPosition()));
-                mevent->setSource(Qt::MouseEventSynthesizedByQt);
-                QMouseEvent *me = dynamic_cast<QMouseEvent *>(static_cast<QSinglePointEvent *>(mevent.data()));
-                m_frameWindow->mouseMoveEvent(me);
+                mevent->mutablePoint().setPosition(m_nativeWindow->window()->mapFromGlobal(e->globalPosition()));
+                mevent->mutablePoint().setScenePosition(m_nativeWindow->window()->mapFromGlobal(e->globalPosition()));
+                qApp->sendEvent(m_nativeWindow->window(), mevent.data());
 #else
-                e->l = e->w = m_frameWindow->mapFromGlobal(e->globalPos());
-                QGuiApplicationPrivate::setMouseEventSource(e, Qt::MouseEventSynthesizedByQt);
-                m_frameWindow->mouseMoveEvent(e);
+                QScopedPointer<QMutableSinglePointEvent> mevent(QMutableSinglePointEvent::from(e->clone()));
+                QMutableEventPoint::setPosition(mevent->point(0), m_nativeWindow->window()->mapFromGlobal(e->globalPosition()));
+                QMutableEventPoint::setScenePosition(mevent->point(0), m_nativeWindow->window()->mapFromGlobal(e->globalPosition()));
+                qApp->sendEvent(m_nativeWindow->window(), mevent.data());
 #endif
                 return true;
             }

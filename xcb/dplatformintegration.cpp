@@ -1000,10 +1000,15 @@ static void startDrag(QXcbDrag *drag)
     // 上一次的 actions, 导致某些小问题 (比如文管的拖拽行为不一致的问题)
     //    if (support_actions.size() < 2)
     //        return;
-
+#if QT_VERSION <= QT_VERSION_CHECK(6, 2, 4)
     xcb_change_property(drag->xcb_connection(), XCB_PROP_MODE_REPLACE, drag->connection()->clipboard()->m_owner,
                         drag->atom(QXcbAtom::XdndActionList), XCB_ATOM_ATOM, sizeof(xcb_atom_t) * 8,
                         support_actions.size(), support_actions.constData());
+#else
+    xcb_change_property(drag->xcb_connection(), XCB_PROP_MODE_REPLACE, drag->connection()->clipboard()->m_requestor, //TODO: m_ower deleted, replaced by m_requestor ?
+                        drag->atom(QXcbAtom::XdndActionList), XCB_ATOM_ATOM, sizeof(xcb_atom_t) * 8,
+                        support_actions.size(), support_actions.constData());
+#endif
     xcb_flush(drag->xcb_connection());
 }
 
