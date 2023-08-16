@@ -119,18 +119,31 @@ void DOpenGLBackingStore::composeAndFlush(QWindow *window, const QRegion &region
 {
     m_proxy->composeAndFlush(window, region, offset, textures, context, translucentBackground);
 }
-#else
+#elif QT_VERSION <= QT_VERSION_CHECK(6, 2, 4)
 void DBackingStoreProxy::composeAndFlush(QWindow *window, const QRegion &region, const QPoint &offset,
                                              QPlatformTextureList *textures,
                                              bool translucentBackground)
 {
     m_proxy->composeAndFlush(window, region, offset, textures, translucentBackground);
 }
+#else
+QPlatformBackingStore::FlushResult DBackingStoreProxy::rhiFlush(QWindow *window, qreal sourceDevicePixelRatio, const QRegion &region, const QPoint &offset, QPlatformTextureList *textures, bool translucentBackground)
+{
+    return m_proxy->rhiFlush(window, sourceDevicePixelRatio, region, offset, textures, translucentBackground);
+}
 #endif
+
+#if QT_VERSION <= QT_VERSION_CHECK(6, 2, 4)
 GLuint DBackingStoreProxy::toTexture(const QRegion &dirtyRegion, QSize *textureSize, TextureFlags *flags) const
 {
     return m_proxy->toTexture(dirtyRegion, textureSize, flags);
 }
+#else
+QRhiTexture *DBackingStoreProxy::toTexture(QRhiResourceUpdateBatch *resourceUpdates, const QRegion &dirtyRegion, TextureFlags *flags) const
+{
+    return m_proxy->toTexture(resourceUpdates, dirtyRegion, flags);
+}
+#endif
 #endif
 
 QImage DBackingStoreProxy::toImage() const
