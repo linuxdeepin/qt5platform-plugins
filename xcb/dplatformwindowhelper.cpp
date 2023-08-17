@@ -20,7 +20,9 @@
 
 #include <private/qwindow_p.h>
 #include <private/qguiapplication_p.h>
+#if QT_VERSION >= QT_VERSION_CHECK(6, 4, 2)
 #include <private/qeventpoint_p.h>
+#endif
 #include <qpa/qplatformcursor.h>
 
 #include <QPainterPath>
