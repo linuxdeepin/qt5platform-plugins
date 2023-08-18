@@ -11,7 +11,7 @@ Build-Depends: debhelper (>=9), qtbase5-dev, qtbase5-private-dev,
  libxcb-composite0-dev, libcairo2-dev, libkf5wayland-dev, libdwayland-dev,
   qtwayland5-private-dev | libqt5waylandclient5-dev,
  libwayland-dev, libxcb-xinput-dev, libxcb-util-dev | libxcb-util0-dev,
- libx11-xcb-dev, libxcb-sync-dev, libxcb-randr0-dev, cmake, libgtest-dev, libgmock-dev
+ libx11-xcb-dev, libxcb-sync-dev, libxcb-randr0-dev, cmake, libgtest-dev, libgmock-dev, libdtkcommon-dev(>=5.6.16)
 Standards-Version: 3.9.8
 
 Package: dde-qt5xcb-plugin
