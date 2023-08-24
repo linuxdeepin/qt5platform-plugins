@@ -1,3 +1,33 @@
+dde-qt5platform-plugins (5.6.16) unstable; urgency=medium
+
+  * fix: ensue ddeshell failed
+  * fix: typo ddeepin -> deepin
+  * chore: change qmake to cmake (#185)
+    Thanks to WangFei
+  * chore: Add header files about xcb from Qt6
+  * chore: Support Qt6
+  * chore: set the default install prefix of cmake
+  * chore: add the XcbQpaPrivate module in qt6 version
+  * fix: application crashed when moving window
+  * chore: resolve the warnings about deprecated-declarations
+  * chore: resolve the warning from cmake
+  * chore: Sync by https://github.com/linuxdeepin/.github/commit/559e91167d4919644f37bbcf123eb0651c1528ea(Influence: none)
+  * fix: build failed in archlinux
+  * chore: add unit test
+  * fix: undefine symbol
+  * fix: heap use after free
+  * fix: unit test failed (setWindowRadius)
+  * Revert "fix: unit test failed (setWindowRadius)"
+  * fix: call setWindowRadius failed
+  * chore: add unit test
+  * chore: link to target directly on unit test
+  * chore: Adapt to Qt 6.4.2
+  * fix: can't find qeventpoint_p.h in qt5
+  * chore: remove XcbQpaPrivate module on qt6
+  * chore: add dtkcommon depency
+
+ -- Deepin Packages Builder <packages@deepin.org>  Thu, 24 Aug 2023 15:47:39 +0800
+
 dde-qt5platform-plugins (5.6.12) unstable; urgency=medium
 
   * Release 5.6.12
