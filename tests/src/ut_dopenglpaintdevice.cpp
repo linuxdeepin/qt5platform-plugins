@@ -5,7 +5,7 @@
 #include <gtest/gtest.h>
 #include <QWindow>
 #include <QPaintEngine>
-#include <QtGui/QOpenGLFramebufferObject>
+#include <QOpenGLFramebufferObject>
 #include <QDebug>
 
 #include "dopenglpaintdevice.h"
