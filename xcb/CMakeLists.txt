@@ -5,7 +5,6 @@
 project(dxcb)
 
 find_package(Qt${QT_VERSION_MAJOR} ${REQUIRED_QT_VERSION} REQUIRED COMPONENTS Core Gui Widgets)
-find_package(DtkBuildHelper REQUIRED)
 if(${QT_VERSION_MAJOR} STREQUAL "5")
     find_package(Qt5 REQUIRED COMPONENTS XcbQpa X11Extras EdidSupport XkbCommonSupport)
 else()
@@ -29,6 +28,7 @@ include(${CMAKE_CURRENT_LIST_DIR}/linux.cmake)
 
 set(EnableCov CACHE BOOL FALSE)
 if (EnableCov)
+    find_package(DtkBuildHelper REQUIRED)
     dtk_setup_code_coverage(${PROJECT_NAME})
 endif()
 
