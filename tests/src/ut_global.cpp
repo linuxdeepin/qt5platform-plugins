@@ -3,7 +3,10 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 
 #include <gtest/gtest.h>
+#include <QThread>
 #include <QWindow>
+#include <QtConcurrent>
+#include <QTest>
 
 #include "global.h"
 
@@ -33,4 +36,22 @@ TEST_F(TGlobal, fromQtWinId)
     ASSERT_EQ(w, window);
 }
 
+
+TEST(TRunInThreadProxy, callInThread)
+{
+    DPP_USE_NAMESPACE;
+
+    QThread *calledThread = nullptr;
+
+    auto feature = QtConcurrent::run([&calledThread]() {
+        RunInThreadProxy proxy;
+        proxy.proxyCall([&calledThread]() {
+            calledThread = QThread::currentThread();
+        });
+    });
+    feature.waitForFinished();
+    QCoreApplication::processEvents();
+
+    ASSERT_EQ(qApp->thread(), calledThread);
+}
 

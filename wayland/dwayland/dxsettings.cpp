@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 
 #include "dxsettings.h"
+#include <QCoreApplication>
 
 DPP_BEGIN_NAMESPACE
 
@@ -11,6 +12,7 @@ class DXcbEventFilter : public QThread
 public:
     DXcbEventFilter(xcb_connection_t *connection)
         : m_connection(connection)
+        , m_threadProxy(new RunInThreadProxy(qApp))
     {
         QThread::start();
     }
@@ -21,14 +23,18 @@ public:
             uint response_type = event->response_type & ~0x80;
             switch (response_type) {
                 case XCB_PROPERTY_NOTIFY: {
-                    xcb_property_notify_event_t *pn = (xcb_property_notify_event_t *)event;
-                    DXcbXSettings::handlePropertyNotifyEvent(pn);
+                    m_threadProxy->proxyCall([event]() {
+                        xcb_property_notify_event_t *pn = (xcb_property_notify_event_t *)event;
+                        DXcbXSettings::handlePropertyNotifyEvent(pn);
+                    });
                     break;
                 }
 
                 case XCB_CLIENT_MESSAGE: {
-                    xcb_client_message_event_t *ev = reinterpret_cast<xcb_client_message_event_t*>(event);
-                    DXcbXSettings::handleClientMessageEvent(ev);
+                    m_threadProxy->proxyCall([event]() {
+                        xcb_client_message_event_t *ev = reinterpret_cast<xcb_client_message_event_t*>(event);
+                        DXcbXSettings::handleClientMessageEvent(ev);
+                    });
                     break;
                 }
             }
@@ -37,6 +43,7 @@ public:
 
 private:
     xcb_connection_t *m_connection;
+    RunInThreadProxy *m_threadProxy = nullptr;
 };
 
 xcb_connection_t *DXSettings::xcb_connection = nullptr;

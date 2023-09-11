@@ -4,7 +4,7 @@
 
 project(ut-platformplugins)
 
-find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Gui Widgets Test)
+find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Gui Widgets Concurrent Test)
 find_package(GTest REQUIRED)
 if(${QT_VERSION_MAJOR} STREQUAL "5")
     find_package(Qt5 REQUIRED COMPONENTS XcbQpa X11Extras EdidSupport XkbCommonSupport)
@@ -44,6 +44,7 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
     Qt${QT_VERSION_MAJOR}::Gui
     Qt${QT_VERSION_MAJOR}::GuiPrivate
     Qt${QT_VERSION_MAJOR}::Widgets
+    Qt${QT_VERSION_MAJOR}::Concurrent
     Qt${QT_VERSION_MAJOR}::Test
     GTest::GTest
     gmock

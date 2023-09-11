@@ -17,3 +17,24 @@ QWindow * fromQtWinId(WId id) {
     }
     return window;
 };
+
+DPP_BEGIN_NAMESPACE
+
+RunInThreadProxy::RunInThreadProxy(QObject *parent)
+    : QObject(parent)
+{
+}
+
+void RunInThreadProxy::proxyCall(FunctionType func)
+{
+    QObject *receiver = parent();
+    if (!receiver)
+        receiver = qApp;
+
+    QObject scope;
+    connect(&scope, &QObject::destroyed, receiver, [func]() {
+        (func)();
+    }, Qt::QueuedConnection);
+}
+
+DPP_END_NAMESPACE

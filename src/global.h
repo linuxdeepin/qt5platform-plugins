@@ -6,6 +6,7 @@
 #define GLOBAL_H
 
 #include <qwindowdefs.h>
+#include <QObject>
 
 #define MOUSE_MARGINS 10
 
@@ -112,4 +113,16 @@ enum DeviceType {
 class QWindow;
 QWindow * fromQtWinId(WId id);
 
+DPP_BEGIN_NAMESPACE
+
+class RunInThreadProxy : public QObject
+{
+    Q_OBJECT
+public:
+    using FunctionType = std::function<void()>;
+    explicit RunInThreadProxy(QObject *parent = nullptr);
+    void proxyCall(FunctionType func);
+
+};
+DPP_END_NAMESPACE
 #endif // GLOBAL_H
