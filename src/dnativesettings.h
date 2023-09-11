@@ -5,12 +5,13 @@
 #ifndef DNATIVESETTINGS_H
 #define DNATIVESETTINGS_H
 
-#include "global.h"
-
-#include <QSet>
 #define protected public
 #include <private/qobject_p.h>
 #undef protected
+
+#include "global.h"
+
+#include <QSet>
 #include <private/qmetaobjectbuilder_p.h>
 
 DPP_BEGIN_NAMESPACE
