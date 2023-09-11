@@ -229,8 +229,10 @@ void DWaylandShellManager::sendProperty(QWaylandShellSurface *self, const QStrin
     }
 
     // 将popup的窗口设置为tooltop层级, 包括qmenu，combobox弹出窗口
-    if (wlWindow->window()->type() == Qt::Popup)
+    if (wlWindow->window()->type() == Qt::Popup && !ksurface->property("defaultRoleHasBeenSet").isValid()) {
         ksurface->setRole(PlasmaShellSurface::Role::ToolTip);
+        ksurface->setProperty("defaultRoleHasBeenSet", true);
+    }
 
 #ifdef D_DEEPIN_KWIN
     // 禁止窗口移动接口适配。
