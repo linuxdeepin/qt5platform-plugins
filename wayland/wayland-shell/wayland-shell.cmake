@@ -2,6 +2,9 @@
 #
 # SPDX-License-Identifier: LGPL-3.0-or-later
 
+find_package(ECM REQUIRED 1.0.0)
+set(CMAKE_MODULE_PATH ${ECM_MODULE_PATH} ${CMAKE_MODULE_PATH})
+
 find_package(DWayland)
 if(DWayland_FOUND)
     add_definitions(-DD_DEEPIN_IS_DWAYLAND)
