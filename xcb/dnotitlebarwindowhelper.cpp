@@ -23,8 +23,6 @@
 #define _DEEPIN_SCISSOR_WINDOW "_DEEPIN_SCISSOR_WINDOW"
 Q_DECLARE_METATYPE(QPainterPath)
 
-extern QWidget *qt_button_down;
-
 DPP_BEGIN_NAMESPACE
 
 QHash<const QWindow*, DNoTitlebarWindowHelper*> DNoTitlebarWindowHelper::mapped;
@@ -505,11 +503,6 @@ bool DNoTitlebarWindowHelper::windowEvent(QEvent *event)
 
             event->accept();
             startMoveWindow(winId);
-
-            if (qt_button_down) {
-                qDebug() << "After move window, button pressed on widget" << qt_button_down;
-                qt_button_down = nullptr;
-            }
         }
     }
 

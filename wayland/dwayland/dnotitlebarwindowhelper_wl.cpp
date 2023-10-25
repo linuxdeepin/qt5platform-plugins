@@ -25,8 +25,6 @@
 
 #include <private/qguiapplication_p.h>
 
-extern QWidget *qt_button_down;
-
 DPP_BEGIN_NAMESPACE
 
 QHash<const QWindow*, DNoTitlebarWlWindowHelper*> DNoTitlebarWlWindowHelper::mapped;
@@ -202,11 +200,6 @@ bool DNoTitlebarWlWindowHelper::windowEvent(QWindow *w, QEvent *event)
 
             event->accept();
             startMoveWindow(w);
-
-            if (qt_button_down) {
-                qDebug() << "After move window, button pressed on widget" << qt_button_down;
-                qt_button_down = nullptr;
-            }
         }
     }
 
