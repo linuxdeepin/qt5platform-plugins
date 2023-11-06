@@ -19,7 +19,7 @@ Copyright: None
 License: CC0-1.0
 
 # ci
-Files: .github/* .obs/workflows.yml linglong.yaml
+Files: .github/* .obs/workflows.yml linglong.yaml .syncexclude
 Copyright: None
 License: CC0-1.0
 
