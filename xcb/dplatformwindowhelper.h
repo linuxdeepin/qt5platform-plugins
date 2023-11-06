@@ -8,6 +8,9 @@
 #include <QtGlobal>
 
 #ifdef Q_OS_LINUX
+#if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
+#include <any>
+#endif
 #define private public
 #include "qxcbwindow.h"
 #include "qxcbclipboard.h"

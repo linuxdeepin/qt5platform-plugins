@@ -839,7 +839,11 @@ static xcb_cursor_t overrideCreateFontCursor(QXcbCursor *xcb_cursor, QCursor *c,
         // special case for non-standard dnd-* cursors
         cursor = loadCursor(dpy, cshape);
 
+#if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
+        if (!cursor && !xcb_cursor->m_callbackForPropertyRegistered) {
+#else
         if (!cursor && !xcb_cursor->m_gtkCursorThemeInitialized) {
+#endif
             VtableHook::callOriginalFun(xcb_cursor, &QPlatformCursor::changeCursor, c, window);
 
             if (updateCursorTheme(dpy)) {
