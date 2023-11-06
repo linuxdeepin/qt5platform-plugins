@@ -105,8 +105,8 @@ QRect DForeignPlatformWindow::geometry() const
 QMargins DForeignPlatformWindow::frameMargins() const
 {
     if (m_dirtyFrameMargins) {
-        if (DXcbWMSupport::instance()->isSupportedByWM(atom(QXcbAtom::_NET_FRAME_EXTENTS))) {
-            xcb_get_property_cookie_t cookie = xcb_get_property(xcb_connection(), false, m_window, atom(QXcbAtom::_NET_FRAME_EXTENTS), XCB_ATOM_CARDINAL, 0, 4);
+        if (DXcbWMSupport::instance()->isSupportedByWM(atom(QXcbAtom::D_QXCBATOM_WRAPPER(_NET_FRAME_EXTENTS)))) {
+            xcb_get_property_cookie_t cookie = xcb_get_property(xcb_connection(), false, m_window, atom(QXcbAtom::D_QXCBATOM_WRAPPER(_NET_FRAME_EXTENTS)), XCB_ATOM_CARDINAL, 0, 4);
             xcb_get_property_reply_t *reply = xcb_get_property_reply(xcb_connection(), cookie, nullptr);
 
             if (reply) {
@@ -190,20 +190,20 @@ void DForeignPlatformWindow::handlePropertyNotifyEvent(const xcb_property_notify
 
     const bool propertyDeleted = event->state == XCB_PROPERTY_DELETE;
 
-    if (event->atom == atom(QXcbAtom::_NET_WM_STATE) || event->atom == atom(QXcbAtom::WM_STATE)) {
+    if (event->atom == atom(QXcbAtom::D_QXCBATOM_WRAPPER(_NET_WM_STATE)) || event->atom == atom(QXcbAtom::D_QXCBATOM_WRAPPER(WM_STATE))) {
         if (propertyDeleted)
             return;
 
         return updateWindowState();
-    } else if (event->atom == atom(QXcbAtom::_NET_FRAME_EXTENTS)) {
+    } else if (event->atom == atom(QXcbAtom::D_QXCBATOM_WRAPPER(_NET_FRAME_EXTENTS))) {
         m_dirtyFrameMargins = true;
-    } else if (event->atom == atom(QXcbAtom::_NET_WM_WINDOW_TYPE)) {
+    } else if (event->atom == atom(QXcbAtom::D_QXCBATOM_WRAPPER(_NET_WM_WINDOW_TYPE))) {
         return updateWindowTypes();
     } else if (event->atom == Utility::internAtom("_NET_WM_DESKTOP")) {
         return updateWmDesktop();
-    } else if (event->atom == QXcbAtom::_NET_WM_NAME) {
+    } else if (event->atom == QXcbAtom::D_QXCBATOM_WRAPPER(_NET_WM_NAME)) {
         return updateTitle();
-    } else if (event->atom == QXcbAtom::WM_CLASS) {
+    } else if (event->atom == QXcbAtom::D_QXCBATOM_WRAPPER(WM_CLASS)) {
         return updateWmClass();
     }
 }
@@ -264,10 +264,10 @@ void DForeignPlatformWindow::updateTitle()
     xcb_get_property_reply_t *wm_name =
         xcb_get_property_reply(xcb_connection(),
             xcb_get_property_unchecked(xcb_connection(), false, m_window,
-                             atom(QXcbAtom::_NET_WM_NAME),
-                             atom(QXcbAtom::UTF8_STRING), 0, 1024), NULL);
+                             atom(QXcbAtom::D_QXCBATOM_WRAPPER(_NET_WM_NAME)),
+                             atom(QXcbAtom::D_QXCBATOM_WRAPPER(UTF8_STRING)), 0, 1024), NULL);
     if (wm_name && wm_name->format == 8
-            && wm_name->type == atom(QXcbAtom::UTF8_STRING)) {
+            && wm_name->type == atom(QXcbAtom::D_QXCBATOM_WRAPPER(UTF8_STRING))) {
         const QString &title = QString::fromUtf8((const char *)xcb_get_property_value(wm_name), xcb_get_property_value_length(wm_name));
 
         if (title != qt_window_private(window())->windowTitle) {
@@ -306,13 +306,13 @@ void DForeignPlatformWindow::updateWindowState()
 {
     Qt::WindowState newState = Qt::WindowNoState;
     const xcb_get_property_cookie_t get_cookie =
-    xcb_get_property(xcb_connection(), 0, m_window, atom(QXcbAtom::WM_STATE),
+    xcb_get_property(xcb_connection(), 0, m_window, atom(QXcbAtom::D_QXCBATOM_WRAPPER(WM_STATE)),
                      XCB_ATOM_ANY, 0, 1024);
 
     xcb_get_property_reply_t *reply =
         xcb_get_property_reply(xcb_connection(), get_cookie, NULL);
 
-    if (reply && reply->format == 32 && reply->type == atom(QXcbAtom::WM_STATE)) {
+    if (reply && reply->format == 32 && reply->type == atom(QXcbAtom::D_QXCBATOM_WRAPPER(WM_STATE))) {
         const quint32 *data = (const quint32 *)xcb_get_property_value(reply);
         if (reply->length != 0 && XCB_ICCCM_WM_STATE_ICONIC == data[0])
             newState = Qt::WindowMinimized;
@@ -369,7 +369,7 @@ void DForeignPlatformWindow::updateWindowTypes()
 void DForeignPlatformWindow::updateProcessId()
 {
     xcb_get_property_cookie_t cookie = xcb_get_property(xcb_connection(), false, m_window,
-                                                        atom(QXcbAtom::_NET_WM_PID), XCB_ATOM_CARDINAL, 0, 1);
+                                                        atom(QXcbAtom::D_QXCBATOM_WRAPPER(_NET_WM_PID)), XCB_ATOM_CARDINAL, 0, 1);
     QScopedPointer<xcb_get_property_reply_t, QScopedPointerPodDeleter> reply(
         xcb_get_property_reply(xcb_connection(), cookie, NULL));
     if (reply && reply->type == XCB_ATOM_CARDINAL && reply->format == 32 && reply->value_len == 1) {

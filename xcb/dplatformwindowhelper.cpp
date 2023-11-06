@@ -321,7 +321,7 @@ void DPlatformWindowHelper::setVisible(bool visible)
 #if QT_VERSION < QT_VERSION_CHECK(5, 12, 1)
             window->setNetWmStates(window->netWmStates() | QNativeWindow::NetWmStateModal);
 #else
-            window->setNetWmState(true, window->atom(QXcbAtom::_NET_WM_STATE_MODAL));
+            window->setNetWmState(true, window->atom(QXcbAtom::D_QXCBATOM_WRAPPER(_NET_WM_STATE_MODAL)));
 #endif
         }
 #endif
