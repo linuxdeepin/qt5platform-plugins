@@ -14,7 +14,17 @@
 #include <private/qguiapplication_p.h>
 #include <private/qhighdpiscaling_p.h>
 
+#if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
+#if __has_include("utility.h")
+#define __D_HAS_UTILITY__
+#endif
+#else
 #if QT_HAS_INCLUDE("utility.h")
+#define __D_HAS_UTILITY__
+#endif
+#endif
+
+#ifdef __D_HAS_UTILITY__
 #include "utility.h"
 #include "dwmsupport.h"
 #else

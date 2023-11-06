@@ -5,7 +5,17 @@
 
 #include "dxcbxsettings.h"
 
+#if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
+#if __has_include("dplatformintegration.h")
+#define __D_HAS_DPLATFORMINTEGRATION__
+#endif
+#else
 #if QT_HAS_INCLUDE("dplatformintegration.h")
+#define __D_HAS_DPLATFORMINTEGRATION__
+#endif
+#endif
+
+#ifdef __D_HAS_DPLATFORMINTEGRATION__
 #include "dplatformintegration.h"
 #include "qxcbconnection.h"
 #define IN_DXCB_PLUGIN
