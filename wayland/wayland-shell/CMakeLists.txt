@@ -36,9 +36,10 @@ else()
     message(WARNING "QtWayland version incompatible")
 endif()
 
-set(LIBRARY_OUTPUT_PATH ${CMAKE_SOURCE_DIR}/bin/plugins/wayland-shell-integration)
-
 add_library(${PROJECT_NAME} MODULE main.cpp ${GLOBAL_SOURCES} ${GLOBAL_HEADERS})
+set_target_properties(${PROJECT_NAME} PROPERTIES
+    LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/plugins/wayland-shell-integration
+)
 
 target_compile_definitions(${PROJECT_NAME}
     PRIVATE
