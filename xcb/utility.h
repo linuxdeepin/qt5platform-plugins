@@ -17,6 +17,12 @@ QT_END_NAMESPACE
 typedef uint32_t xcb_atom_t;
 typedef struct xcb_connection_t xcb_connection_t;
 
+#if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
+#define D_QXCBATOM_WRAPPER(AtomEnum) Atom##AtomEnum
+#else
+#define D_QXCBATOM_WRAPPER(AtomEnum) AtomEnum
+#endif
+
 DPP_BEGIN_NAMESPACE
 
 class Utility

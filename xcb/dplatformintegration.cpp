@@ -980,13 +980,13 @@ static void startDrag(QXcbDrag *drag)
     const Qt::DropActions actions = drag->currentDrag()->supportedActions();
 
     if (actions.testFlag(Qt::CopyAction))
-        support_actions << drag->atom(QXcbAtom::XdndActionCopy);
+        support_actions << drag->atom(QXcbAtom::D_QXCBATOM_WRAPPER(XdndActionCopy));
 
     if (actions.testFlag(Qt::MoveAction))
-        support_actions << drag->atom(QXcbAtom::XdndActionMove);
+        support_actions << drag->atom(QXcbAtom::D_QXCBATOM_WRAPPER(XdndActionMove));
 
     if (actions.testFlag(Qt::LinkAction))
-        support_actions << drag->atom(QXcbAtom::XdndActionLink);
+        support_actions << drag->atom(QXcbAtom::D_QXCBATOM_WRAPPER(XdndActionLink));
 
     // 此处不能直接 return ,因为一个拖拽包含多种 actions 后再次拖拽单一 action 时需要将 property 更新, 否则单一 actoin 的拖拽会被强行改成
     // 上一次的 actions, 导致某些小问题 (比如文管的拖拽行为不一致的问题)
@@ -994,11 +994,11 @@ static void startDrag(QXcbDrag *drag)
     //        return;
 #if QT_VERSION <= QT_VERSION_CHECK(6, 2, 4)
     xcb_change_property(drag->xcb_connection(), XCB_PROP_MODE_REPLACE, drag->connection()->clipboard()->m_owner,
-                        drag->atom(QXcbAtom::XdndActionList), XCB_ATOM_ATOM, sizeof(xcb_atom_t) * 8,
+                        drag->atom(QXcbAtom::D_QXCBATOM_WRAPPER(XdndActionList)), XCB_ATOM_ATOM, sizeof(xcb_atom_t) * 8,
                         support_actions.size(), support_actions.constData());
 #else
     xcb_change_property(drag->xcb_connection(), XCB_PROP_MODE_REPLACE, drag->connection()->clipboard()->m_requestor, //TODO: m_ower deleted, replaced by m_requestor ?
-                        drag->atom(QXcbAtom::XdndActionList), XCB_ATOM_ATOM, sizeof(xcb_atom_t) * 8,
+                        drag->atom(QXcbAtom::D_QXCBATOM_WRAPPER(XdndActionList)), XCB_ATOM_ATOM, sizeof(xcb_atom_t) * 8,
                         support_actions.size(), support_actions.constData());
 #endif
     xcb_flush(drag->xcb_connection());
@@ -1233,7 +1233,7 @@ void DPlatformIntegration::sendEndStartupNotifition()
     xcb_client_message_event_t ev;
     ev.response_type = XCB_CLIENT_MESSAGE;
     ev.format = 8;
-    ev.type = xcbConnection()->atom(QXcbAtom::_NET_STARTUP_INFO_BEGIN);
+    ev.type = xcbConnection()->atom(QXcbAtom::D_QXCBATOM_WRAPPER(_NET_STARTUP_INFO_BEGIN));
     ev.sequence = 0;
     ev.window = xcbConnection()->rootWindow();
     int sent = 0;
@@ -1241,7 +1241,7 @@ void DPlatformIntegration::sendEndStartupNotifition()
     const char *data = message.constData();
     do {
         if (sent == 20)
-            ev.type = xcbConnection()->atom(QXcbAtom::_NET_STARTUP_INFO);
+            ev.type = xcbConnection()->atom(QXcbAtom::D_QXCBATOM_WRAPPER(_NET_STARTUP_INFO));
 
         const int start = sent;
         const int numBytes = qMin(length - start, 20);

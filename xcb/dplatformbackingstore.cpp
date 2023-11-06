@@ -1689,7 +1689,7 @@ void DPlatformBackingStore::handlePropertyNotifyEvent(const xcb_property_notify_
     }
 
     if (event->window == window->xcb_window()
-            && event->atom == window->atom(QXcbAtom::_NET_WM_STATE)) {
+            && event->atom == window->atom(QXcbAtom::D_QXCBATOM_WRAPPER(_NET_WM_STATE))) {
         QXcbWindow::NetWmStates states = window->netWmStates();
 
         ww->setProperty(netWmStates, (int)states);

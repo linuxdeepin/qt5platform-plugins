@@ -695,13 +695,13 @@ Utility::QtMotifWmHints Utility::getMotifWmHints(quint32 WId)
     QtMotifWmHints hints;
 
     xcb_get_property_cookie_t get_cookie =
-        xcb_get_property_unchecked(xcb_connect, 0, WId, DPlatformIntegration::xcbConnection()->atom(QXcbAtom::_MOTIF_WM_HINTS),
-                                   DPlatformIntegration::xcbConnection()->atom(QXcbAtom::_MOTIF_WM_HINTS), 0, 20);
+        xcb_get_property_unchecked(xcb_connect, 0, WId, DPlatformIntegration::xcbConnection()->atom(QXcbAtom::D_QXCBATOM_WRAPPER(_MOTIF_WM_HINTS)),
+                                   DPlatformIntegration::xcbConnection()->atom(QXcbAtom::D_QXCBATOM_WRAPPER(_MOTIF_WM_HINTS)), 0, 20);
 
     xcb_get_property_reply_t *reply =
         xcb_get_property_reply(xcb_connect, get_cookie, NULL);
 
-    if (reply && reply->format == 32 && reply->type == DPlatformIntegration::xcbConnection()->atom(QXcbAtom::_MOTIF_WM_HINTS)) {
+    if (reply && reply->format == 32 && reply->type == DPlatformIntegration::xcbConnection()->atom(QXcbAtom::D_QXCBATOM_WRAPPER(_MOTIF_WM_HINTS))) {
         hints = *((QtMotifWmHints *)xcb_get_property_value(reply));
     } else {
         hints.flags = 0L;
@@ -733,8 +733,8 @@ void Utility::setMotifWmHints(quint32 WId, Utility::QtMotifWmHints hints)
         Q_XCB_CALL2(xcb_change_property(DPlatformIntegration::xcbConnection()->xcb_connection(),
                                         XCB_PROP_MODE_REPLACE,
                                         WId,
-                                        DPlatformIntegration::xcbConnection()->atom(QXcbAtom::_MOTIF_WM_HINTS),
-                                        DPlatformIntegration::xcbConnection()->atom(QXcbAtom::_MOTIF_WM_HINTS),
+                                        DPlatformIntegration::xcbConnection()->atom(QXcbAtom::D_QXCBATOM_WRAPPER(_MOTIF_WM_HINTS)),
+                                        DPlatformIntegration::xcbConnection()->atom(QXcbAtom::D_QXCBATOM_WRAPPER(_MOTIF_WM_HINTS)),
                                         32,
                                         5,
                                         &hints), c);
@@ -742,8 +742,8 @@ void Utility::setMotifWmHints(quint32 WId, Utility::QtMotifWmHints hints)
         xcb_change_property(DPlatformIntegration::xcbConnection()->xcb_connection(),
                             XCB_PROP_MODE_REPLACE,
                             WId,
-                            DPlatformIntegration::xcbConnection()->atom(QXcbAtom::_MOTIF_WM_HINTS),
-                            DPlatformIntegration::xcbConnection()->atom(QXcbAtom::_MOTIF_WM_HINTS),
+                            DPlatformIntegration::xcbConnection()->atom(QXcbAtom::D_QXCBATOM_WRAPPER(_MOTIF_WM_HINTS)),
+                            DPlatformIntegration::xcbConnection()->atom(QXcbAtom::D_QXCBATOM_WRAPPER(_MOTIF_WM_HINTS)),
                             32,
                             5,
                             &hints);
@@ -751,11 +751,11 @@ void Utility::setMotifWmHints(quint32 WId, Utility::QtMotifWmHints hints)
     } else {
 #ifdef Q_XCB_CALL2
         Q_XCB_CALL2(xcb_delete_property(DPlatformIntegration::xcbConnection()->xcb_connection(), WId,
-                                        DPlatformIntegration::xcbConnection()->atom(QXcbAtom::_MOTIF_WM_HINTS)),
+                                        DPlatformIntegration::xcbConnection()->atom(QXcbAtom::D_QXCBATOM_WRAPPER(_MOTIF_WM_HINTS))),
                                         DPlatformIntegration::xcbConnection()->xcb_connection());
 #else
         xcb_delete_property(DPlatformIntegration::xcbConnection()->xcb_connection(), WId,
-                            DPlatformIntegration::xcbConnection()->atom(QXcbAtom::_MOTIF_WM_HINTS));
+                            DPlatformIntegration::xcbConnection()->atom(QXcbAtom::D_QXCBATOM_WRAPPER(_MOTIF_WM_HINTS)));
 #endif
     }
 }
@@ -860,8 +860,8 @@ quint32 Utility::createGroupWindow()
     xcb_change_property(connection->xcb_connection(),
                         XCB_PROP_MODE_REPLACE,
                         group_leader,
-                        connection->atom(QXcbAtom::_NET_WM_NAME),
-                        connection->atom(QXcbAtom::UTF8_STRING),
+                        connection->atom(QXcbAtom::D_QXCBATOM_WRAPPER(_NET_WM_NAME)),
+                        connection->atom(QXcbAtom::D_QXCBATOM_WRAPPER(UTF8_STRING)),
                         8,
                         ba.length(),
                         ba.constData());
@@ -869,7 +869,7 @@ quint32 Utility::createGroupWindow()
     xcb_change_property(connection->xcb_connection(),
                         XCB_PROP_MODE_REPLACE,
                         group_leader,
-                        connection->atom(QXcbAtom::WM_CLIENT_LEADER),
+                        connection->atom(QXcbAtom::D_QXCBATOM_WRAPPER(WM_CLIENT_LEADER)),
                         XCB_ATOM_WINDOW,
                         32,
                         1,
@@ -882,7 +882,7 @@ quint32 Utility::createGroupWindow()
         xcb_change_property(connection->xcb_connection(),
                             XCB_PROP_MODE_REPLACE,
                             group_leader,
-                            connection->atom(QXcbAtom::SM_CLIENT_ID),
+                            connection->atom(QXcbAtom::D_QXCBATOM_WRAPPER(SM_CLIENT_ID)),
                             XCB_ATOM_STRING,
                             8,
                             session.length(),

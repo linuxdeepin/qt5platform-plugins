@@ -53,7 +53,7 @@ QClipboard::Mode XcbNativeEventFilter::clipboardModeForAtom(xcb_atom_t a) const
 {
     if (a == XCB_ATOM_PRIMARY)
         return QClipboard::Selection;
-    if (a == m_connection->atom(QXcbAtom::CLIPBOARD))
+    if (a == m_connection->atom(QXcbAtom::D_QXCBATOM_WRAPPER(CLIPBOARD)))
         return QClipboard::Clipboard;
     // not supported enum value, used to detect errors
     return QClipboard::FindBuffer;
@@ -93,7 +93,7 @@ bool XcbNativeEventFilter::nativeEventFilter(const QByteArray &eventType, void *
 #endif
         xcb_xfixes_selection_notify_event_t *xsn = (xcb_xfixes_selection_notify_event_t *)event;
 
-        if (xsn->selection == DPlatformIntegration::xcbConnection()->atom(QXcbAtom::_NET_WM_CM_S0)) {
+        if (xsn->selection == DPlatformIntegration::xcbConnection()->atom(QXcbAtom::D_QXCBATOM_WRAPPER(_NET_WM_CM_S0))) {
             DXcbWMSupport::instance()->updateHasComposite();
         }
 
@@ -125,7 +125,7 @@ bool XcbNativeEventFilter::nativeEventFilter(const QByteArray &eventType, void *
 
             DXcbXSettings::handlePropertyNotifyEvent(pn);
 
-            if (pn->atom == DPlatformIntegration::xcbConnection()->atom(QXcbAtom::_MOTIF_WM_HINTS)) {
+            if (pn->atom == DPlatformIntegration::xcbConnection()->atom(QXcbAtom::D_QXCBATOM_WRAPPER(_MOTIF_WM_HINTS))) {
                 emit DXcbWMSupport::instance()->windowMotifWMHintsChanged(pn->window);
             } else if (pn->atom == DXcbWMSupport::instance()->_deepin_wallpaper_shared_key) {
                     DXcbWMSupport::instance()->wallpaperSharedChanged();
@@ -134,9 +134,9 @@ bool XcbNativeEventFilter::nativeEventFilter(const QByteArray &eventType, void *
                     return false;
                 }
 
-                if (pn->atom == CONNECTION->atom(QXcbAtom::_NET_SUPPORTED)) {
+                if (pn->atom == CONNECTION->atom(QXcbAtom::D_QXCBATOM_WRAPPER(_NET_SUPPORTED))) {
                     DXcbWMSupport::instance()->updateNetWMAtoms();
-                } else if (pn->atom == CONNECTION->atom(QXcbAtom::_NET_SUPPORTING_WM_CHECK)) {
+                } else if (pn->atom == CONNECTION->atom(QXcbAtom::D_QXCBATOM_WRAPPER(_NET_SUPPORTING_WM_CHECK))) {
                     DXcbWMSupport::instance()->updateWMName();
                 } else if (pn->atom == DXcbWMSupport::instance()->_kde_net_wm_blur_rehind_region_atom) {
                     DXcbWMSupport::instance()->updateRootWindowProperties();

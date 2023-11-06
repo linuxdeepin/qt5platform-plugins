@@ -54,7 +54,7 @@ void DXcbWMSupport::updateWMName(bool emitSignal)
     xcb_get_property_reply_t *reply =
         xcb_get_property_reply(xcb_connection,
             xcb_get_property_unchecked(xcb_connection, false, root,
-                             DPlatformIntegration::xcbConnection()->atom(QXcbAtom::_NET_SUPPORTING_WM_CHECK),
+                             DPlatformIntegration::xcbConnection()->atom(QXcbAtom::D_QXCBATOM_WRAPPER(_NET_SUPPORTING_WM_CHECK)),
                              XCB_ATOM_WINDOW, 0, 1024), NULL);
 
     if (reply && reply->format == 32 && reply->type == XCB_ATOM_WINDOW) {
@@ -64,10 +64,10 @@ void DXcbWMSupport::updateWMName(bool emitSignal)
             xcb_get_property_reply_t *windowManagerReply =
                 xcb_get_property_reply(xcb_connection,
                     xcb_get_property_unchecked(xcb_connection, false, windowManager,
-                                     DPlatformIntegration::xcbConnection()->atom(QXcbAtom::_NET_WM_NAME),
-                                     DPlatformIntegration::xcbConnection()->atom(QXcbAtom::UTF8_STRING), 0, 1024), NULL);
+                                     DPlatformIntegration::xcbConnection()->atom(QXcbAtom::D_QXCBATOM_WRAPPER(_NET_WM_NAME)),
+                                     DPlatformIntegration::xcbConnection()->atom(QXcbAtom::D_QXCBATOM_WRAPPER(UTF8_STRING)), 0, 1024), NULL);
             if (windowManagerReply && windowManagerReply->format == 8
-                    && windowManagerReply->type == DPlatformIntegration::xcbConnection()->atom(QXcbAtom::UTF8_STRING)) {
+                    && windowManagerReply->type == DPlatformIntegration::xcbConnection()->atom(QXcbAtom::D_QXCBATOM_WRAPPER(UTF8_STRING))) {
                 m_wmName = QString::fromUtf8((const char *)xcb_get_property_value(windowManagerReply), xcb_get_property_value_length(windowManagerReply));
             }
 
@@ -98,7 +98,7 @@ void DXcbWMSupport::updateNetWMAtoms()
 
     do {
         xcb_get_property_cookie_t cookie = xcb_get_property(xcb_connection, false, root,
-                                                            DPlatformIntegration::xcbConnection()->atom(QXcbAtom::_NET_SUPPORTED),
+                                                            DPlatformIntegration::xcbConnection()->atom(QXcbAtom::D_QXCBATOM_WRAPPER(_NET_SUPPORTED)),
                                                             XCB_ATOM_ATOM, offset, 1024);
         xcb_get_property_reply_t *reply = xcb_get_property_reply(xcb_connection, cookie, NULL);
         if (!reply)
@@ -191,7 +191,7 @@ void DXcbWMSupport::updateHasComposite()
         DPlatformIntegration::xcbConnection()->primaryVirtualDesktop()->m_compositingActive = hasComposite;
     } else {
         //stage2: fallback to check selection owner
-        xcb_get_selection_owner_cookie_t cookit = xcb_get_selection_owner(xcb_connection, DPlatformIntegration::xcbConnection()->atom(QXcbAtom::_NET_WM_CM_S0));
+        xcb_get_selection_owner_cookie_t cookit = xcb_get_selection_owner(xcb_connection, DPlatformIntegration::xcbConnection()->atom(QXcbAtom::D_QXCBATOM_WRAPPER(_NET_WM_CM_S0)));
         xcb_get_selection_owner_reply_t *reply = xcb_get_selection_owner_reply(xcb_connection, cookit, NULL);
         if (!reply)
             return;

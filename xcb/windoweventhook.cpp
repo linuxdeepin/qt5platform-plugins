@@ -89,16 +89,16 @@ xcb_atom_t toXdndAction(const QXcbDrag *drag, Qt::DropAction a)
 {
     switch (a) {
     case Qt::CopyAction:
-        return drag->atom(QXcbAtom::XdndActionCopy);
+        return drag->atom(QXcbAtom::D_QXCBATOM_WRAPPER(XdndActionCopy));
     case Qt::LinkAction:
-        return drag->atom(QXcbAtom::XdndActionLink);
+        return drag->atom(QXcbAtom::D_QXCBATOM_WRAPPER(XdndActionLink));
     case Qt::MoveAction:
     case Qt::TargetMoveAction:
-        return drag->atom(QXcbAtom::XdndActionMove);
+        return drag->atom(QXcbAtom::D_QXCBATOM_WRAPPER(XdndActionMove));
     case Qt::IgnoreAction:
         return XCB_NONE;
     default:
-        return drag->atom(QXcbAtom::XdndActionCopy);
+        return drag->atom(QXcbAtom::D_QXCBATOM_WRAPPER(XdndActionCopy));
     }
 }
 
@@ -133,11 +133,11 @@ void WindowEventHook::handleMapNotifyEvent(QXcbWindow *window, const xcb_map_not
 
 static Qt::DropAction toDropAction(QXcbConnection *c, xcb_atom_t a)
 {
-    if (a == c->atom(QXcbAtom::XdndActionCopy) || a == 0)
+    if (a == c->atom(QXcbAtom::D_QXCBATOM_WRAPPER(XdndActionCopy)) || a == 0)
         return Qt::CopyAction;
-    if (a == c->atom(QXcbAtom::XdndActionLink))
+    if (a == c->atom(QXcbAtom::D_QXCBATOM_WRAPPER(XdndActionLink)))
         return Qt::LinkAction;
-    if (a == c->atom(QXcbAtom::XdndActionMove))
+    if (a == c->atom(QXcbAtom::D_QXCBATOM_WRAPPER(XdndActionMove)))
         return Qt::MoveAction;
 
     return Qt::CopyAction;
@@ -150,8 +150,8 @@ void WindowEventHook::handleClientMessageEvent(QXcbWindow *window, const xcb_cli
     }
 
     do {
-        if (event->type != window->atom(QXcbAtom::XdndPosition)
-                && event->type != window->atom(QXcbAtom::XdndDrop)) {
+        if (event->type != window->atom(QXcbAtom::D_QXCBATOM_WRAPPER(XdndPosition))
+                && event->type != window->atom(QXcbAtom::D_QXCBATOM_WRAPPER(XdndDrop))) {
             break;
         }
 
@@ -169,7 +169,7 @@ void WindowEventHook::handleClientMessageEvent(QXcbWindow *window, const xcb_cli
 
         do {
             xcb_get_property_cookie_t cookie = xcb_get_property(xcb_connection, false, drag->xdnd_dragsource,
-                                                                window->connection()->atom(QXcbAtom::XdndActionList),
+                                                                window->connection()->atom(QXcbAtom::D_QXCBATOM_WRAPPER(XdndActionList)),
                                                                 XCB_ATOM_ATOM, offset, 1024);
             xcb_get_property_reply_t *reply = xcb_get_property_reply(xcb_connection, cookie, NULL);
             if (!reply)
@@ -210,7 +210,7 @@ void WindowEventHook::handleClientMessageEvent(QXcbWindow *window, const xcb_cli
         dropData->setProperty("_d_dxcb_support_actions", QVariant::fromValue(support_actions));
     } while(0);
 
-    if (event->type == window->atom(QXcbAtom::XdndDrop)) {
+    if (event->type == window->atom(QXcbAtom::D_QXCBATOM_WRAPPER(XdndDrop))) {
         QXcbDrag *drag = window->connection()->drag();
 
         DEBUG("xdndHandleDrop");
@@ -299,7 +299,7 @@ void WindowEventHook::handleClientMessageEvent(QXcbWindow *window, const xcb_cli
         finished.sequence = 0;
         finished.window = drag->xdnd_dragsource;
         finished.format = 32;
-        finished.type = drag->atom(QXcbAtom::XdndFinished);
+        finished.type = drag->atom(QXcbAtom::D_QXCBATOM_WRAPPER(XdndFinished));
         finished.data.data32[0] = drag->currentWindow ? xcb_window(drag->currentWindow.data()) : XCB_NONE;
         finished.data.data32[1] = response.isAccepted(); // flags
         finished.data.data32[2] = toXdndAction(drag, response.acceptedAction());
@@ -364,7 +364,7 @@ void WindowEventHook::handlePropertyNotifyEvent(QXcbWindowEventListener *el, con
     window->QXcbWindow::handlePropertyNotifyEvent(event);
 
     if (event->window == window->xcb_window()
-            && event->atom == window->atom(QXcbAtom::_NET_WM_STATE)) {
+            && event->atom == window->atom(QXcbAtom::D_QXCBATOM_WRAPPER(_NET_WM_STATE))) {
         QXcbWindow::NetWmStates states = window->netWmStates();
 
         ww->setProperty(netWmStates, (int)states);
