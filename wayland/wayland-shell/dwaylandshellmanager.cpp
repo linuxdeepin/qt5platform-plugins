@@ -229,8 +229,15 @@ void DWaylandShellManager::sendProperty(QWaylandShellSurface *self, const QStrin
     }
 
     // 将popup的窗口设置为tooltop层级, 包括qmenu，combobox弹出窗口
-    if (wlWindow->window()->type() == Qt::Popup)
-        ksurface->setRole(PlasmaShellSurface::Role::ToolTip);
+    if (wlWindow->window()->type() == Qt::Popup && !ksurface->property("defaultRoleHasBeenSet").isValid()){
+        if (QStringLiteral(_DWAYALND_ "window-type") == name && value.toByteArray() =="focusmenu" ) {
+            // 3会在Plasma协议里走OnScreenDisplayLayer, 使用数字3是因为OnScreenDisplayLayer命名不太准确防止后续改名出现兼容性问题, 同时兼容老版本kwayland
+            ksurface->setRole(PlasmaShellSurface::Role(3));
+            // 防止设置后被再次覆盖为ToolTip
+            ksurface->setProperty("defaultRoleHasBeenSet",true);
+        } else
+            ksurface->setRole(PlasmaShellSurface::Role::ToolTip);
+    }
 
 #ifdef D_DEEPIN_KWIN
     // 禁止窗口移动接口适配。
