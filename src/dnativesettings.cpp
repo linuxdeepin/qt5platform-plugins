@@ -146,7 +146,11 @@ void DNativeSettings::init(const QMetaObject *metaObject)
 
         QMetaPropertyBuilder op;
 
-        switch (mp.type()) {
+#if (QT_VERSION >= QT_VERSION_CHECK(6, 0, 0))
+        switch (mp.metaType()) {
+#else
+        switch (static_cast<int>(mp.type())) {
+#endif
         case QMetaType::QByteArray:
         case QMetaType::QString:
         case QMetaType::QColor:
