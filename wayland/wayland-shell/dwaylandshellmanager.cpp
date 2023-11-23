@@ -937,8 +937,6 @@ void DWaylandShellManager::createServerDecoration(QWaylandWindow *window)
     }
     if (window->window()->flags() & Qt::FramelessWindowHint)
         decoration = false;
-    if (window->window()->flags() & Qt::BypassWindowManagerHint)
-        decoration = false;
 
     if (!decoration)
         return;
@@ -950,7 +948,10 @@ void DWaylandShellManager::createServerDecoration(QWaylandWindow *window)
 
     // 创建由kwin server渲染的窗口边框对象
     if (auto ssd = kwayland_ssd->create(surface, q_shell_surface)) {
-        ssd->requestMode(ServerSideDecoration::Mode::Server);
+        if (window->window()->flags() & Qt::BypassWindowManagerHint)
+            ssd->requestMode(ServerSideDecoration::Mode::None);
+        else
+            ssd->requestMode(ServerSideDecoration::Mode::Server);
     }
 }
 
