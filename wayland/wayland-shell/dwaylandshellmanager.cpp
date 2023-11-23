@@ -117,8 +117,14 @@ static Surface *ensureSurface(QWaylandWindow *wlWindow)
 static Blur *ensureBlur(Surface *surface, QObject *parent = nullptr)
 {
     if (parent) {
-        if (auto *blur = parent->findChild<Blur *>(QString(), Qt::FindDirectChildrenOnly))
-            return blur;
+        // 连续显示隐藏的时候，理论上每次传进来的surface都是不一样的，但是wl_surface创建的时候可能会和之前某次创建的地址相同
+        // 导致这里传进来的surface也是之前某次的，而不是新创建的，进而这里就会判断已经设置了blur，但是有时候却是无效的blur
+        // 为了防止会模糊失败，直接移除原来的模糊，再create一个  Bug:188025
+        if (auto *blur = parent->findChild<Blur *>(QString(), Qt::FindDirectChildrenOnly)) {
+            kwayland_blur_manager->removeBlur(surface);
+            blur->destroy();
+            blur->deleteLater();
+        }
     }
     if (!kwayland_blur_manager) {
         qCWarning(dwlp) << "invalid blur manager";
