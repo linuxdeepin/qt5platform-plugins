@@ -185,6 +185,10 @@ void DWaylandShellManager::sendProperty(QWaylandShellSurface *self, const QStrin
     }
 
     if (auto *dde_shell_surface = ensureDDEShellSurface(self)) {
+        if (!name.compare(enableSystemResize)) {
+            qCDebug(dwlp()) << "### requestResizable" << value;
+            dde_shell_surface->requestResizable(value.toBool());
+        }
         if (!name.compare(noTitlebar)) {
             qCDebug(dwlp()) << "### requestNoTitleBar" << value;
             dde_shell_surface->requestNoTitleBarProperty(value.toBool());
