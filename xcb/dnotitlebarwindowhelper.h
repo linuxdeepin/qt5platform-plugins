@@ -50,8 +50,6 @@ public:
     QColor shadowColor() const;
     QMarginsF mouseInputAreaMargins() const;
 
-    QVariant property(const char *name) const;
-    bool setProperty(const char *name, const QVariant &value);
     void resetProperty(const QByteArray &property);
     void setTheme(const QString &theme);
     void setWindowRadius(const QPointF &windowRadius);
@@ -115,7 +113,7 @@ private:
     bool m_enableSystemMove = true;
     bool m_enableBlurWindow = false;
     bool m_autoInputMaskByClipPath = false;
-    QObject *m_settingsProxy = nullptr;
+    DNativeSettings *m_settings;
 
     static QHash<const QWindow*, DNoTitlebarWindowHelper*> mapped;
 

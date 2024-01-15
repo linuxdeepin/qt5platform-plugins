@@ -39,8 +39,7 @@ DNoTitlebarWindowHelper::DNoTitlebarWindowHelper(QWindow *window, quint32 window
         window->setFlags(window->flags() & ~Qt::FramelessWindowHint);
 
     mapped[window] = this;
-    m_settingsProxy = new QObject(this);
-    m_nativeSettingsValid = DPlatformIntegration::buildNativeSettings(m_settingsProxy, windowID);
+    m_nativeSettingsValid = DPlatformIntegration::buildNativeSettings(this, windowID);
     Q_ASSERT(m_nativeSettingsValid);
 
     // 本地设置无效时不可更新窗口属性，否则会导致setProperty函数被循环调用
@@ -209,26 +208,12 @@ QMarginsF DNoTitlebarWindowHelper::mouseInputAreaMargins() const
     return takeMargins(property("mouseInputAreaMargins"), QMarginsF(0, 0, 0, 0));
 }
 
-QVariant DNoTitlebarWindowHelper::property(const char *name) const
-{
-    return m_settingsProxy ? m_settingsProxy->property(name) : QVariant();
-}
-
-bool DNoTitlebarWindowHelper::setProperty(const char *name, const QVariant &value)
-{
-    return m_settingsProxy ? m_settingsProxy->setProperty(name, value) : false;
-}
-
 void DNoTitlebarWindowHelper::resetProperty(const QByteArray &property)
 {
-    if (!m_settingsProxy)
-        return;
-
-    const QMetaObject *metaObject = m_settingsProxy->metaObject();
-    int index = metaObject->indexOfProperty(property.constData());
+    int index = metaObject()->indexOfProperty(property.constData());
 
     if (index >= 0) {
-        metaObject->property(index).reset(this);
+        metaObject()->property(index).reset(this);
     }
 }
 
