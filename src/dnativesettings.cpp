@@ -415,7 +415,7 @@ int DNativeSettings::metaCall(QMetaObject::Call _c, int _id, void ** _a)
         const int index = p.propertyIndex();
         // 对于本地属性，此处应该从m_settings中读写
         if (Q_LIKELY(index != m_flagPropertyIndex && index != m_allKeysPropertyIndex
-                     && index >= m_firstProperty + m_propertyCount)) {
+                     && index >= m_firstProperty)) {
             switch (_c) {
             case QMetaObject::ReadProperty:
                 *reinterpret_cast<QVariant*>(_a[1]) = m_settings->setting(p.name());
