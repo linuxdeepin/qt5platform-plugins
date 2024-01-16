@@ -1,3 +1,9 @@
+dde-qt5platform-plugins (5.6.21) unstable; urgency=medium
+
+  * release 5.6.21
+
+ -- Mike Chen <chenke@deepin.org>  Tue, 16 Jan 2024 20:09:03 +0800
+
 dde-qt5platform-plugins (5.6.20) unstable; urgency=medium
 
   * release 5.6.20
