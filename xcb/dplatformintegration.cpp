@@ -70,6 +70,8 @@
 #define XSETTINGS_CURSOR_BLINK_TIME QByteArrayLiteral("Net/CursorBlinkTime")
 #define XSETTINGS_DOUBLE_CLICK_TIME QByteArrayLiteral("Net/DoubleClickTime")
 
+Q_LOGGING_CATEGORY(lcDxcb, "dtk.qpa.dxcb", QtInfoMsg)
+
 class DQPaintEngine : public QPaintEngine
 {
 public:
@@ -144,7 +146,7 @@ void DPlatformIntegration::setWindowProperty(QWindow *window, const char *name, 
 
 bool DPlatformIntegration::enableDxcb(QWindow *window)
 {
-    qDebug() << __FUNCTION__ << window << window->type() << window->parent();
+    qCDebug(lcDxcb) << "window:" << window << "window type:" << window->type() << "parent:" << window->parent();
 
     if (window->type() == Qt::Desktop)
         return false;
@@ -209,7 +211,8 @@ bool DPlatformIntegration::setEnableNoTitlebar(QWindow *window, bool enable)
     if (enable && DNoTitlebarWindowHelper::mapped.value(window))
         return true;
 
-    qDebug() << __FUNCTION__ << enable << window << window->type() << window->parent();
+    qCDebug(lcDxcb) << "enable titlebar:" << enable << "window:" << window
+    << "window type:" << window->type() << "parent:" << window->parent();
 
     if (enable) {
         if (window->type() == Qt::Desktop)
@@ -283,7 +286,7 @@ void DPlatformIntegration::setWMClassName(const QByteArray &name)
 
 QPlatformWindow *DPlatformIntegration::createPlatformWindow(QWindow *window) const
 {
-    qDebug() << __FUNCTION__ << window << window->type() << window->parent();
+    qCDebug(lcDxcb) << "window:" << window << "window type:" << window->type() << "parent:" << window->parent();
 
     if (qEnvironmentVariableIsSet("DXCB_PRINT_WINDOW_CREATE")) {
         printf("New Window: %s(0x%llx, name: \"%s\")\n", window->metaObject()->className(), (quintptr)window, qPrintable(window->objectName()));
@@ -409,7 +412,7 @@ QPlatformWindow *DPlatformIntegration::createPlatformWindow(QWindow *window) con
 
 QPlatformBackingStore *DPlatformIntegration::createPlatformBackingStore(QWindow *window) const
 {
-    qDebug() << __FUNCTION__ << window << window->type() << window->parent();
+    qCDebug(lcDxcb) << "window:" << window << "window type:" << window->type() << "parent:" << window->parent();
 
     QPlatformBackingStore *store = DPlatformIntegrationParent::createPlatformBackingStore(window);
     bool useGLPaint = DBackingStoreProxy::useGLPaint(window);
@@ -1232,7 +1235,7 @@ void DPlatformIntegration::sendEndStartupNotifition()
 
     if (startupid.isEmpty())
         return ;
-		
+
     message =  QByteArrayLiteral("remove: ID=") + startupid;
     xcb_client_message_event_t ev;
     ev.response_type = XCB_CLIENT_MESSAGE;
