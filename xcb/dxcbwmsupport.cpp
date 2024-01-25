@@ -154,7 +154,7 @@ void DXcbWMSupport::updateHasBlurWindow()
     bool hasBlurWindow((m_isDeepinWM && isSupportedByWM(_net_wm_deepin_blur_region_rounded_atom))
                        || (m_isKwin && isContainsForRootWindow(_kde_net_wm_blur_rehind_region_atom)));
     // 当窗口visual不支持alpha通道时，也等价于不支持窗口背景模糊
-    hasBlurWindow = hasBlurWindow && getHasWindowAlpha() && hasComposite();
+    hasBlurWindow = hasBlurWindow && getHasWindowAlpha();
 
     if (m_hasBlurWindow == hasBlurWindow)
         return;
