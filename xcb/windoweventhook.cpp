@@ -338,7 +338,7 @@ void WindowEventHook::handleFocusInEvent(QXcbWindow *window, const xcb_focus_in_
             return;
     }
 
-    VtableHook::callOriginalFun(window, &QXcbWindow::handleFocusInEvent, event);
+    window->QXcbWindow::handleFocusInEvent(event);
 }
 
 void WindowEventHook::handleFocusOutEvent(QXcbWindow *window, const xcb_focus_out_event_t *event)
@@ -353,7 +353,7 @@ void WindowEventHook::handleFocusOutEvent(QXcbWindow *window, const xcb_focus_ou
     if (event->detail == XCB_NOTIFY_DETAIL_POINTER)
         return;
 
-    VtableHook::callOriginalFun(window, &QXcbWindow::handleFocusOutEvent, event);
+    window->QXcbWindow::handleFocusOutEvent(event);
 }
 
 void WindowEventHook::handlePropertyNotifyEvent(QXcbWindowEventListener *el, const xcb_property_notify_event_t *event)
