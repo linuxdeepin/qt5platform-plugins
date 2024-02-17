@@ -2,6 +2,16 @@
 //
 // SPDX-License-Identifier: LGPL-3.0-or-later
 
+// Fix compilation issue with multi-herited QXcbWindow since 6.6.2
+#include <QDebug>
+QT_BEGIN_NAMESPACE
+class QXcbWindow;
+class QPlatformWindow;
+inline QDebug operator<<(QDebug dbg, const QXcbWindow *window) {
+  return dbg << (const QPlatformWindow*)(window);
+}
+QT_END_NAMESPACE
+
 #include "windoweventhook.h"
 #include "vtablehook.h"
 #include "utility.h"
@@ -338,7 +348,7 @@ void WindowEventHook::handleFocusInEvent(QXcbWindow *window, const xcb_focus_in_
             return;
     }
 
-    window->QXcbWindow::handleFocusInEvent(event);
+    VtableHook::callOriginalFun(window, &QXcbWindow::handleFocusInEvent, event);
 }
 
 void WindowEventHook::handleFocusOutEvent(QXcbWindow *window, const xcb_focus_out_event_t *event)
@@ -353,7 +363,7 @@ void WindowEventHook::handleFocusOutEvent(QXcbWindow *window, const xcb_focus_ou
     if (event->detail == XCB_NOTIFY_DETAIL_POINTER)
         return;
 
-    window->QXcbWindow::handleFocusOutEvent(event);
+    VtableHook::callOriginalFun(window, &QXcbWindow::handleFocusOutEvent, event);
 }
 
 void WindowEventHook::handlePropertyNotifyEvent(QXcbWindowEventListener *el, const xcb_property_notify_event_t *event)
