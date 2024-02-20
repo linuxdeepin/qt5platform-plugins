@@ -317,7 +317,7 @@ public:
         rvf.oldFun = resetVfptrFun((void*)obj, fun_offset);
 
         if (!rvf.oldFun) {
-            qCWarning(vtableHook) << "Reset the function failed, object: " << obj;
+            qCWarning(vtableHook) << "Reset the function failed, object address:" << static_cast<void *>(obj);
             abort();
         }
 
