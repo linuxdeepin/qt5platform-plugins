@@ -131,7 +131,7 @@ void DForeignPlatformWindow::handleConfigureNotifyEvent(const xcb_configure_noti
 {
     bool fromSendEvent = (event->response_type & 0x80);
     QPoint pos(event->x, event->y);
-    if (!parent() && !fromSendEvent) {
+    if (!QPlatformWindow::parent() && !fromSendEvent) {
         // Do not trust the position, query it instead.
         xcb_translate_coordinates_cookie_t cookie = xcb_translate_coordinates(xcb_connection(), xcb_window(),
                                                                               xcbScreen()->root(), 0, 0);
@@ -144,7 +144,7 @@ void DForeignPlatformWindow::handleConfigureNotifyEvent(const xcb_configure_noti
     }
 
     QRect actualGeometry = QRect(pos, QSize(event->width, event->height));
-    QPlatformScreen *newScreen = parent() ? parent()->screen() : screenForGeometry(actualGeometry);
+    QPlatformScreen *newScreen = QPlatformWindow::parent() ? QPlatformWindow::parent()->screen() : screenForGeometry(actualGeometry);
     if (!newScreen)
         return;
 

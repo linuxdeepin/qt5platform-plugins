@@ -2,6 +2,16 @@
 //
 // SPDX-License-Identifier: LGPL-3.0-or-later
 
+// Fix compilation issue with multi-herited QXcbWindow since 6.6.2
+#include <QDebug>
+QT_BEGIN_NAMESPACE
+class QXcbWindow;
+class QPlatformWindow;
+inline QDebug operator<<(QDebug dbg, const QXcbWindow *window) {
+  return dbg << (const QPlatformWindow*)(window);
+}
+QT_END_NAMESPACE
+
 #include "windoweventhook.h"
 #include "vtablehook.h"
 #include "utility.h"
