@@ -909,6 +909,9 @@ void DWaylandShellManager::createServerDecoration(QWaylandWindow *window)
     if (q_shell_surface) {
         auto *dde_shell_surface = ensureDDEShellSurface(q_shell_surface);
         if (dde_shell_surface) {
+            if (!(window->window()->flags() & Qt::WindowCloseButtonHint)) {
+                dde_shell_surface->requestCloseable(false);
+            }
             if (!(window->window()->flags() & Qt::WindowMinimizeButtonHint)) {
                 dde_shell_surface->requestMinizeable(false);
             }
