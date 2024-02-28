@@ -171,6 +171,12 @@ void DXcbWMSupport::updateHasComposite()
     xcb_connection_t *xcb_connection = DPlatformIntegration::xcbConnection()->xcb_connection();
 
     auto atom = Utility::internAtom("_NET_KDE_COMPOSITE_TOGGLING");
+
+    if (atom == 0) {
+        qWarning() << "The value of atom:_NET_KDE_COMPOSITE_TOGGLING is 0 !";
+        return;
+    }
+
     xcb_window_t root = DPlatformIntegration::xcbConnection()->primaryScreen()->root();
 
     //stage1: check if _NET_KDE_COMPOSITE_TOGGLING is supported
