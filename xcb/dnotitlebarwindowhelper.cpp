@@ -195,7 +195,7 @@ qreal DNoTitlebarWindowHelper::shadowRadius() const
 
 QPointF DNoTitlebarWindowHelper::shadowOffset() const
 {
-    return toPos(takePair(property("shadowOffect"), qMakePair(0.0, 0.0)));
+    return toPos(takePair(property("shadowOffset"), qMakePair(0.0, 0.0)));
 }
 
 QColor DNoTitlebarWindowHelper::shadowColor() const
@@ -244,7 +244,7 @@ void DNoTitlebarWindowHelper::setShadowRadius(qreal shadowRadius)
 
 void DNoTitlebarWindowHelper::setShadowOffect(const QPointF &shadowOffect)
 {
-    setProperty("shadowOffect", QString("%1,%2").arg(shadowOffect.x()).arg(shadowOffect.y()));
+    setProperty("shadowOffset", QString("%1,%2").arg(shadowOffect.x()).arg(shadowOffect.y()));
 }
 
 void DNoTitlebarWindowHelper::setShadowColor(const QColor &shadowColor)
