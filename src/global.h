@@ -34,6 +34,7 @@ DEFINE_CONST_CHAR(clipPath);
 DEFINE_CONST_CHAR(frameMask);
 DEFINE_CONST_CHAR(frameMargins);
 DEFINE_CONST_CHAR(translucentBackground);
+DEFINE_CONST_CHAR(enableCloseable);
 DEFINE_CONST_CHAR(enableSystemResize);
 DEFINE_CONST_CHAR(enableSystemMove);
 DEFINE_CONST_CHAR(enableBlurWindow);

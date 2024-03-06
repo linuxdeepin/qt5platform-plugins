@@ -185,6 +185,10 @@ void DWaylandShellManager::sendProperty(QWaylandShellSurface *self, const QStrin
     }
 
     if (auto *dde_shell_surface = ensureDDEShellSurface(self)) {
+        if (!name.compare(enableCloseable)) {
+            qCDebug(dwlp()) << "### requestCloseable" << value;
+            dde_shell_surface->requestCloseable(value.toBool());
+        }
         if (!name.compare(enableSystemResize)) {
             qCDebug(dwlp()) << "### requestResizable" << value;
             dde_shell_surface->requestResizable(value.toBool());

@@ -42,6 +42,7 @@ public:
     static void popupSystemWindowMenu(quintptr wid);
     static bool enableDwayland(QWindow *window);
     static bool isEnableDwayland(const QWindow *window);
+    static void enableCloseable(WId wid, quint32 type);
     static void splitWindowOnScreen(WId wid, quint32 type);
     static bool supportForSplittingWindow(WId wid);
 };

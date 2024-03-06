@@ -38,6 +38,7 @@ static QFunctionPointer getFunction(const QByteArray &function)
         {popupSystemWindowMenu, reinterpret_cast<QFunctionPointer>(&DWaylandInterfaceHook::popupSystemWindowMenu)},
         {enableDwayland, reinterpret_cast<QFunctionPointer>(&DWaylandInterfaceHook::enableDwayland)},
         {isEnableDwayland, reinterpret_cast<QFunctionPointer>(&DWaylandInterfaceHook::isEnableDwayland)},
+        {enableCloseable, reinterpret_cast<QFunctionPointer>(&DWaylandInterfaceHook::enableCloseable)},
         {splitWindowOnScreen, reinterpret_cast<QFunctionPointer>(&DWaylandInterfaceHook::splitWindowOnScreen)},
         {supportForSplittingWindow, reinterpret_cast<QFunctionPointer>(&DWaylandInterfaceHook::supportForSplittingWindow)}
     };
@@ -145,6 +146,14 @@ bool DWaylandInterfaceHook::enableDwayland(QWindow *window)
 bool DWaylandInterfaceHook::isEnableDwayland(const QWindow *window)
 {
     return window->property(useDwayland).toBool();
+}
+
+void DWaylandInterfaceHook::enableCloseable(WId wid, quint32 type)
+{
+    QWindow *window = fromQtWinId(wid);
+    if(!window || !window->handle())
+        return;
+    DNoTitlebarWlWindowHelper::setWindowProperty(window, ::enableCloseable, type);
 }
 
 void DWaylandInterfaceHook::splitWindowOnScreen(WId wid, quint32 type)
