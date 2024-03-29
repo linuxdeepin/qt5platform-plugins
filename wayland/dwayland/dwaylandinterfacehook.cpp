@@ -34,6 +34,13 @@ static QFunctionPointer getFunction(const QByteArray &function)
         {setEnableNoTitlebar, reinterpret_cast<QFunctionPointer>(&DWaylandInterfaceHook::setEnableNoTitlebar)},
         {isEnableNoTitlebar, reinterpret_cast<QFunctionPointer>(&DWaylandInterfaceHook::isEnableNoTitlebar)},
         {setWindowRadius, reinterpret_cast<QFunctionPointer>(&DWaylandInterfaceHook::setWindowRadius)},
+        {setBorderColor, reinterpret_cast<QFunctionPointer>(&DWaylandInterfaceHook::setBorderColor)},
+        {setBorderWidth, reinterpret_cast<QFunctionPointer>(&DWaylandInterfaceHook::setBorderWidth)},
+        {setShadowColor, reinterpret_cast<QFunctionPointer>(&DWaylandInterfaceHook::setShadowColor)},
+        {setShadowOffset, reinterpret_cast<QFunctionPointer>(&DWaylandInterfaceHook::setShadowOffset)},
+        {setShadowRadius, reinterpret_cast<QFunctionPointer>(&DWaylandInterfaceHook::setShadowRadius)},
+        {setWindowEffect, reinterpret_cast<QFunctionPointer>(&DWaylandInterfaceHook::setWindowEffect)},
+        {setWindowStartUpEffect, reinterpret_cast<QFunctionPointer>(&DWaylandInterfaceHook::setWindowStartUpEffect)},
         {setWindowProperty, reinterpret_cast<QFunctionPointer>(&DWaylandInterfaceHook::setWindowProperty)},
         {popupSystemWindowMenu, reinterpret_cast<QFunctionPointer>(&DWaylandInterfaceHook::popupSystemWindowMenu)},
         {enableDwayland, reinterpret_cast<QFunctionPointer>(&DWaylandInterfaceHook::enableDwayland)},
@@ -91,11 +98,65 @@ bool DWaylandInterfaceHook::isEnableNoTitlebar(QWindow *window)
     return window->property(noTitlebar).toBool();
 }
 
-bool DWaylandInterfaceHook::setWindowRadius(QWindow *window, int value)
+void DWaylandInterfaceHook::setWindowRadius(QWindow *window, int value)
 {
     if (!window)
-        return false;
-    return window->setProperty(windowRadius, QVariant{value});
+        return;
+    DNoTitlebarWlWindowHelper::setWindowProperty(window, ::windowRadius, value);
+}
+
+void DWaylandInterfaceHook::setBorderColor(QWindow *window, const QColor &value)
+{
+    if (!window)
+        return;
+    DNoTitlebarWlWindowHelper::setWindowProperty(window, ::borderColor, value);
+}
+
+void DWaylandInterfaceHook::setShadowColor(QWindow *window, const QColor &value)
+{
+    if (!window)
+        return;
+    DNoTitlebarWlWindowHelper::setWindowProperty(window, ::shadowColor, value);
+}
+
+void DWaylandInterfaceHook::setShadowRadius(QWindow *window, int value)
+{
+    if (!window)
+        return;
+    DNoTitlebarWlWindowHelper::setWindowProperty(window, ::shadowRadius, value);
+}
+
+void DWaylandInterfaceHook::setShadowOffset(QWindow *window, const QPoint &value)
+{
+    if (!window)
+        return;
+
+    QPoint offect  = value;
+    if (window->screen())
+        offect *= window->screen()->devicePixelRatio();
+
+    DNoTitlebarWlWindowHelper::setWindowProperty(window, ::shadowOffset, offect);
+}
+
+void DWaylandInterfaceHook::setBorderWidth(QWindow *window, int value)
+{
+    if (!window)
+        return;
+    DNoTitlebarWlWindowHelper::setWindowProperty(window, ::borderWidth, value);
+}
+
+void DWaylandInterfaceHook::setWindowEffect(QWindow *window, const QVariant &value)
+{
+    if (!window)
+        return;
+    DNoTitlebarWlWindowHelper::setWindowProperty(window, ::windowEffect, value);
+}
+
+void DWaylandInterfaceHook::setWindowStartUpEffect(QWindow *window, const QVariant &value)
+{
+    if (!window)
+        return;
+    DNoTitlebarWlWindowHelper::setWindowProperty(window, ::windowStartUpEffect, value);
 }
 
 void DWaylandInterfaceHook::setWindowProperty(QWindow *window, const char *name, const QVariant &value)

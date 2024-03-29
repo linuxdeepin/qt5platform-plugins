@@ -37,7 +37,16 @@ public:
 
     static bool setEnableNoTitlebar(QWindow *window, bool enable);
     static bool isEnableNoTitlebar(QWindow *window);
-    static bool setWindowRadius(QWindow *window, int value);
+
+    static void setWindowRadius(QWindow *window, int value);
+    static void setBorderColor(QWindow *window, const QColor &value);
+    static void setShadowColor(QWindow *window, const QColor &value);
+    static void setShadowRadius(QWindow *window, int value);
+    static void setShadowOffset(QWindow *window, const QPoint &value);
+    static void setBorderWidth(QWindow *window, int value);
+    static void setWindowEffect(QWindow *window, const QVariant &value);
+    static void setWindowStartUpEffect(QWindow *window, const QVariant &value);
+
     static void setWindowProperty(QWindow *window, const char *name, const QVariant &value);
     static void popupSystemWindowMenu(quintptr wid);
     static bool enableDwayland(QWindow *window);
