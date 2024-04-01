@@ -30,6 +30,8 @@ class DNoTitlebarWindowHelper : public QObject
     Q_PROPERTY(qreal shadowRadius READ shadowRadius WRITE setShadowRadius NOTIFY shadowRadiusChanged)
     Q_PROPERTY(QPointF shadowOffset READ shadowOffset WRITE setShadowOffect NOTIFY shadowOffectChanged)
     Q_PROPERTY(QColor shadowColor READ shadowColor WRITE setShadowColor NOTIFY shadowColorChanged)
+    Q_PROPERTY(quint32 effectScene READ effectScene WRITE setEffectScene NOTIFY effectSceneChanged)
+    Q_PROPERTY(quint32 effectType READ effectType WRITE setEffectType NOTIFY effectTypeChanged)
     Q_PROPERTY(QMarginsF mouseInputAreaMargins READ mouseInputAreaMargins WRITE setMouseInputAreaMargins NOTIFY mouseInputAreaMarginsChanged)
 
 public:
@@ -48,6 +50,8 @@ public:
     qreal shadowRadius() const;
     QPointF shadowOffset() const;
     QColor shadowColor() const;
+    quint32 effectScene();
+    quint32 effectType();
     QMarginsF mouseInputAreaMargins() const;
 
     void resetProperty(const QByteArray &property);
@@ -59,6 +63,8 @@ public:
     void setShadowOffect(const QPointF &shadowOffset);
     void setShadowColor(const QColor &shadowColor);
     void setMouseInputAreaMargins(const QMarginsF &mouseInputAreaMargins);
+    void setEffectScene(quint32 effectScene);
+    void setEffectType(quint32 effectType);
 
 signals:
     void themeChanged();
@@ -68,6 +74,8 @@ signals:
     void shadowRadiusChanged();
     void shadowOffectChanged();
     void shadowColorChanged();
+    void effectSceneChanged();
+    void effectTypeChanged();
     void mouseInputAreaMarginsChanged();
 
 private slots:
@@ -80,6 +88,8 @@ private slots:
     Q_SLOT void updateShadowRadiusFromProperty();
     Q_SLOT void updateShadowOffsetFromProperty();
     Q_SLOT void updateShadowColorFromProperty();
+    Q_SLOT void updateEffectSceneFromProperty();
+    Q_SLOT void updateEffectTypeFromProperty();
     Q_SLOT void updateEnableSystemResizeFromProperty();
     Q_SLOT void updateEnableSystemMoveFromProperty();
     Q_SLOT void updateEnableBlurWindowFromProperty();
