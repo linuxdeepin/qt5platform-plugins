@@ -185,7 +185,7 @@ void DWaylandShellManager::sendProperty(QWaylandShellSurface *self, const QStrin
     }
 
     if (auto *dde_shell_surface = ensureDDEShellSurface(self)) {
-        if(!name.compare(enableWindowEffect)) {
+        if(!name.compare(windowEffect)) {
             DDEShellSurface::effectScene effectScene = static_cast<DDEShellSurface::effectScene>(value.toInt());
             qCDebug(dwlp()) << "Request window effect, value: " << value;
             dde_shell_surface->requestWindowEffect(effectScene);

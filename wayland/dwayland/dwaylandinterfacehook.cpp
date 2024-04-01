@@ -39,7 +39,7 @@ static QFunctionPointer getFunction(const QByteArray &function)
         {setShadowColor, reinterpret_cast<QFunctionPointer>(&DWaylandInterfaceHook::setShadowColor)},
         {setShadowOffset, reinterpret_cast<QFunctionPointer>(&DWaylandInterfaceHook::setShadowOffset)},
         {setShadowRadius, reinterpret_cast<QFunctionPointer>(&DWaylandInterfaceHook::setShadowRadius)},
-        {setEnableWindowEffect, reinterpret_cast<QFunctionPointer>(&DWaylandInterfaceHook::setEnableWindowEffect)},
+        {setWindowEffect, reinterpret_cast<QFunctionPointer>(&DWaylandInterfaceHook::setWindowEffect)},
         {setWindowStartUpEffect, reinterpret_cast<QFunctionPointer>(&DWaylandInterfaceHook::setWindowStartUpEffect)},
         {setWindowProperty, reinterpret_cast<QFunctionPointer>(&DWaylandInterfaceHook::setWindowProperty)},
         {popupSystemWindowMenu, reinterpret_cast<QFunctionPointer>(&DWaylandInterfaceHook::popupSystemWindowMenu)},
@@ -144,11 +144,11 @@ void DWaylandInterfaceHook::setBorderWidth(QWindow *window, int value)
     DNoTitlebarWlWindowHelper::setWindowProperty(window, ::borderWidth, value);
 }
 
-void DWaylandInterfaceHook::setEnableWindowEffect(QWindow *window, const QVariant &value)
+void DWaylandInterfaceHook::setWindowEffect(QWindow *window, const QVariant &value)
 {
     if (!window)
         return;
-    DNoTitlebarWlWindowHelper::setWindowProperty(window, ::enableWindowEffect, value);
+    DNoTitlebarWlWindowHelper::setWindowProperty(window, ::windowEffect, value);
 }
 
 void DWaylandInterfaceHook::setWindowStartUpEffect(QWindow *window, const QVariant &value)

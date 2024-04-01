@@ -44,7 +44,7 @@ public:
     static void setShadowRadius(QWindow *window, int value);
     static void setShadowOffset(QWindow *window, const QPoint &value);
     static void setBorderWidth(QWindow *window, int value);
-    static void setEnableWindowEffect(QWindow *window, const QVariant &value);
+    static void setWindowEffect(QWindow *window, const QVariant &value);
     static void setWindowStartUpEffect(QWindow *window, const QVariant &value);
 
     static void setWindowProperty(QWindow *window, const char *name, const QVariant &value);
