@@ -124,7 +124,12 @@ QWaylandShellIntegration *QKWaylandShellIntegrationPlugin::create(const QString 
     wl_display_roundtrip(wlDisplay);
 
     auto wayland_integration = static_cast<QWaylandIntegration *>(QGuiApplicationPrivate::platformIntegration());
-    QString shellVersion = registry->hasInterface(Registry::Interface::XdgShellUnstableV6) ? "xdg-shell-v6" : "xdg-shell";
+    QString shellVersion = "xdg-shell";
+    if (registry->hasInterface(Registry::Interface::XdgShellStable)) {
+        shellVersion = "xdg-shell";
+    } else if (registry->hasInterface(Registry::Interface::XdgShellUnstableV6)) {
+        shellVersion = "xdg-shell-v6";
+    }
     QWaylandShellIntegration *shell = wayland_integration->createShellIntegration(shellVersion);
 
     if (!shell)
