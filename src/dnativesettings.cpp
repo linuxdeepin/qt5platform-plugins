@@ -142,18 +142,13 @@ void DNativeSettings::init(const QMetaObject *metaObject)
             break;
         default:
             // 重设属性的类型，只支持Int double color string bytearray
-            op = ob.addProperty(mp.name(), "QByteArray", mp.notifySignalIndex());
+            op = ob.addProperty(mp.name(), "QByteArray", mp.notifySignalIndex() - signal_offset);
             break;
         }
 
         if (op.isWritable()) {
             // 声明支持属性reset
             op.setResettable(true);
-        }
-
-        // 重置属性对应的信号
-        if (op.hasNotifySignal()) {
-            op.setNotifySignal(ob.method(op.notifySignal().index() - signal_offset));
         }
     }
 
