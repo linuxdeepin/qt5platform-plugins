@@ -411,7 +411,21 @@ void DNoTitlebarWindowHelper::updateWindowBlurAreasFromProperty()
 {
     const QVariant &v = m_window->property(windowBlurAreas);
     const QVector<quint32> &tmpV = qvariant_cast<QVector<quint32>>(v);
-    const QVector<Utility::BlurArea> &a = *(reinterpret_cast<const QVector<Utility::BlurArea>*>(&tmpV));
+    const int OffSet = 6; // Utility::BlurArea's member variables
+    if (tmpV.size() % OffSet != 0)
+        qt_assert("windowBlurAreas's size must be round out BlurAreas's member variables.", __FILE__, __LINE__);
+
+    QVector<Utility::BlurArea> a;
+    for (int i = 0; i < tmpV.size(); i += OffSet) {
+        Utility::BlurArea area;
+        area.x = tmpV[i + 0];
+        area.y = tmpV[i + 1];
+        area.width = tmpV[i + 2];
+        area.height = tmpV[i + 3];
+        area.xRadius = tmpV[i + 4];
+        area.yRaduis = tmpV[i + 5];
+        a << area;
+    }
 
     if (a.isEmpty() && m_blurAreaList.isEmpty())
         return;
