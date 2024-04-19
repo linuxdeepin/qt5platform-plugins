@@ -1,3 +1,10 @@
+dde-qt5platform-plugins (5.6.27) unstable; urgency=medium
+
+  * fix: BlurArea unpack error in qt5
+  * fix: 修复阴影补偿属性无法设置的问题(Bug: 242761)(Influence: 阴影补偿属性)
+
+ -- Deepin Packages Builder <packages@deepin.org>  Fri, 19 Apr 2024 08:55:35 +0000
+
 dde-qt5platform-plugins (5.6.26) unstable; urgency=medium
 
   [ root ]
