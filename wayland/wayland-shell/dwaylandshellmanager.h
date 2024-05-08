@@ -97,6 +97,7 @@ public:
     static void handleGeometryChange(QWaylandWindow *window);
     static void handleWindowStateChanged(QWaylandWindow *window);
     static void setWindowStaysOnTop(QWaylandShellSurface *surface, const bool state);
+    static void setWindowStaysOnBottom(QWaylandShellSurface *surface, const bool state);
     static void setDockStrut(QWaylandShellSurface *surface, const QVariant var);
     static void setCursorPoint(QPointF pos);
     static void setEnableBlurWidow(QWaylandWindow *wlWindow, const QVariant &value);

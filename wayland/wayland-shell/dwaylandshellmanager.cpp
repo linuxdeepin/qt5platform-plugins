@@ -353,6 +353,9 @@ void DWaylandShellManager::sendProperty(QWaylandShellSurface *self, const QStrin
     if (QStringLiteral(_DWAYALND_ "staysontop") == name) {
         setWindowStaysOnTop(self, value.toBool());
     }
+    if (QStringLiteral(_DWAYALND_ "staysonbottom") == name) {
+        setWindowStaysOnBottom(self, value.toBool());
+    }
 }
 
 void DWaylandShellManager::setGeometry(QPlatformWindow *self, const QRect &rect)
@@ -653,6 +656,9 @@ void DWaylandShellManager::setWindowFlags(QPlatformWindow *self, Qt::WindowFlags
     }
     qCDebug(dwlp) << "Qt::WindowStaysOnTopHint: " << flags.testFlag(Qt::WindowStaysOnTopHint);
     setWindowStaysOnTop(qwlWindow->shellSurface(), flags.testFlag(Qt::WindowStaysOnTopHint));
+
+    qCDebug(dwlp) << "Qt::WindowStaysOnBottomHint: " << flags.testFlag(Qt::WindowStaysOnBottomHint);
+    setWindowStaysOnBottom(qwlWindow->shellSurface(), flags.testFlag(Qt::WindowStaysOnBottomHint));
 }
 
 void DWaylandShellManager::handleGeometryChange(QWaylandWindow *window)
@@ -747,6 +753,18 @@ void DWaylandShellManager::setWindowStaysOnTop(QWaylandShellSurface *surface, co
 {
     if (auto *dde_shell_surface = ensureDDEShellSurface(surface)) {
         dde_shell_surface->requestKeepAbove(state);
+    }
+}
+
+/*
+ * @brief setWindowStaysOnBottom  设置窗口置底
+ * @param surface
+ * @param state true:设置窗口置底，false:取消置底
+ */
+void DWaylandShellManager::setWindowStaysOnBottom(QWaylandShellSurface *surface, const bool state)
+{
+    if (auto *dde_shell_surface = ensureDDEShellSurface(surface)) {
+        dde_shell_surface->requestKeepBelow(state);
     }
 }
 
@@ -961,6 +979,9 @@ void DWaylandShellManager::createServerDecoration(QWaylandWindow *window)
             }
             if ((window->window()->flags() & Qt::WindowStaysOnTopHint)) {
                 dde_shell_surface->requestKeepAbove(true);
+            }
+            if ((window->window()->flags() & Qt::WindowStaysOnBottomHint)) {
+                dde_shell_surface->requestKeepBelow(true);
             }
             if ((window->window()->flags() & Qt::WindowDoesNotAcceptFocus)) {
                 dde_shell_surface->requestAcceptFocus(false);
