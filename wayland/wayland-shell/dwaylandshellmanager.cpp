@@ -659,7 +659,11 @@ void DWaylandShellManager::handleWindowStateChanged(QWaylandShellSurface *shellS
     STATE_CHANGED(activeChanged);
     QObject::connect(ddeShellSurface, &KCDFace::activeChanged, window, [window, ddeShellSurface](){
         if (QWindow *w = ddeShellSurface->isActive() ? window->window() : nullptr)
+#if QT_VERSION < QT_VERSION_CHECK(6, 7, 0)
             QWindowSystemInterface::handleWindowActivated(w, Qt::FocusReason::ActiveWindowFocusReason);
+#else
+            QWindowSystemInterface::handleFocusWindowChanged(w, Qt::FocusReason::ActiveWindowFocusReason);
+#endif
     });
 
 #define SYNC_FLAG(sig, enableFunc, flag)                                                    \

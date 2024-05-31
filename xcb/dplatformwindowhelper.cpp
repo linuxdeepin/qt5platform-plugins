@@ -586,10 +586,18 @@ bool DPlatformWindowHelper::eventFilter(QObject *watched, QEvent *event)
             return true;
         }
         case QEvent::FocusIn:
+#if QT_VERSION < QT_VERSION_CHECK(6, 7, 0)
             QWindowSystemInterface::handleWindowActivated(m_nativeWindow->window(), static_cast<QFocusEvent*>(event)->reason());
+#else
+            QWindowSystemInterface::handleFocusWindowChanged(m_nativeWindow->window(), static_cast<QFocusEvent*>(event)->reason());
+#endif
             return true;
         case QEvent::WindowActivate:
+#if QT_VERSION < QT_VERSION_CHECK(6, 7, 0)
             QWindowSystemInterface::handleWindowActivated(m_nativeWindow->window(), Qt::OtherFocusReason);
+#else
+            QWindowSystemInterface::handleFocusWindowChanged(m_nativeWindow->window(), Qt::OtherFocusReason);
+#endif
             return true;
         case QEvent::Resize: {
             updateContentWindowGeometry();
