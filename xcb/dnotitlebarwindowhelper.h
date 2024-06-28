@@ -124,6 +124,7 @@ private:
     bool m_enableBlurWindow = false;
     bool m_autoInputMaskByClipPath = false;
     DNativeSettings *m_settings;
+    QPointF m_pressPoint{0, 0};
 
     static QHash<const QWindow*, DNoTitlebarWindowHelper*> mapped;
 

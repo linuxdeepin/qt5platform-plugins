@@ -537,12 +537,18 @@ bool DNoTitlebarWindowHelper::windowEvent(QEvent *event)
     // keeping the moving state, we can just reset ti back to normal.
     if (event->type() == QEvent::MouseButtonPress) {
         self->m_windowMoving = false;
+        m_pressPoint = dynamic_cast<QMouseEvent*>(event)->globalPos();
     }
 
     if (is_mouse_move && !event->isAccepted()) {
         QMouseEvent *me = static_cast<QMouseEvent*>(event);
         QRect windowRect = QRect(QPoint(0, 0), w->size());
         if (!windowRect.contains(me->windowPos().toPoint())) {
+            return ret;
+        }
+
+        QPointF delta = me->globalPos() - m_pressPoint;
+        if (delta.manhattanLength() < QGuiApplication::styleHints()->startDragDistance()) {
             return ret;
         }
 
