@@ -1,3 +1,9 @@
+dde-qt5platform-plugins (5.6.32) unstable; urgency=medium
+
+  * fix: window border properties cannot change in real time(Issue: https://github.com/linuxdeepin/developer-center/issues/8342)(Influence: 边界颜色,边框宽度,阴影颜色,偏移量等窗口属性能实时变化)
+
+ -- Deepin Packages Builder <packages@deepin.org>  Mon, 08 Jul 2024 02:29:21 +0000
+
 dde-qt5platform-plugins (5.6.31) unstable; urgency=medium
 
   * feat: support to qt 6.7.1
