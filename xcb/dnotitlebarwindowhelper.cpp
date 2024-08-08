@@ -52,6 +52,8 @@ DNoTitlebarWindowHelper::DNoTitlebarWindowHelper(QWindow *window, quint32 window
         updateShadowRadiusFromProperty();
         updateShadowOffsetFromProperty();
         updateShadowColorFromProperty();
+        updateWindowEffectFromProperty();
+        updateWindowStartUpEffectFromProperty();
         updateEnableSystemResizeFromProperty();
         updateEnableSystemMoveFromProperty();
         updateEnableBlurWindowFromProperty();
@@ -203,6 +205,16 @@ QColor DNoTitlebarWindowHelper::shadowColor() const
     return qvariant_cast<QColor>(property("shadowColor"));
 }
 
+quint32 DNoTitlebarWindowHelper::windowEffect()
+{
+    return qvariant_cast<quint32>(property("windowEffect"));
+}
+
+quint32 DNoTitlebarWindowHelper::windowStartUpEffect()
+{
+    return qvariant_cast<quint32>(property("windowStartUpEffect"));
+}
+
 QMarginsF DNoTitlebarWindowHelper::mouseInputAreaMargins() const
 {
     return takeMargins(property("mouseInputAreaMargins"), QMarginsF(0, 0, 0, 0));
@@ -256,6 +268,16 @@ void DNoTitlebarWindowHelper::setMouseInputAreaMargins(const QMarginsF &mouseInp
 {
     setProperty("mouseInputAreaMargins", QString("%1,%2,%3,%4").arg(mouseInputAreaMargins.left()).arg(mouseInputAreaMargins.top())
                                                                .arg(mouseInputAreaMargins.right()).arg(mouseInputAreaMargins.bottom()));
+}
+
+void DNoTitlebarWindowHelper::setWindowEffect(quint32 effectScene)
+{
+    setProperty("windowEffect", static_cast<quint32>(effectScene));
+}
+
+void DNoTitlebarWindowHelper::setWindowStartUpEffect(quint32 effectType)
+{
+    setProperty("windowStartUpEffect", static_cast<quint32>(effectType));
 }
 
 void DNoTitlebarWindowHelper::updateClipPathFromProperty()
@@ -355,6 +377,30 @@ void DNoTitlebarWindowHelper::updateShadowColorFromProperty()
         setShadowColor(color);
     } else {
         resetProperty("shadowColor");
+    }
+}
+
+void DNoTitlebarWindowHelper::updateWindowEffectFromProperty()
+{
+    const QVariant &v = m_window->property("_d_windowEffect");
+    const quint32 &effectScene = qvariant_cast<quint32>(v);
+
+    if (effectScene) {
+        setWindowEffect(effectScene);
+    } else {
+        resetProperty("windowEffect");
+    }
+}
+
+void DNoTitlebarWindowHelper::updateWindowStartUpEffectFromProperty()
+{
+    const QVariant &v = m_window->property("_d_windowStartUpEffect");
+    const quint32 &effectType = qvariant_cast<quint32>(v);
+
+    if (effectType) {
+        setWindowStartUpEffect(effectType);
+    } else {
+        resetProperty("windowStartUpEffect");
     }
 }
 
