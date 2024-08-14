@@ -272,12 +272,12 @@ void DNoTitlebarWindowHelper::setMouseInputAreaMargins(const QMarginsF &mouseInp
 
 void DNoTitlebarWindowHelper::setWindowEffect(quint32 effectScene)
 {
-    setProperty("windowEffect", static_cast<quint32>(effectScene));
+    setProperty("windowEffect", effectScene);
 }
 
 void DNoTitlebarWindowHelper::setWindowStartUpEffect(quint32 effectType)
 {
-    setProperty("windowStartUpEffect", static_cast<quint32>(effectType));
+    setProperty("windowStartUpEffect", effectType);
 }
 
 void DNoTitlebarWindowHelper::updateClipPathFromProperty()
@@ -383,7 +383,7 @@ void DNoTitlebarWindowHelper::updateShadowColorFromProperty()
 void DNoTitlebarWindowHelper::updateWindowEffectFromProperty()
 {
     const QVariant &v = m_window->property("_d_windowEffect");
-    const quint32 &effectScene = qvariant_cast<quint32>(v);
+    const quint32 effectScene = qvariant_cast<quint32>(v);
 
     if (effectScene) {
         setWindowEffect(effectScene);
@@ -395,7 +395,7 @@ void DNoTitlebarWindowHelper::updateWindowEffectFromProperty()
 void DNoTitlebarWindowHelper::updateWindowStartUpEffectFromProperty()
 {
     const QVariant &v = m_window->property("_d_windowStartUpEffect");
-    const quint32 &effectType = qvariant_cast<quint32>(v);
+    const quint32 effectType = qvariant_cast<quint32>(v);
 
     if (effectType) {
         setWindowStartUpEffect(effectType);
