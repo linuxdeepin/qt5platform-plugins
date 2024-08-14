@@ -185,51 +185,6 @@ void DWaylandShellManager::sendProperty(QWaylandShellSurface *self, const QStrin
     }
 
     if (auto *dde_shell_surface = ensureDDEShellSurface(self)) {
-        if(!name.compare(windowEffect)) {
-            DDEShellSurface::effectScene effectScene = static_cast<DDEShellSurface::effectScene>(value.toInt());
-            qCDebug(dwlp()) << "Request window effect, value: " << value;
-            dde_shell_surface->requestWindowEffect(effectScene);
-        }
-        if(!name.compare(shadowColor)) {
-            qCDebug(dwlp()) << "Request shadow color property, value: " << value;
-            dde_shell_surface->requestShadowColorProperty(value.toString());
-        }
-        if(!name.compare(shadowOffset)) {
-            bool ok = false;
-            qreal offect  = value.toInt(&ok);
-            if (wlWindow->screen())
-                offect *= wlWindow->screen()->devicePixelRatio();
-            qCDebug(dwlp()) << "Request shadow offset property, value: " << offect << value;
-            if (ok)
-                dde_shell_surface->requestShadowOffsetProperty({offect, offect});
-            else
-                qCWarning(dwlp) << "invalid property" << name << value;
-        }
-        if(!name.compare(shadowRadius)) {
-            qCDebug(dwlp()) << "Request shadow radius property, value: " << value;
-            dde_shell_surface->requestShadowRadiusProperty(value.toInt());
-        }
-        if(!name.compare(borderColor)) {
-            qCDebug(dwlp()) << "Request borde rcolor property, value: " << value << value.toString();
-            dde_shell_surface->requestBorderColorProperty(value.toString());
-        }
-        if(!name.compare(borderWidth)) {
-            qCDebug(dwlp()) << "Request border width property, value: " << value;
-            dde_shell_surface->requestBorderWidthProperty(value.toInt());
-        }
-        if(!name.compare(windowStartUpEffect)) {
-            qCDebug(dwlp()) << "Request window startUp effect, value: " << value;
-            DDEShellSurface::effectType effectType = static_cast<DDEShellSurface::effectType>(value.toInt());
-            dde_shell_surface->requestWindowStartUpEffect(effectType);
-        }
-        if (!name.compare(enableCloseable)) {
-            qCDebug(dwlp()) << "Request closeable, value: " << value;
-            dde_shell_surface->requestCloseable(value.toBool());
-        }
-        if (!name.compare(enableSystemResize)) {
-            qCDebug(dwlp()) << "Request resizable, value: " << value;
-            dde_shell_surface->requestResizable(value.toBool());
-        }
         if (!name.compare(noTitlebar)) {
             qCDebug(dwlp()) << "Request NoTitleBar, value: " << value;
             dde_shell_surface->requestNoTitleBarProperty(value.toBool());
