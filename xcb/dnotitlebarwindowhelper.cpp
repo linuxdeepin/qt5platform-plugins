@@ -542,6 +542,7 @@ bool DNoTitlebarWindowHelper::windowEvent(QEvent *event)
     if (event->type() == QEvent::MouseButtonRelease) {
         self->m_windowMoving = false;
         Utility::updateMousePointForWindowMove(winId, true);
+        g_pressPoint.remove(this);
     }
 
     if (is_mouse_move && self->m_windowMoving) {
@@ -558,7 +559,7 @@ bool DNoTitlebarWindowHelper::windowEvent(QEvent *event)
         g_pressPoint[this] = dynamic_cast<QMouseEvent*>(event)->globalPos();
     }
 
-    if (is_mouse_move && !event->isAccepted()) {
+    if (is_mouse_move && !event->isAccepted() && g_pressPoint.contains(this)) {
         QMouseEvent *me = static_cast<QMouseEvent*>(event);
         QRect windowRect = QRect(QPoint(0, 0), w->size());
         if (!windowRect.contains(me->windowPos().toPoint())) {
