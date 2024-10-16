@@ -1,3 +1,11 @@
+dde-qt5platform-plugins (5.7.1) unstable; urgency=medium
+
+  * fix: 向日葵中点击文管窗口标题时直接进入移动窗口状态(Bug: 261679)(Influence: 窗口移动)
+  * fix: 共享库二进制兼容(Bug: 261679)
+  * fix: incorect window movement when selecting files(Issue: https://github.com/linuxdeepin/developer-center/issues/10165)
+
+ -- Deepin Packages Builder <packages@deepin.org>  Wed, 16 Oct 2024 03:30:45 +0000
+
 dde-qt5platform-plugins (5.6.34) unstable; urgency=medium
 
   * feat: support to change window effects(Bug: 244347)
