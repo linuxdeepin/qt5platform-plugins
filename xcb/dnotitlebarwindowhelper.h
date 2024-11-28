@@ -98,7 +98,7 @@ private slots:
     Q_SLOT void updateAutoInputMaskByClipPathFromProperty();
 
 private:
-    bool windowEvent(QEvent *event);
+    virtual bool eventFilter(QObject *watched, QEvent *event) override;
     bool isEnableSystemMove(quint32 winId);
     bool updateWindowBlurAreasForWM();
     void updateWindowShape();

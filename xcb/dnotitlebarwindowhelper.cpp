@@ -1,17 +1,14 @@
-// SPDX-FileCopyrightText: 2017 - 2022 Uniontech Software Technology Co.,Ltd.
+// SPDX-FileCopyrightText: 2017 - 2024 Uniontech Software Technology Co.,Ltd.
 //
 // SPDX-License-Identifier: LGPL-3.0-or-later
 
-#define protected public
-#include <QWindow>
-#undef protected
 #include "dnotitlebarwindowhelper.h"
-#include "vtablehook.h"
 #include "utility.h"
 #include "dwmsupport.h"
 #include "dnativesettings.h"
 #include "dplatformintegration.h"
 
+#include <QWindow>
 #include <QMouseEvent>
 #include <QTimer>
 #include <QMetaProperty>
@@ -19,6 +16,7 @@
 #include <qpa/qplatformwindow.h>
 #include <QGuiApplication>
 #include <QStyleHints>
+#include <QDebug>
 
 #define _DEEPIN_SCISSOR_WINDOW "_DEEPIN_SCISSOR_WINDOW"
 Q_DECLARE_METATYPE(QPainterPath)
@@ -81,9 +79,8 @@ DNoTitlebarWindowHelper::~DNoTitlebarWindowHelper()
 {
     g_pressPoint.remove(this);
 
-    if (VtableHook::hasVtable(m_window)) {
-        VtableHook::resetVtable(m_window);
-    }
+    if (m_enableSystemMove)
+        m_window->removeEventFilter(this);
 
     mapped.remove(qobject_cast<QWindow*>(parent()));
 
@@ -426,9 +423,9 @@ void DNoTitlebarWindowHelper::updateEnableSystemMoveFromProperty()
     m_enableSystemMove = !v.isValid() || v.toBool();
 
     if (m_enableSystemMove) {
-        VtableHook::overrideVfptrFun(m_window, &QWindow::event, this, &DNoTitlebarWindowHelper::windowEvent);
-    } else if (VtableHook::hasVtable(m_window)) {
-        VtableHook::resetVfptrFun(m_window, &QWindow::event);
+        m_window->installEventFilter(this);
+    } else {
+        m_window->removeEventFilter(this);
     }
 }
 
@@ -510,9 +507,24 @@ void DNoTitlebarWindowHelper::updateAutoInputMaskByClipPathFromProperty()
     updateWindowShape();
 }
 
-bool DNoTitlebarWindowHelper::windowEvent(QEvent *event)
+bool DNoTitlebarWindowHelper::eventFilter(QObject *watched, QEvent *event)
 {
-    QWindow *w = this->window();
+    QWindow *w = qobject_cast<QWindow *>(watched);
+    if (!w)
+        return false;
+
+    static QSet<QEvent::Type> filterEvents {
+        QEvent::TouchBegin,
+        QEvent::TouchUpdate,
+        QEvent::TouchEnd,
+        // mouse event
+        QEvent::MouseButtonPress,
+        QEvent::MouseButtonRelease,
+        QEvent::MouseMove,
+    };
+
+    if (!filterEvents.contains(event->type()))
+        return false;
 
     // get touch begin position
     static bool isTouchDown = false;
@@ -531,7 +543,7 @@ bool DNoTitlebarWindowHelper::windowEvent(QEvent *event)
         QPointF currentPos = static_cast<QMouseEvent*>(event)->globalPos();
         QPointF delta = touchBeginPosition  - currentPos;
         if (delta.manhattanLength() < QGuiApplication::styleHints()->startDragDistance()) {
-            return VtableHook::callOriginalFun(w, &QWindow::event, event);
+            return watched->event(event);
         }
     }
 
@@ -549,7 +561,8 @@ bool DNoTitlebarWindowHelper::windowEvent(QEvent *event)
         updateMoveWindow(winId);
     }
 
-    bool ret = VtableHook::callOriginalFun(w, &QWindow::event, event);
+    // call first to set accept false(quickwindow)
+    watched->event(event);
 
     // workaround for kwin: Qt receives no release event when kwin finishes MOVE operation,
     // which makes app hang in windowMoving state. when a press happens, there's no sense of
@@ -563,12 +576,12 @@ bool DNoTitlebarWindowHelper::windowEvent(QEvent *event)
         QMouseEvent *me = static_cast<QMouseEvent*>(event);
         QRect windowRect = QRect(QPoint(0, 0), w->size());
         if (!windowRect.contains(me->windowPos().toPoint())) {
-            return ret;
+            return true;
         }
 
         QPointF delta = me->globalPos() - g_pressPoint[this];
         if (delta.manhattanLength() < QGuiApplication::styleHints()->startDragDistance()) {
-            return ret;
+            return true;
         }
 
         if (!self->m_windowMoving && self->isEnableSystemMove(winId)) {
@@ -583,7 +596,7 @@ bool DNoTitlebarWindowHelper::windowEvent(QEvent *event)
         }
     }
 
-    return ret;
+    return true;
 }
 
 bool DNoTitlebarWindowHelper::isEnableSystemMove(quint32 winId)
