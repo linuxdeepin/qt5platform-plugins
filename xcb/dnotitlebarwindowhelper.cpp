@@ -514,6 +514,12 @@ bool DNoTitlebarWindowHelper::windowEvent(QEvent *event)
 {
     QWindow *w = this->window();
 
+    // TODO Crashed when delete by Vtable.
+    if (event->type() == QEvent::DeferredDelete) {
+        VtableHook::resetVtable(w);
+        return w->event(event);
+    }
+
     // get touch begin position
     static bool isTouchDown = false;
     static QPointF touchBeginPosition;
