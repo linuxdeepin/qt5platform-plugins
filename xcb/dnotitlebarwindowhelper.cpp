@@ -81,10 +81,6 @@ DNoTitlebarWindowHelper::~DNoTitlebarWindowHelper()
 {
     g_pressPoint.remove(this);
 
-    if (VtableHook::hasVtable(m_window)) {
-        VtableHook::resetVtable(m_window);
-    }
-
     mapped.remove(qobject_cast<QWindow*>(parent()));
 
     if (m_window->handle()) { // 当本地窗口还存在时，移除设置过的窗口属性
