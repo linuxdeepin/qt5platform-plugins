@@ -1,3 +1,11 @@
+dde-qt5platform-plugins (5.7.4) unstable; urgency=medium
+
+  * fix: app crashed when window destroyed in quick
+  * fix: hasVtable is incorrect when destructing
+  * fix: app crashed when window destroyed in quick
+
+ -- Deepin Packages Builder <packages@deepin.org>  Tue, 03 Dec 2024 02:00:46 +0000
+
 dde-qt5platform-plugins (5.7.3) unstable; urgency=medium
 
   [ root ]
