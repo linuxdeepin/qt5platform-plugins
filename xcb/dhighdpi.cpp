@@ -104,7 +104,8 @@ QDpi DHighDpi::logicalDpi(QXcbScreen *s)
     }
 
     int dpi = 0;
-    QVariant value = DPlatformIntegration::xSettings(s->connection())->setting("Qt/DPI/" + s->name().toLocal8Bit());
+    const QString screenName(QString("Qt/DPI/%1").arg(s->name()));
+    QVariant value = DPlatformIntegration::xSettings(s->connection())->setting(screenName.toLocal8Bit());
     bool ok = false;
 
     dpi = value.toInt(&ok);
