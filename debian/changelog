@@ -1,3 +1,9 @@
+dde-qt5platform-plugins (5.7.5) unstable; urgency=medium
+
+  * fix: app crashed when QBytearray reallocated
+
+ -- Deepin Packages Builder <packages@deepin.org>  Thu, 12 Dec 2024 03:03:54 +0000
+
 dde-qt5platform-plugins (5.7.4) unstable; urgency=medium
 
   * fix: app crashed when window destroyed in quick
