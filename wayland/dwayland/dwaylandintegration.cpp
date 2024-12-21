@@ -204,25 +204,31 @@ static void onPrimaryRectChanged(xcb_connection_t *connection, const QByteArray 
 
         QRect xsettingsRect(list.at(0).toInt(), list.at(1).toInt(), list.at(2).toInt(), list.at(3).toInt());
 
-        qDebug() << "primary rect from xsettings:" << primaryScreenRect << ", key:" << key;
+        qDebug() << "Primary rect from xsettings:" << primaryScreenRect << ", key:" << key;
         for (auto s : screens) {
-            qDebug() << "screen info:"
+            qDebug() << "Screen info:"
                      << s->screen()->name() << s->screen()->model() << s->screen()->geometry() << s->geometry()
                      << s->name() << s->model() << s->screen()->geometry() << s->geometry();
         }
         // 设置新的主屏
         QtWaylandClient::QWaylandScreen *primaryScreen = nullptr;
 
+        // 插入屏幕的时候，窗管初始化屏幕位置为（0,0），此时可能会出现多个topLeft为（0,0）的屏幕，导致主屏设置错误。
+        // 增加一个判断，如果有topLeft匹配的数量不等于1，则不设置主屏，等待startdde设置屏幕位置后（这个时候有且只有一个坐标为(0,0)的屏幕）再设置主屏。
+        int posMatchingScreenCount = 0;
         // 坐标一致，认定为主屏
         for (auto screen : screens) {
-            if (screen->geometry().topLeft() == xsettingsRect.topLeft() && screen->screen() != qApp->primaryScreen()) {
-                primaryScreen = screen;
-                qDebug() << "got primary:" << primaryScreen->name() << primaryScreen->geometry();
-                break;
+            if (screen->geometry().topLeft() == xsettingsRect.topLeft()) {
+                if (screen->screen() != qApp->primaryScreen())  {
+                    primaryScreen = screen;
+                    qInfo() << "Find new primary:" << primaryScreen->name() << primaryScreen->geometry();
+                }
+                posMatchingScreenCount++;
             }
         }
+        qDebug() << "TopLeft matching screen count:" << posMatchingScreenCount;
 
-        if (primaryScreen) {
+        if (primaryScreen && posMatchingScreenCount == 1) {
 #if QT_VERSION >= QT_VERSION_CHECK(5, 12, 0)
             QWindowSystemInterface::handlePrimaryScreenChanged(primaryScreen);
 #else
@@ -235,7 +241,7 @@ static void onPrimaryRectChanged(xcb_connection_t *connection, const QByteArray 
     default:
         break;
     }
-    qDebug() << "primary screen info:" << QGuiApplication::primaryScreen()->name() << QGuiApplication::primaryScreen()->model() << QGuiApplication::primaryScreen()->geometry();
+    qDebug() << "Primary screen info:" << QGuiApplication::primaryScreen()->name() << QGuiApplication::primaryScreen()->model() << QGuiApplication::primaryScreen()->geometry();
 }
 
 DWaylandIntegration::DWaylandIntegration()
