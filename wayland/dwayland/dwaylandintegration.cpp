@@ -45,10 +45,19 @@ static void overrideChangeCursor(QPlatformCursor *cursorHandle, QCursor * cursor
         return;
 
     // qtwayland里面判断了，如果没有设置环境变量，就用默认大小32, 这里通过设在环境变量将大小设置我们需要的24
+    const qreal ratio = qApp->devicePixelRatio();
     static bool xcursorSizeIsSet = qEnvironmentVariableIsSet("XCURSOR_SIZE");
     if (!xcursorSizeIsSet) {
-        qputenv("XCURSOR_SIZE", QByteArray::number(24 * qApp->devicePixelRatio()));
+        qreal cursorSize = 24 * ratio;
+        qputenv("XCURSOR_SIZE", QByteArray::number(cursorSize));
+        qDebug() << "xcursor size has not set, now set XCURSOR_SIZE: " << cursorSize;
     }
+
+    // qtwayland无法处理分数缩放，2以下缩放取整为1正常，2倍缩放取整为2会异常；
+    // 下方hookCall的主要目的是将widget的deviceRatio传给QtWaylandClient，
+    // 因为缩放已经在上方处理，所以在QtWaylandClient直接使用默认的1，避免多次处理
+    if (ratio >= 2)
+        return;
 
     HookCall(cursorHandle, &QPlatformCursor::changeCursor, cursor, widget);
 
