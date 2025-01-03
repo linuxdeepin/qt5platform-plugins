@@ -45,19 +45,25 @@ static void overrideChangeCursor(QPlatformCursor *cursorHandle, QCursor * cursor
         return;
 
     // qtwayland里面判断了，如果没有设置环境变量，就用默认大小32, 这里通过设在环境变量将大小设置我们需要的24
-    const qreal ratio = qApp->devicePixelRatio();
+    qreal cursorSize = 32;
     static bool xcursorSizeIsSet = qEnvironmentVariableIsSet("XCURSOR_SIZE");
+    const qreal ratio = qApp->devicePixelRatio();
     if (!xcursorSizeIsSet) {
-        qreal cursorSize = 24 * ratio;
+        // QPlatformCursor::changeCursor(cursor, widget) 中的缩放值取整操作导致传入的cursorSize不能是线性变化的，而是分段的
+        // 简单来说，changeCursor 会使用 取整后的缩放 * cursorSize, 通过这个乘积去找合适的图标大小
+        if (ratio < 2) {
+            cursorSize = 24 * ratio;
+        } else if (ratio >= 2.5) {
+            // 范围 (36, 50] 都可，目的是2.5倍缩放以上寻找主题中尺寸为72的图标
+            cursorSize = 40;
+        } else {
+            // 范围 (24, 30] 都可，目的是2~2.5倍缩放内寻找主题中尺寸为48的图标
+            cursorSize = 28;
+        } // 窗管适配尺寸为72以上的图标后还可追加, dde光标最大支持尺寸为256的图标 (24, 32, 48, 72, 128, 256)
+
         qputenv("XCURSOR_SIZE", QByteArray::number(cursorSize));
         qDebug() << "xcursor size has not set, now set XCURSOR_SIZE: " << cursorSize;
     }
-
-    // qtwayland无法处理分数缩放，2以下缩放取整为1正常，2倍缩放取整为2会异常；
-    // 下方hookCall的主要目的是将widget的deviceRatio传给QtWaylandClient，
-    // 因为缩放已经在上方处理，所以在QtWaylandClient直接使用默认的1，避免多次处理
-    if (ratio >= 2)
-        return;
 
     HookCall(cursorHandle, &QPlatformCursor::changeCursor, cursor, widget);
 
