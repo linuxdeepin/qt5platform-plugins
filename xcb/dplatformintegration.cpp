@@ -1011,6 +1011,21 @@ static void startDrag(QXcbDrag *drag)
     xcb_flush(drag->xcb_connection());
 }
 
+static void cursorThemePropertyChanged(xcb_connection_t *connection, const QByteArray &name, const QVariant &property, void *handle)
+{
+    Q_UNUSED(connection);
+    Q_UNUSED(name);
+    Q_UNUSED(property);
+    Q_UNUSED(handle)
+
+    QMetaObject::invokeMethod(qApp, [](){
+        for (const auto window : qApp->allWindows()) {
+            auto cursor = window->cursor();
+            VtableHook::callOriginalFun( window->screen()->handle()->cursor(), &QPlatformCursor::changeCursor, &cursor, window);
+        }
+    }, Qt::QueuedConnection);
+}
+
 void DPlatformIntegration::initialize()
 {
     // 由于Qt很多代码中写死了是xcb，所以只能伪装成是xcb
@@ -1131,6 +1146,8 @@ void DPlatformIntegration::initialize()
             });
         }
     }
+
+    xSettings()->registerCallbackForProperty("Gtk/CursorThemeName", cursorThemePropertyChanged, nullptr);
 }
 
 #ifdef Q_OS_LINUX
