@@ -1011,6 +1011,22 @@ static void startDrag(QXcbDrag *drag)
     xcb_flush(drag->xcb_connection());
 }
 
+static void cursorThemePropertyChanged(xcb_connection_t *connection, const QByteArray &name, const QVariant &property, void *handle)
+{
+    Q_UNUSED(connection);
+    Q_UNUSED(name);
+    Q_UNUSED(property);
+    Q_UNUSED(handle)
+
+    QMetaObject::invokeMethod(qApp, [](){
+        for (const auto window : qApp->allWindows()) {
+            auto cursor = window->cursor();
+            if (window->screen() && window->screen()->handle() && window->screen()->handle()->cursor())
+                overrideChangeCursor(window->screen()->handle()->cursor(), &cursor, window);
+        }
+    }, Qt::QueuedConnection);
+}
+
 void DPlatformIntegration::initialize()
 {
     // 由于Qt很多代码中写死了是xcb，所以只能伪装成是xcb
@@ -1131,6 +1147,9 @@ void DPlatformIntegration::initialize()
             });
         }
     }
+
+    // Qt中同样监听了这个属性的变化，但是只刷新了光标上下文却没有更新当前窗口的光标，无法做到光标的实时变化，所以加了该逻辑额外处理
+    xSettings()->registerCallbackForProperty("Gtk/CursorThemeName", cursorThemePropertyChanged, nullptr);
 }
 
 #ifdef Q_OS_LINUX
