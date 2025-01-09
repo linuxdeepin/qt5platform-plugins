@@ -1,3 +1,11 @@
+dde-qt5platform-plugins (5.7.7) unstable; urgency=medium
+
+  * chore: mips64 disable compile unit test binaries mips64 disable compile unit test binaries
+  * 	fix: after setting the cursor theme, it will not update in real-time.
+  * fix: DNotitlebarWindowHelper can't be removed from mapped
+
+ -- Deepin Packages Builder <packages@deepin.org>  Thu, 09 Jan 2025 09:28:39 +0000
+
 dde-qt5platform-plugins (5.7.6) unstable; urgency=medium
 
   [ root ]
