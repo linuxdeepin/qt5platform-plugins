@@ -50,7 +50,7 @@ DNoTitlebarWlWindowHelper::~DNoTitlebarWlWindowHelper()
         VtableHook::resetVtable(m_window);
     }
 
-    mapped.remove(qobject_cast<QWindow*>(parent()));
+    mapped.remove(static_cast<QWindow*>(parent()));
 
     // TODO
     // if (m_window->handle()) { // 当本地窗口还存在时，移除设置过的窗口属性
