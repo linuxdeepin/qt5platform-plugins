@@ -1,3 +1,10 @@
+dde-qt5platform-plugins (5.7.8) unstable; urgency=medium
+
+  [ root ]
+  * UNRELEASED
+
+ -- Deepin Packages Builder <packages@deepin.org>  Tue, 14 Jan 2025 11:17:31 +0000
+
 dde-qt5platform-plugins (5.7.7) unstable; urgency=medium
 
   * chore: mips64 disable compile unit test binaries mips64 disable compile unit test binaries
