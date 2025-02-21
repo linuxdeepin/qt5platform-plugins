@@ -227,13 +227,15 @@ static void onPrimaryRectChanged(xcb_connection_t *connection, const QByteArray 
         }
         // 设置新的主屏
         QtWaylandClient::QWaylandScreen *primaryScreen = nullptr;
-
+        const QString &primaryName = dXSettings->globalSettings()->setting(XSETTINGS_PRIMARY_MONITOR_NAME).toString();
         // 插入屏幕的时候，窗管初始化屏幕位置为（0,0），此时可能会出现多个topLeft为（0,0）的屏幕，导致主屏设置错误。
         // 增加一个判断，如果有topLeft匹配的数量不等于1，则不设置主屏，等待startdde设置屏幕位置后（这个时候有且只有一个坐标为(0,0)的屏幕）再设置主屏。
+        // FIXME:增加了名称判断后这个数量的判断就不需要了，从FLMX项目稳定性考虑暂时保留。
         int posMatchingScreenCount = 0;
-        // 坐标一致，认定为主屏
+        // 坐标一致且名称一致，认定为主屏
+        // 插入外接屏的时候startdde是先设置屏幕的位置，再设置主屏，在这个间隙外接屏topleft和主屏一致，这里会错误把外接屏当做主屏。startdde再设置主屏信息，这里会在设置一次正确的主屏。从而导致插入一次屏幕，主屏变化了两次。
         for (auto screen : screens) {
-            if (screen->geometry().topLeft() == xsettingsRect.topLeft()) {
+            if (screen->geometry().topLeft() == xsettingsRect.topLeft() && screen->name() == primaryName) {
                 if (screen->screen() != qApp->primaryScreen())  {
                     primaryScreen = screen;
                     qInfo() << "Find new primary:" << primaryScreen->name() << primaryScreen->geometry();
