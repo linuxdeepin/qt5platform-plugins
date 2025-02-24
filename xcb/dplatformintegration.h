@@ -52,6 +52,7 @@ public:
     static void setWMClassName(const QByteArray &name);
 
     QPlatformWindow *createPlatformWindow(QWindow *window) const Q_DECL_OVERRIDE;
+    QPlatformWindow *createForeignWindow(QWindow *window, WId winId) const Q_DECL_OVERRIDE;
     QPlatformBackingStore *createPlatformBackingStore(QWindow *window) const Q_DECL_OVERRIDE;
     QPlatformOpenGLContext *createPlatformOpenGLContext(QOpenGLContext *context) const Q_DECL_OVERRIDE;
     QPaintEngine *createImagePaintEngine(QPaintDevice *paintDevice) const override;
