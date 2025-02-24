@@ -292,6 +292,7 @@ QPlatformWindow *DPlatformIntegration::createPlatformWindow(QWindow *window) con
         printf("New Window: %s(0x%llx, name: \"%s\")\n", window->metaObject()->className(), (quintptr)window, qPrintable(window->objectName()));
     }
 
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
     // handle foreign native window
     if (window->type() == Qt::ForeignWindow) {
         WId win_id = qvariant_cast<WId>(window->property("_q_foreignWinId"));
@@ -300,6 +301,7 @@ QPlatformWindow *DPlatformIntegration::createPlatformWindow(QWindow *window) con
             return new DForeignPlatformWindow(window, win_id);
         }
     }
+#endif
 
     bool isNoTitlebar = window->type() != Qt::Desktop && window->property(noTitlebar).toBool();
 
@@ -408,6 +410,16 @@ QPlatformWindow *DPlatformIntegration::createPlatformWindow(QWindow *window) con
     }
 
     return xw;
+}
+
+QPlatformWindow *DPlatformIntegration::createForeignWindow(QWindow *window, WId winId) const
+{
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
+    return DPlatformIntegrationParent::createForeignWindow(window, winId);
+#else
+    Q_ASSERT(winId > 0);
+    return new DForeignPlatformWindow(window, winId);
+#endif
 }
 
 QPlatformBackingStore *DPlatformIntegration::createPlatformBackingStore(QWindow *window) const
