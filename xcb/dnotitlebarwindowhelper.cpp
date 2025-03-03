@@ -284,6 +284,11 @@ void DNoTitlebarWindowHelper::setWindowStartUpEffect(quint32 effectType)
     setProperty("windowStartUpEffect", effectType);
 }
 
+DNoTitlebarWindowHelper *DNoTitlebarWindowHelper::windowHelper(const QWindow *window)
+{
+    return mapped.value(window);
+}
+
 void DNoTitlebarWindowHelper::updateClipPathFromProperty()
 {
     const QVariant &v = m_window->property(clipPath);
