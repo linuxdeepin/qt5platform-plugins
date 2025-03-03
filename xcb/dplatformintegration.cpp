@@ -284,6 +284,32 @@ void DPlatformIntegration::setWMClassName(const QByteArray &name)
         self->m_wmClass = name;
 }
 
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+static void nativeWindowCreated(QNativeWindow *w)
+{
+    VtableHook::callOriginalFun(w, &QNativeWindow::create);
+    if (w->property("_d_dxcb_noTitleHelper").toBool()) {
+        if (w->property("_d_dxcb_noTitleHelper_destroyed").toBool()) {
+            w->setProperty("_d_dxcb_noTitleHelper_destroyed", QVariant());
+            qCDebug(lcDxcb) << "window is recreated:" << w->window() << ", winId:" << w->winId();
+            if (auto helper = DNoTitlebarWindowHelper::windowHelper(w->window())) {
+                delete helper;
+            }
+            // 跟随窗口被销毁
+            Q_UNUSED(new DNoTitlebarWindowHelper(w->window(), w->winId()))
+        }
+    }
+}
+
+static void nativeWindowDestroyed(QNativeWindow *w)
+{
+    VtableHook::callOriginalFun(w, &QNativeWindow::destroy);
+    if (w->property("_d_dxcb_noTitleHelper").toBool()) {
+        w->setProperty("_d_dxcb_noTitleHelper_destroyed", true);
+    }
+}
+#endif
+
 QPlatformWindow *DPlatformIntegration::createPlatformWindow(QWindow *window) const
 {
     qCDebug(lcDxcb) << "window:" << window << "window type:" << window->type() << "parent:" << window->parent();
@@ -315,6 +341,13 @@ QPlatformWindow *DPlatformIntegration::createPlatformWindow(QWindow *window) con
         Utility::setNoTitlebar(w->winId(), true);
         // 跟随窗口被销毁
         Q_UNUSED(new DNoTitlebarWindowHelper(window, w->winId()))
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+        // recreate DNotitleBarWindoHelper if window is recreated.
+        QNativeWindow *xw = static_cast<QNativeWindow*>(w);
+        xw->setProperty("_d_dxcb_noTitleHelper", true);
+        VtableHook::overrideVfptrFun(xw, &QNativeWindow::create, &nativeWindowCreated);
+        VtableHook::overrideVfptrFun(xw, &QNativeWindow::destroy, &nativeWindowDestroyed);
+#endif
 #ifdef Q_OS_LINUX
         WindowEventHook::init(static_cast<QNativeWindow*>(w), false);
 #endif

@@ -66,6 +66,8 @@ public:
     void setWindowEffect(quint32 effectScene);
     void setWindowStartUpEffect(quint32 effectType);
 
+    static DNoTitlebarWindowHelper *windowHelper(const QWindow *window);
+
 signals:
     void themeChanged();
     void windowRadiusChanged();
