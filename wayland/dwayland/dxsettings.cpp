@@ -21,7 +21,6 @@ public:
         xcb_generic_event_t *event;
         while (m_connection) {
             if (xcb_connection_has_error(m_connection)) {
-                qWarning() << "xcb connection has error";
                 continue;
             }
 

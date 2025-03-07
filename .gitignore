@@ -1,6 +1,7 @@
 *.pro.user*
 build*/
 bin/
+.vscode/
 
 # C++ objects and libs
 
