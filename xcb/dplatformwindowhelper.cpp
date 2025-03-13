@@ -479,7 +479,11 @@ void DPlatformWindowHelper::requestActivateWindow()
     }
 #endif
 
+    // ActivateWindow is called recursively in qt6.8
+#if QT_VERSION < QT_VERSION_CHECK(6, 8, 0)
     helper->m_frameWindow->handle()->requestActivateWindow();
+#endif
+
 #ifdef Q_OS_LINUX
     // 对于有parent的窗口，需要调用此接口让其获得输入焦点
     xcb_set_input_focus(DPlatformIntegration::xcbConnection()->xcb_connection(),
@@ -624,10 +628,15 @@ bool DPlatformWindowHelper::eventFilter(QObject *watched, QEvent *event)
                 mevent->mutablePoint().setScenePosition(m_nativeWindow->window()->mapFromGlobal(e->globalPosition()));
                 qApp->sendEvent(m_nativeWindow->window(), mevent.data());
 #else
-                QScopedPointer<QMutableSinglePointEvent> mevent(QMutableSinglePointEvent::from(e->clone()));
-                QMutableEventPoint::setPosition(mevent->point(0), m_nativeWindow->window()->mapFromGlobal(e->globalPosition()));
-                QMutableEventPoint::setScenePosition(mevent->point(0), m_nativeWindow->window()->mapFromGlobal(e->globalPosition()));
-                qApp->sendEvent(m_nativeWindow->window(), mevent.data());
+                if (!e->points().isEmpty()) {
+                    QEventPoint &point = e->m_points[0];
+                    const auto pos = m_frameWindow->mapFromGlobal(e->globalPosition());
+                    QEventPoint targetPoint = QMutableEventPoint::withTimeStamp(point.timestamp(), point.id(), point.state(),
+                                                      pos, pos, pos);
+                    QMutableEventPoint::update(targetPoint, point);
+                    m_frameWindow->mouseMoveEvent(e);
+                    qApp->sendEvent(m_nativeWindow->window(), e);
+                }
 #endif
                 return true;
             }
@@ -719,10 +728,15 @@ bool DPlatformWindowHelper::eventFilter(QObject *watched, QEvent *event)
                 mevent->mutablePoint().setScenePosition(m_frameWindow->mapFromGlobal(e->globalPosition()));
                 qApp->sendEvent(m_frameWindow, mevent.data());
 #else
-                QScopedPointer<QMutableSinglePointEvent> mevent(QMutableSinglePointEvent::from(e->clone()));
-                QMutableEventPoint::setPosition(mevent->point(0), m_frameWindow->mapFromGlobal(e->globalPosition()));
-                QMutableEventPoint::setScenePosition(mevent->point(0), m_frameWindow->mapFromGlobal(e->globalPosition()));
-                qApp->sendEvent(m_frameWindow, mevent.data());
+                if (!e->points().isEmpty()) {
+                    QEventPoint &point = e->m_points[0];
+                    const auto pos = m_frameWindow->mapFromGlobal(e->globalPosition());
+                    QEventPoint targetPoint = QMutableEventPoint::withTimeStamp(point.timestamp(), point.id(), point.state(),
+                                                      pos, pos, pos);
+                    QMutableEventPoint::update(targetPoint, point);
+                    e->m_source = Qt::MouseEventSynthesizedByQt;
+                    m_frameWindow->mouseMoveEvent(e);
+                }
 #endif
                 return true;
             }

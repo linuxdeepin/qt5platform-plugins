@@ -924,8 +924,13 @@ void DFrameWindow::updateShadow()
     update();
 
     // 阴影更新后尝试刷新内部窗口
-    if (m_contentBackingStore)
+    if (m_contentBackingStore) {
+        // Timer maybe miss killed if updateShadow is called frequently.
+        if (m_paintShadowOnContentTimerId >= 0) {
+            killTimer(m_paintShadowOnContentTimerId);
+        }
         m_paintShadowOnContentTimerId = startTimer(300, Qt::PreciseTimer);
+    }
 }
 
 void DFrameWindow::updateShadowAsync(int delaye)
