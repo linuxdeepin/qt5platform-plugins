@@ -19,17 +19,7 @@ public:
 
     void run() override {
         xcb_generic_event_t *event;
-        while (m_connection) {
-            if (xcb_connection_has_error(m_connection)) {
-                continue;
-            }
-
-            event = xcb_wait_for_event(m_connection);
-            if (event == nullptr) {
-                qWarning() << "xcb generic event is null";
-                continue;
-            }
-
+        while (m_connection && !xcb_connection_has_error(m_connection) && (event = xcb_wait_for_event(m_connection))) {
             uint response_type = event->response_type & ~0x80;
             switch (response_type) {
                 case XCB_PROPERTY_NOTIFY: {
