@@ -675,16 +675,17 @@ void DWaylandShellManager::handleGeometryChange(QWaylandWindow *window)
 }
 
 typedef DDEShellSurface KCDFace;
-Qt::WindowStates getwindowStates(KCDFace *surface)
+Qt::WindowStates getwindowStates(KCDFace *surface, const QWaylandWindow *window)
 {
-    // handleWindowStateChanged 不能传 WindowActive 状态，单独处理
-    Qt::WindowStates state = Qt::WindowNoState;
+    Qt::WindowStates state = window->window()->windowStates();
     if (surface->isMinimized())
         state = Qt::WindowMinimized;
     else if (surface->isFullscreen())
         state = Qt::WindowFullScreen;
     else if (surface->isMaximized())
         state = Qt::WindowMaximized;
+    else if (surface->isActive())
+        state = Qt::WindowActive;
 
     return state;
 }
@@ -701,13 +702,13 @@ void DWaylandShellManager::handleWindowStateChanged(QWaylandWindow *window)
 #define STATE_CHANGED(sig)                                                                      \
     QObject::connect(ddeShellSurface, &KCDFace::sig, window, [window, ddeShellSurface](){       \
         qCDebug(dwlp) << "==== "#sig ;                                                          \
-        const Qt::WindowStates &newState = getwindowStates(ddeShellSurface);                    \
+        const Qt::WindowStates &newState = getwindowStates(ddeShellSurface, window);            \
         const int &oldState = window->property(d_oldState).toInt();                             \
         QWindowSystemInterface::handleWindowStateChanged(window->window(), newState, oldState); \
         window->setProperty(d_oldState, static_cast<int>(newState));                            \
     })
 
-    window->setProperty(d_oldState, (int)getwindowStates(ddeShellSurface));
+    window->setProperty(d_oldState, (int)getwindowStates(ddeShellSurface, window));
 
     STATE_CHANGED(minimizedChanged);
     STATE_CHANGED(maximizedChanged);
