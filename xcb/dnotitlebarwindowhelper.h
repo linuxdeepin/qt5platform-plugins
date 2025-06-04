@@ -15,6 +15,9 @@
 
 QT_BEGIN_NAMESPACE
 class QWindow;
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+class QPointerEvent;
+#endif
 QT_END_NAMESPACE
 
 DPP_BEGIN_NAMESPACE
@@ -104,6 +107,14 @@ private:
     bool isEnableSystemMove(quint32 winId);
     bool updateWindowBlurAreasForWM();
     void updateWindowShape();
+    
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+    // 新增：QML窗口触摸拖拽处理函数 (仅Qt6)
+    bool handleTouchDragForQML(QPointerEvent *touchEvent);
+#else
+    // Qt5版本的触摸拖拽处理函数
+    bool handleTouchDragForQML(QTouchEvent *touchEvent);
+#endif
 
     void onWindowSizeChanged();
 
@@ -114,6 +125,7 @@ private:
     quint32 m_windowID;
     bool m_windowMoving = false;
     bool m_nativeSettingsValid = false;
+    bool m_isQuickWindow = false;  // 新增：缓存窗口类型判断结果
 
     QVector<Utility::BlurArea> m_blurAreaList;
     QList<QPainterPath> m_blurPathList;

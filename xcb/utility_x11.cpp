@@ -168,8 +168,15 @@ void Utility::cancelWindowMoveResize(quint32 WId)
 
 void Utility::updateMousePointForWindowMove(quint32 WId, bool finished/* = false*/)
 {
-    xcb_client_message_event_t xev;
+    // 获取主屏幕的光标位置并调用重载版本
     const QPoint &globalPos = qApp->primaryScreen()->handle()->cursor()->pos();
+    updateMousePointForWindowMove(WId, globalPos, finished);
+}
+
+// 新增：支持多屏幕的版本，接受自定义全局坐标
+void Utility::updateMousePointForWindowMove(quint32 WId, const QPoint &globalPos, bool finished/* = false*/)
+{
+    xcb_client_message_event_t xev;
 
     xev.response_type = XCB_CLIENT_MESSAGE;
     xev.type = internAtom("_DEEPIN_MOVE_UPDATE");
