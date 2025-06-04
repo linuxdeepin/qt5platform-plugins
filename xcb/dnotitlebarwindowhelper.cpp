@@ -13,6 +13,7 @@
 #include "dplatformintegration.h"
 
 #include <QMouseEvent>
+#include <QTouchEvent>
 #include <QTimer>
 #include <QMetaProperty>
 #include <QScreen>
@@ -39,6 +40,9 @@ DNoTitlebarWindowHelper::DNoTitlebarWindowHelper(QWindow *window, quint32 window
     // 不允许设置窗口为无边框的
     if (window->flags().testFlag(Qt::FramelessWindowHint))
         window->setFlags(window->flags() & ~Qt::FramelessWindowHint);
+
+    // 初始化窗口类型判断结果
+    m_isQuickWindow = window->inherits("QQuickWindow");
 
     mapped[window] = this;
     m_nativeSettingsValid = DPlatformIntegration::buildNativeSettings(this, windowID);
@@ -524,15 +528,35 @@ bool DNoTitlebarWindowHelper::windowEvent(QEvent *event)
         VtableHook::resetVtable(w);
         return w->event(event);
     }
+    DNoTitlebarWindowHelper *self = mapped.value(w);
 
     // get touch begin position
     static bool isTouchDown = false;
     static QPointF touchBeginPosition;
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+    static QHash<int, QObject*> touchPointGrabbers; // 新增：记录触摸点的grabber状态
+    const auto isQuickWindow = self->m_isQuickWindow;
+#endif
+
     if (event->type() == QEvent::TouchBegin) {
         isTouchDown = true;
+        // ========== 新增：记录处理前的grabber状态 ==========
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+        if (isQuickWindow && event->isPointerEvent()) {
+            QPointerEvent *pe = static_cast<QPointerEvent*>(event);
+            touchPointGrabbers.clear();
+            for (const auto &point : pe->points()) {
+                QObject *grabber = pe->exclusiveGrabber(point);
+                touchPointGrabbers[point.id()] = grabber;
+            }
+        }
+#endif
     }
     if (event->type() == QEvent::TouchEnd || event->type() == QEvent::MouseButtonRelease) {
         isTouchDown = false;
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+        touchPointGrabbers.clear(); // 清理grabber记录
+#endif
     }
     if (isTouchDown && event->type() == QEvent::MouseButtonPress) {
         touchBeginPosition = static_cast<QMouseEvent*>(event)->globalPos();
@@ -546,7 +570,6 @@ bool DNoTitlebarWindowHelper::windowEvent(QEvent *event)
         }
     }
 
-    DNoTitlebarWindowHelper *self = mapped.value(w);
     quint32 winId = self->m_windowID;
     bool is_mouse_move = event->type() == QEvent::MouseMove && static_cast<QMouseEvent*>(event)->buttons() == Qt::LeftButton;
 
@@ -570,10 +593,15 @@ bool DNoTitlebarWindowHelper::windowEvent(QEvent *event)
         g_pressPoint[this] = dynamic_cast<QMouseEvent*>(event)->globalPos();
     }
 
+    // ========== 修改：鼠标事件处理保持原有逻辑 ==========
     if (is_mouse_move && !event->isAccepted() && g_pressPoint.contains(this)) {
         QMouseEvent *me = static_cast<QMouseEvent*>(event);
         QRect windowRect = QRect(QPoint(0, 0), w->size());
-        if (!windowRect.contains(me->windowPos().toPoint())) {
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+        if (!windowRect.contains(me->scenePosition().toPoint())) {
+#else
+        if (!windowRect.contains(me->localPos().toPoint())) {
+#endif
             return ret;
         }
 
@@ -583,6 +611,7 @@ bool DNoTitlebarWindowHelper::windowEvent(QEvent *event)
         }
 
         if (!self->m_windowMoving && self->isEnableSystemMove(winId)) {
+            qDebug() << "Starting mouse drag for window ID:" << winId;
             self->m_windowMoving = true;
 
             event->accept();
@@ -593,6 +622,39 @@ bool DNoTitlebarWindowHelper::windowEvent(QEvent *event)
             }
         }
     }
+
+    // ========== 新增：QML窗口触摸事件的特殊处理 ==========
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+    if (isQuickWindow && event->isPointerEvent()) {
+        QPointerEvent *pe = static_cast<QPointerEvent*>(event);
+        
+        // 检查是否是触摸事件
+        bool isTouchEvent = (event->type() == QEvent::TouchBegin || 
+                            event->type() == QEvent::TouchUpdate || 
+                            event->type() == QEvent::TouchEnd);
+        
+        if (isTouchEvent) {
+            // 检查是否有新的grabber产生（说明QML Item处理了触摸事件）
+            bool wasHandledByQML = false;
+            for (const auto &point : pe->points()) {
+                QObject *grabberBefore = touchPointGrabbers.value(point.id());
+                QObject *grabberAfter = pe->exclusiveGrabber(point);
+                
+                if (grabberBefore != grabberAfter && grabberAfter != nullptr) {
+                    wasHandledByQML = true;
+                    break;
+                }
+            }
+            
+            // 如果没有QML Item处理触摸事件，尝试窗口拖拽
+            if (!wasHandledByQML && self->isEnableSystemMove(winId)) {
+                if (self->handleTouchDragForQML(pe)) {
+                    return ret;
+                }
+            }
+        }
+    }
+#endif
 
     return ret;
 }
@@ -732,5 +794,106 @@ void DNoTitlebarWindowHelper::updateMoveWindow(quint32 winId)
 {
     Utility::updateMousePointForWindowMove(winId);
 }
+
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+bool DNoTitlebarWindowHelper::handleTouchDragForQML(QPointerEvent *touchEvent)
+{
+    QWindow *w = this->m_window;
+    static QHash<int, QPointF> touchStartPositions;
+    static QHash<int, bool> touchIsMoving;
+    static QHash<int, QPointF> lastTouchPositions; // 新增：记录最后的触摸位置用于更新
+    
+    const auto points = touchEvent->points();
+    if (points.isEmpty()) {
+        return false;
+    }
+    
+    // 只处理第一个触摸点
+    const auto &point = points.first();
+    int touchId = point.id();
+    
+    // ========== 新增：多屏幕坐标处理 ==========
+    QScreen *windowScreen = w->screen();
+    QPointF globalPos = point.globalPosition();
+    QPointF localPos = point.position();
+    
+    switch (touchEvent->type()) {
+    case QEvent::TouchBegin: {
+        touchStartPositions[touchId] = globalPos;
+        lastTouchPositions[touchId] = globalPos;
+        touchIsMoving[touchId] = false;
+        return false; // 不消费事件，让QML先处理
+    }
+    
+    case QEvent::TouchUpdate: {
+        if (!touchStartPositions.contains(touchId)) {
+            return false;
+        }
+        
+        QPointF startPos = touchStartPositions[touchId];
+        QPointF currentPos = globalPos;
+        QPointF delta = currentPos - startPos;
+        qreal distance = delta.manhattanLength();
+        qreal threshold = QGuiApplication::styleHints()->startDragDistance();
+        
+        // 更新最后触摸位置
+        lastTouchPositions[touchId] = currentPos;
+        
+        // 检查移动距离是否达到拖拽阈值
+        if (!touchIsMoving[touchId] && distance >= threshold) {
+            
+            // ========== 修改：多屏幕环境下的窗口边界检查 ==========
+            QRect windowRect = QRect(QPoint(0, 0), w->size());
+            QPoint localTouchPos = localPos.toPoint();
+            bool inBounds = windowRect.contains(localTouchPos);
+            
+            // 使用本地坐标检查（更可靠）
+            if (!inBounds) {
+                return false;
+            }
+            
+            // 开始窗口移动
+            if (isEnableSystemMove(m_windowID)) {
+                qDebug() << "Starting touch drag for QML window ID:" << m_windowID
+                         << "on screen:" << (windowScreen ? windowScreen->name() : "unknown");
+                m_windowMoving = true;
+                touchIsMoving[touchId] = true;
+                
+                startMoveWindow(m_windowID);
+                touchEvent->accept();
+                return true;
+            }
+        } else if (touchIsMoving[touchId] && m_windowMoving) {
+            // ========== 修改：使用带坐标参数的updateMousePointForWindowMove ==========
+            Utility::updateMousePointForWindowMove(m_windowID, currentPos.toPoint());
+            touchEvent->accept();
+            return true;
+        }
+        break;
+    }
+    
+    case QEvent::TouchEnd: {
+        if (touchIsMoving.value(touchId, false)) {
+            m_windowMoving = false;
+            // ========== 修改：使用最后的触摸位置结束窗口移动 ==========
+            QPointF lastPos = lastTouchPositions.value(touchId, globalPos);
+            Utility::updateMousePointForWindowMove(m_windowID, lastPos.toPoint(), true);
+            qDebug() << "Finished touch drag for QML window ID:" << m_windowID;
+        }
+        
+        // 清理状态
+        touchStartPositions.remove(touchId);
+        touchIsMoving.remove(touchId);
+        lastTouchPositions.remove(touchId);
+        break;
+    }
+    
+    default:
+        break;
+    }
+    
+    return false;
+}
+#endif
 
 DPP_END_NAMESPACE
