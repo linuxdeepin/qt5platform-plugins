@@ -678,12 +678,12 @@ typedef DDEShellSurface KCDFace;
 Qt::WindowStates getwindowStates(KCDFace *surface, const QWaylandWindow *window)
 {
     Qt::WindowStates state = window->window()->windowStates();
-    if (surface->isMinimized())
-        state = Qt::WindowMinimized;
-    else if (surface->isFullscreen())
+    if (surface->isFullscreen() && surface->isActive())
         state = Qt::WindowFullScreen;
-    else if (surface->isMaximized())
+    else if (surface->isMaximized() && surface->isActive())
         state = Qt::WindowMaximized;
+    else if (surface->isMinimized())
+        state = Qt::WindowMinimized;
     else if (surface->isActive())
         state = Qt::WindowActive;
 
