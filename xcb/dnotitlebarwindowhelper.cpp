@@ -398,7 +398,7 @@ void DNoTitlebarWindowHelper::updateWindowEffectFromProperty()
     const QVariant &v = m_window->property("_d_windowEffect");
     const quint32 effectScene = qvariant_cast<quint32>(v);
 
-    if (effectScene) {
+    if (v.isValid()) {
         setWindowEffect(effectScene);
     } else {
         resetProperty("windowEffect");
@@ -410,7 +410,7 @@ void DNoTitlebarWindowHelper::updateWindowStartUpEffectFromProperty()
     const QVariant &v = m_window->property("_d_windowStartUpEffect");
     const quint32 effectType = qvariant_cast<quint32>(v);
 
-    if (effectType) {
+    if (v.isValid()) {
         setWindowStartUpEffect(effectType);
     } else {
         resetProperty("windowStartUpEffect");
