@@ -4,7 +4,7 @@ Upstream-Contact: UnionTech Software Technology Co.,Ltd. <>
 Source: https://github.com/linuxdeepin/qt5platform-plugins
 
 # Config files
-Files: .gitignore clog.toml .clog.toml .gitlab-ci.yml .project qt5platform-plugins.pro CHANGELOG.md misc/*.xml src/*.pri
+Files: .gitignore clog.toml .clog.toml .gitlab-ci.yml .project qt5platform-plugins.pro CHANGELOG.md misc/*.xml src/*.pri VERSION
 Copyright: None
 License: CC0-1.0
 

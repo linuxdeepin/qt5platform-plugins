@@ -4,10 +4,9 @@
 
 cmake_minimum_required(VERSION 3.13)
 
-set(DTK_VERSION
-    "5.6.8"
-    CACHE STRING "define project version"
-)
+file(READ "${CMAKE_CURRENT_SOURCE_DIR}/VERSION" DTK_FILE_VERSION)
+string(STRIP "${DTK_FILE_VERSION}" DTK_FILE_VERSION)
+set(DTK_VERSION "${DTK_FILE_VERSION}" CACHE STRING "define project version")
 
 project(qt5platform-plugins
     VERSION ${DTK_VERSION}
