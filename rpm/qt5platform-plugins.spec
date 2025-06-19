@@ -4,8 +4,8 @@
 %endif
 
 Name:           dde-qt5platform-plugins
-Version:        5.0.25.1
-Release:        %{specrelease}
+Version: 5.7.17
+Release: 1
 Summary:        Qt platform plugins for DDE
 License:        GPLv3
 URL:            https://github.com/linuxdeepin/deepin-desktop-schemas

@@ -1,3 +1,27 @@
+# Changelog
+
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [5.7.17] - 2025-06-19
+
+### Changed
+
+- Enhance touch drag support for QML windows in qt6
+- Support VERSION file
+- Add auto release workflow
+- Update .syncexclude
+
+### Fixed
+
+- Fix: fix effectScene judging conditions.
+
+### Removed
+
+- Remove unused linglong.yaml
+
 <a name="1.2.2"></a>
 ## 1.2.2 (2019-05-29)
 
