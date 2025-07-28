@@ -39,11 +39,13 @@ inline static void init()
 Q_CONSTRUCTOR_FUNCTION(init)
 void DHighDpi::init()
 {
-    if (QGuiApplication::testAttribute(Qt::AA_DisableHighDpiScaling)
-            // 可以禁用此行为
-            || qEnvironmentVariableIsSet("D_DXCB_DISABLE_OVERRIDE_HIDPI")
+    if (qEnvironmentVariableIsSet("D_DXCB_DISABLE_OVERRIDE_HIDPI")
             // 无有效的xsettings时禁用
-            || !DXcbXSettings::getOwner()) {
+            || !DXcbXSettings::getOwner()
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
+            || QGuiApplication::testAttribute(Qt::AA_DisableHighDpiScaling)
+#endif
+        ) {
         // init函数可能会被重复调用, 此处应该清理VtableHook
         if (active) {
 #if QT_VERSION < QT_VERSION_CHECK(5, 14, 0)
@@ -67,10 +69,13 @@ void DHighDpi::init()
         qunsetenv("QT_USE_PHYSICAL_DPI");
     }
 
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
+    // Qt6中高DPI缩放总是启用的，无需设置AA_EnableHighDpiScaling
     if (!QGuiApplication::testAttribute(Qt::AA_EnableHighDpiScaling)) {
         QGuiApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
         QHighDpiScaling::initHighDpiScaling();
     }
+#endif
 
 #if QT_VERSION < QT_VERSION_CHECK(5, 14, 0)
     active = VtableHook::overrideVfptrFun(&QXcbScreen::pixelDensity, pixelDensity);

@@ -559,11 +559,19 @@ bool DNoTitlebarWindowHelper::windowEvent(QEvent *event)
 #endif
     }
     if (isTouchDown && event->type() == QEvent::MouseButtonPress) {
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+        touchBeginPosition = static_cast<QMouseEvent*>(event)->globalPosition().toPoint();
+#else
         touchBeginPosition = static_cast<QMouseEvent*>(event)->globalPos();
+#endif
     }
     // add some redundancy to distinguish trigger between system menu and system move
     if (event->type() == QEvent::MouseMove) {
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+        QPointF currentPos = static_cast<QMouseEvent*>(event)->globalPosition();
+#else
         QPointF currentPos = static_cast<QMouseEvent*>(event)->globalPos();
+#endif
         QPointF delta = touchBeginPosition  - currentPos;
         if (delta.manhattanLength() < QGuiApplication::styleHints()->startDragDistance()) {
             return VtableHook::callOriginalFun(w, &QWindow::event, event);
@@ -590,7 +598,11 @@ bool DNoTitlebarWindowHelper::windowEvent(QEvent *event)
     // keeping the moving state, we can just reset ti back to normal.
     if (event->type() == QEvent::MouseButtonPress) {
         self->m_windowMoving = false;
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+        g_pressPoint[this] = dynamic_cast<QMouseEvent*>(event)->globalPosition().toPoint();
+#else
         g_pressPoint[this] = dynamic_cast<QMouseEvent*>(event)->globalPos();
+#endif
     }
 
     // ========== 修改：鼠标事件处理保持原有逻辑 ==========
@@ -605,7 +617,11 @@ bool DNoTitlebarWindowHelper::windowEvent(QEvent *event)
             return ret;
         }
 
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+        QPointF delta = me->globalPosition() - g_pressPoint[this];
+#else
         QPointF delta = me->globalPos() - g_pressPoint[this];
+#endif
         if (delta.manhattanLength() < QGuiApplication::styleHints()->startDragDistance()) {
             return ret;
         }

@@ -559,7 +559,11 @@ bool DPlatformWindowHelper::windowRedirectContent(QWindow *window)
 
     const QVariant &value = window->property(redirectContent);
 
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+    if (value.typeId() == QMetaType::Bool)
+#else
     if (value.type() == QVariant::Bool)
+#endif
         return value.toBool();
 
     return window->surfaceType() == QSurface::OpenGLSurface;
@@ -612,7 +616,11 @@ bool DPlatformWindowHelper::eventFilter(QObject *watched, QEvent *event)
         case QEvent::MouseMove: {
             DQMouseEvent *e = static_cast<DQMouseEvent*>(event);
             const QRectF rectF(m_windowValidGeometry);
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+            const QPointF posF(e->position() - m_frameWindow->contentOffsetHint());
+#else
             const QPointF posF(e->localPos() - m_frameWindow->contentOffsetHint());
+#endif
 
             // QRectF::contains中判断时加入了右下边界
             if (!qFuzzyCompare(posF.x(), rectF.width())
