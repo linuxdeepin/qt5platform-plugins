@@ -31,6 +31,9 @@ public:
 protected:
     void paintEvent(QPaintEvent *pe) override;
     void mousePressEvent(QMouseEvent *event) override;
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+    bool eventFilter(QObject *obj, QEvent *event) override;
+#endif
 
 private slots:
     void onFontChanged();

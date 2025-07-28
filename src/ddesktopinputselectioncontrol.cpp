@@ -475,9 +475,15 @@ bool DDesktopInputSelectionControl::eventFilter(QObject *object, QEvent *event)
             break;
 
         QTouchEvent *touchEvent = static_cast<QTouchEvent *>(event);
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+        const auto& tpList = touchEvent->points();
+        const auto& tp = tpList.first();
+        QPointF touchPos = tp.lastPosition();
+#else
         QList<QTouchEvent::TouchPoint> tpList = touchEvent->touchPoints();
         QTouchEvent::TouchPoint tp = tpList.first();
         QPointF touchPos = tp.lastPos();
+#endif
 
         // 有效点击位置
         QRectF effectiveRect = anchorRectangle();
@@ -511,7 +517,11 @@ bool DDesktopInputSelectionControl::eventFilter(QObject *object, QEvent *event)
             break;
 
         QMouseEvent *me = static_cast<QMouseEvent *>(event);
-        const QPoint mousePos = me->screenPos().toPoint();
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+        QPoint mousePos = me->globalPosition().toPoint();
+#else
+        QPoint mousePos = me->screenPos().toPoint();
+#endif
 
         // calculate distances from mouse pos to each handle,
         // then choose to interact with the nearest handle
@@ -556,7 +566,12 @@ bool DDesktopInputSelectionControl::eventFilter(QObject *object, QEvent *event)
                 m_otherSelectionPoint = QPoint(otherRect.x() + otherRect.width() / 2, otherRect.bottom() + 4);
             }
 
-            QMouseEvent *mouseEvent = new QMouseEvent(me->type(), me->localPos(), me->windowPos(), me->screenPos(),
+            QMouseEvent *mouseEvent = new QMouseEvent(me->type(), 
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+                                                      me->position(), me->scenePosition(), me->globalPosition(),
+#else
+                                                      me->localPos(), me->windowPos(), me->screenPos(),
+#endif
                                                       me->button(), me->buttons(), me->modifiers(), me->source());
             m_eventQueue.append(mouseEvent);
             return true;
@@ -570,7 +585,11 @@ bool DDesktopInputSelectionControl::eventFilter(QObject *object, QEvent *event)
         m_handleVisible = true;
 
         QMouseEvent *me = static_cast<QMouseEvent *>(event);
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+        QPoint mousePos = me->globalPosition().toPoint();
+#else
         QPoint mousePos = me->screenPos().toPoint();
+#endif
         if (m_handleState == HandleIsHeld) {
             QPoint delta = m_handleDragStartedPosition - mousePos;
             const int startDragDistance = QGuiApplication::styleHints()->startDragDistance();

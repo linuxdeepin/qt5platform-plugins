@@ -36,7 +36,12 @@ DSelectedTextTooltip::DSelectedTextTooltip()
     m_textInfoVec.push_back({Paste, 0, qApp->translate("QLineEdit", "&Paste").split("(").at(0)});
 
     updateColor();
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+    // Qt6中使用事件处理替代fontChanged信号
+    qApp->installEventFilter(this);
+#else
     connect(qApp, &QGuiApplication::fontChanged, this, &DSelectedTextTooltip::onFontChanged);
+#endif
 
     // 更新文本信息
     onFontChanged();
@@ -45,6 +50,16 @@ DSelectedTextTooltip::DSelectedTextTooltip()
 DSelectedTextTooltip::~DSelectedTextTooltip()
 {
 }
+
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+bool DSelectedTextTooltip::eventFilter(QObject *obj, QEvent *event)
+{
+    if (event->type() == QEvent::ApplicationFontChange) {
+        onFontChanged();
+    }
+    return QRasterWindow::eventFilter(obj, event);
+}
+#endif
 
 void DSelectedTextTooltip::onFontChanged()
 {

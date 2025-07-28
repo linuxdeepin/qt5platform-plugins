@@ -515,23 +515,41 @@ void DFrameWindow::mouseMoveEvent(QMouseEvent *event)
     }
 set_edge:
     /// begin set cursor edge type
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+    if (event->position().x() <= m_contentGeometry.x()) {
+#else
     if (event->x() <= m_contentGeometry.x()) {
+#endif
         if (isFixedWidth)
             goto skip_set_cursor;
 
         mouseCorner = Utility::LeftEdge;
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+    } else if (event->position().x() < m_contentGeometry.right()) {
+#else
     } else if (event->x() < m_contentGeometry.right()) {
+#endif
         if (isFixedHeight)
             goto skip_set_cursor;
 
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+        if (event->position().y() <= m_contentGeometry.y()) {
+            mouseCorner = Utility::TopEdge;
+        } else if (!isFixedWidth || event->position().y() >= m_contentGeometry.bottom()) {
+#else
         if (event->y() <= m_contentGeometry.y()) {
             mouseCorner = Utility::TopEdge;
         } else if (!isFixedWidth || event->y() >= m_contentGeometry.bottom()) {
+#endif
             mouseCorner = Utility::BottomEdge;
         } else {
             goto skip_set_cursor;
         }
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+    } else if (!isFixedWidth && (!isFixedHeight || event->position().x() >= m_contentGeometry.right())) {
+#else
     } else if (!isFixedWidth && (!isFixedHeight || event->x() >= m_contentGeometry.right())) {
+#endif
         mouseCorner = Utility::RightEdge;
     } else {
         goto skip_set_cursor;

@@ -17,7 +17,7 @@
 DPP_BEGIN_NAMESPACE
 
 class DPlatformSettings;
-class DNativeSettings : public QAbstractDynamicMetaObject
+class Q_DECL_HIDDEN DNativeSettings : public QAbstractDynamicMetaObject
 {
 public:
     explicit DNativeSettings(QObject *base, DPlatformSettings *settings, bool global_settings);
