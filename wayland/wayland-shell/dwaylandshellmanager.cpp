@@ -144,6 +144,8 @@ static void checkIsDWayland(const QString &function)
 {
 #ifndef D_DEEPIN_IS_DWAYLAND
     qCWarning(dwlp) << "This package is not compiled as dwayland, and [" << function << "] not support in this version.";
+#else
+    Q_UNUSED(function)
 #endif
 }
 

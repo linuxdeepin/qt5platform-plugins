@@ -159,6 +159,7 @@ void DHighDpi::removeScreenFactorCache(QScreen *screen)
     } else {
         screenFactorMap.clear();
 #else
+    Q_UNUSED(screen)
     {
 #endif
         // 刷新所有窗口

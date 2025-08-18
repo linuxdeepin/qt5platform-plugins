@@ -15,7 +15,7 @@ QT_END_NAMESPACE
 
 DPP_BEGIN_NAMESPACE
 
-class Q_DECL_HIDDEN DPlatformSettings
+class DPlatformSettings
 {
 public:
     virtual ~DPlatformSettings() {}
@@ -42,13 +42,13 @@ protected:
     void handleNotify(const QByteArray &signal, qint32 data1, qint32 data2);
 
 private:
-    struct Q_DECL_HIDDEN Callback
+    struct Callback
     {
         PropertyChangeFunc func;
         void *handle;
     };
 
-    struct Q_DECL_HIDDEN SignalCallback
+    struct SignalCallback
     {
         SignalFunc func;
         void *handle;

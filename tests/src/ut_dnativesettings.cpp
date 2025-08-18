@@ -9,11 +9,11 @@
 
 DPP_USE_NAMESPACE
 
-class TDNativeSettings : public testing::Test
+class GTEST_API_ TDNativeSettings : public testing::Test
 {
 protected:
-    void SetUp();
-    void TearDown();
+    void SetUp() override;
+    void TearDown() override;
 
     QWindow *window = nullptr;
 };

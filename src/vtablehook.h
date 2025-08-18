@@ -95,7 +95,7 @@ public:
         quintptr fun1_offset = toQuintptr(&fun1);
         quintptr fun2_offset = toQuintptr(&fun2);
 
-        if (fun1_offset < 0 || fun1_offset > UINT_LEAST16_MAX)
+        if (fun1_offset > UINT_LEAST16_MAX)
             return false;
 
         quintptr *vfun = vfptr_t1 + fun1_offset / sizeof(quintptr);
@@ -180,7 +180,7 @@ public:
         quintptr fun1_offset = toQuintptr(&fun1);
         quintptr fun2_offset = toQuintptr(&fun2);
 
-        if (fun1_offset < 0 || fun1_offset > UINT_LEAST16_MAX)
+        if (fun1_offset > UINT_LEAST16_MAX)
             return false;
 
         quintptr *vfun = vfptr_t1 + fun1_offset / sizeof(quintptr);
