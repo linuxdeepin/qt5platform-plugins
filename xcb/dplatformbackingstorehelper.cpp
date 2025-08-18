@@ -10,7 +10,9 @@
 
 #ifdef Q_OS_LINUX
 #define private public
+#define protected public
 #include "qxcbbackingstore.h"
+#undef protected
 #undef private
 #endif
 
@@ -158,12 +160,7 @@ void DPlatformBackingStoreHelper::resize(const QSize &size, const QRegion &stati
     VtableHook::callOriginalFun(this->backingStore(), &QPlatformBackingStore::resize, size, staticContents);
 
     QXcbBackingStore *bs = static_cast<QXcbBackingStore*>(backingStore());
-#if QT_VERSION < QT_VERSION_CHECK(5, 12, 0)
     QXcbShmImage *shm_image = reinterpret_cast<QXcbShmImage*>(bs->m_image);
-#else
-    struct _QXcbBackingStore { QImage *m_image; }; // Expose m_image
-    QXcbShmImage *shm_image = reinterpret_cast<QXcbShmImage*>(reinterpret_cast<_QXcbBackingStore*>( &bs )->m_image);
-#endif
 
     if (shm_image->m_shm_info.shmaddr) {
         DPlatformWindowHelper *window_helper = DPlatformWindowHelper::mapped.value(bs->window()->handle());

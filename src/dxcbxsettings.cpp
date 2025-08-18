@@ -48,7 +48,7 @@ static xcb_atom_t internAtom(xcb_connection_t *conn, const char *name)
     return atom;
 }
 
-static QByteArray atomName(xcb_connection_t *conn, xcb_atom_t atom)
+[[maybe_unused]] static QByteArray atomName(xcb_connection_t *conn, xcb_atom_t atom)
 {
     xcb_get_atom_name_cookie_t cookie = xcb_get_atom_name(conn, atom);
     xcb_get_atom_name_reply_t *reply = xcb_get_atom_name_reply(conn, cookie, nullptr);
@@ -169,9 +169,12 @@ class Q_DECL_HIDDEN DXcbXSettingsPrivate
 {
 public:
     DXcbXSettingsPrivate(xcb_connection_t *connection, const QByteArray &property, DXcbXSettings *qq)
-        : connection(connection)
+        : q_ptr(qq)
+        , connection(connection)
+        , x_settings_window(0)
+        , x_settings_atom(0)
+        , serial(-1)
         , initialized(false)
-        , q_ptr(qq)
     {
         if (property.isEmpty()) {
             x_settings_atom = internAtom(connection, "_XSETTINGS_SETTINGS");

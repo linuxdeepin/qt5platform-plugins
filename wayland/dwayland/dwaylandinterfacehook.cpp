@@ -247,7 +247,8 @@ bool DWaylandInterfaceHook::supportForSplittingWindowByType(quint32 wid, quint32
     if(!window || !window->handle())
         return false;
     DNoTitlebarWlWindowHelper::setWindowProperty(window, ::supportForSplittingWindow, false);
-    return window->property(::supportForSplittingWindow).toInt() >= screenSplittingType;
+    int propertyValue = window->property(::supportForSplittingWindow).toInt();
+    return propertyValue >= 0 && static_cast<quint32>(propertyValue) >= screenSplittingType;
 }
 
 DPP_END_NAMESPACE

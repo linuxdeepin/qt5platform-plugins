@@ -21,7 +21,7 @@ DPP_BEGIN_NAMESPACE
 
 class DXcbXSettingsPrivate;
 
-class Q_DECL_HIDDEN DXcbXSettings : public DPlatformSettings
+class DXcbXSettings : public DPlatformSettings
 {
     Q_DECLARE_PRIVATE(DXcbXSettings)
 public:

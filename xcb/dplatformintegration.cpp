@@ -873,7 +873,7 @@ static bool updateCursorTheme(void *dpy)
     return setTheme;
 }
 
-static xcb_cursor_t overrideCreateFontCursor(QXcbCursor *xcb_cursor, QCursor *c, QWindow *window)
+[[maybe_unused]] static xcb_cursor_t overrideCreateFontCursor(QXcbCursor *xcb_cursor, QCursor *c, QWindow *window)
 {
     const Qt::CursorShape cshape = c->shape();
     xcb_connection_t *conn = xcb_cursor->xcb_connection();
@@ -944,6 +944,7 @@ static void overrideChangeCursor(QPlatformCursor *cursorHandle, QCursor * cursor
     if (widget->property(disableOverrideCursor).toBool())
         return;
 
+    Q_UNUSED(w) // Variable is used in some Qt versions but not all
 #ifdef D_ENABLE_CURSOR_HOOK
     // set cursor size scale
     static bool xcursrSizeIsSet = qEnvironmentVariableIsSet("XCURSOR_SIZE");

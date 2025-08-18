@@ -20,7 +20,7 @@ static void propertyChangedfunc(xcb_connection_t *, const QByteArray &, const QV
     testPropertyChangedCallback = true;
 }
 
-class TDXcbXSettings : public testing::Test
+class GTEST_API_ TDXcbXSettings : public testing::Test
 {
 protected:
     void SetUp();

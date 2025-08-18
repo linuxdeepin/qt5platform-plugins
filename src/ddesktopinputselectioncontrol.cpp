@@ -127,7 +127,7 @@ QRect DDesktopInputSelectionControl::cursorHandleRect() const
     return handleRectForCursorRect(cursorRectangle());
 }
 
-static int getInputRectangleY(const QPoint &pos)
+[[maybe_unused]] static int getInputRectangleY(const QPoint &pos)
 {
     // 保证handle不会超出TextEdit类输入框
     int posY = pos.y();

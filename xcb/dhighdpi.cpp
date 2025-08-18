@@ -155,13 +155,14 @@ qreal DHighDpi::devicePixelRatio(QPlatformWindow *w)
 
 void DHighDpi::onDPIChanged(xcb_connection_t *connection, const QByteArray &name, const QVariant &property, void *handle)
 {
+    Q_UNUSED(connection)
+    Q_UNUSED(name)
+    Q_UNUSED(handle)
+    
     static bool dynamic_dpi = qEnvironmentVariableIsSet("D_DXCB_RT_HIDPI");
 
     if (!dynamic_dpi)
         return;
-
-    Q_UNUSED(connection)
-    Q_UNUSED(name)
 
     // 判断值是否有效
     if (!property.isValid())

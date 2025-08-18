@@ -308,7 +308,6 @@ void DBackingStoreProxy::updateWallpaperShared()
     const qint32 *header = reinterpret_cast<const qint32*>(m_sharedMemory->constData());
     const uchar *content = reinterpret_cast<const uchar*>(m_sharedMemory->constData()) + HEADER_SIZE;
 
-    qint32 byte_count = header[0];
     qint32 image_width = header[1];
     qint32 image_height = header[2];
     qint32 image_format = header[3];
