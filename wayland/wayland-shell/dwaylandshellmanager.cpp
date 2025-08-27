@@ -150,7 +150,7 @@ static Region *ensureRegion(QObject *parent = nullptr)
 DWaylandShellManager::DWaylandShellManager()
     : m_registry (new Registry())
 {
-
+    HookOverride<QWaylandScreen>(&QPlatformScreen::availableGeometry, DWaylandShellManager::availableGeometry);
 }
 
 DWaylandShellManager::~DWaylandShellManager()
@@ -724,6 +724,12 @@ void DWaylandShellManager::handleWindowStateChanged(QWaylandWindow *window)
         qCDebug(dwlp) << "==== keepAboveChanged" << isKeepAbove;
         window->window()->setProperty(_DWAYALND_ "staysontop", isKeepAbove);
     });
+
+    QObject::connect(ddeShellSurface, &KCDFace::workAreaChanged, window, [](QWaylandScreen *q, const QRect &geom){
+        Q_UNUSED(geom);
+        QWindowSystemInterface::handleScreenGeometryChange(q->screen(), q->geometry(), q->availableGeometry());
+    });
+
     SYNC_FLAG(keepBelowChanged, ddeShellSurface->isKeepBelow(), Qt::WindowStaysOnBottomHint);
     SYNC_FLAG(minimizeableChanged, ddeShellSurface->isMinimizeable(), Qt::WindowMinimizeButtonHint);
     SYNC_FLAG(maximizeableChanged, ddeShellSurface->isMinimizeable(), Qt::WindowMaximizeButtonHint);
@@ -1017,4 +1023,14 @@ void DWaylandShellManager::createServerDecoration(QWaylandWindow *window)
     }
 }
 
+QRect DWaylandShellManager::availableGeometry(QPlatformScreen *self)
+{
+    QRect res = self->geometry();
+    do {
+        auto q = static_cast<QWaylandScreen *>(self);
+        if (!q) break;
+        res = DDEShellSurface::getWorkArea(q);
+    } while(false);
+    return res;
+}
 }
