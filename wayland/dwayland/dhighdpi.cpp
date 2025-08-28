@@ -170,7 +170,14 @@ void DHighDpi::removeScreenFactorCache(QScreen *screen)
 //        qDebug()<<window->devicePixelRatio();
         // 更新窗口大小
         if (window->handle()) {
+#if QT_VERSION < QT_VERSION_CHECK(6, 9, 2)
             QWindowSystemInterfacePrivate::GeometryChangeEvent gce(window, QHighDpi::fromNativePixels(window->handle()->geometry(), window));
+#else
+            QWindowSystemInterfacePrivate::GeometryChangeEvent gce(window, 
+                                                                   QHighDpi::fromNativeWindowGeometry(window->handle()->geometry(), window),
+                                                                   QHighDpi::fromNativePixels(window->handle()->geometry(), window));
+#endif
+            
             QGuiApplicationPrivate::processGeometryChangeEvent(&gce);
         }
     }
