@@ -152,11 +152,6 @@ static void onPrimaryNameChanged(xcb_connection_t *connection, const QByteArray 
     Q_UNUSED(property)
 
     // TODO 判断主屏的逻辑实际可以仅依赖Gdk/PrimaryMonitorName配置项目来确定，目前已经统一了qt接口中的屏幕名称和com.deepin.daemon.Display服务中的屏幕名称
-
-    // 非复制模式下依赖DDE/PrimaryMonitorRect配置确定主屏
-    if (!isCopyMode())
-        return;
-
     quint64 type = reinterpret_cast<quint64>(handle);
     switch (type) {
     case Gtk_PrimaryMonitorName:
@@ -289,10 +284,9 @@ void DWaylandIntegration::initialize()
 
     // 根据xsettings中的屏幕名称和屏幕坐标去区分哪个屏幕才是主屏
     dXSettings->globalSettings()->registerCallbackForProperty(XSETTINGS_PRIMARY_MONITOR_NAME, onPrimaryNameChanged, reinterpret_cast<void*>(XSettingType::Gtk_PrimaryMonitorName));
-    dXSettings->globalSettings()->registerCallbackForProperty(XSETTINGS_PRIMARY_MONITOR_RECT, onPrimaryRectChanged, reinterpret_cast<void*>(XSettingType::Dde_PrimaryMonitorRect));
 
     //初始化时应该设一次主屏，防止应用启动时主屏闪变
-    onPrimaryRectChanged(nullptr, XSETTINGS_PRIMARY_MONITOR_RECT, QVariant(), reinterpret_cast<void*>(XSettingType::Dde_PrimaryMonitorRect));
+    onPrimaryNameChanged(nullptr, XSETTINGS_PRIMARY_MONITOR_NAME, QVariant(), reinterpret_cast<void*>(XSettingType::Gtk_PrimaryMonitorName));
 
     QTimer *m_delayTimer = new QTimer;
     m_delayTimer->setInterval(10);
@@ -301,7 +295,6 @@ void DWaylandIntegration::initialize()
 
     QObject::connect(m_delayTimer, &QTimer::timeout, []{
         onPrimaryNameChanged(nullptr, XSETTINGS_PRIMARY_MONITOR_NAME, QVariant(), reinterpret_cast<void*>(XSettingType::Gtk_PrimaryMonitorName));
-        onPrimaryRectChanged(nullptr, XSETTINGS_PRIMARY_MONITOR_RECT, QVariant(), reinterpret_cast<void*>(XSettingType::Dde_PrimaryMonitorRect));
     });
 
     // 显示器信息发生变化时，刷新主屏信息
