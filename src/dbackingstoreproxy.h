@@ -40,10 +40,14 @@ public:
     void composeAndFlush(QWindow *window, const QRegion &region, const QPoint &offset,
                          QPlatformTextureList *textures,
                          bool translucentBackground) override;
-#else
+#elif QT_VERSION < QT_VERSION_CHECK(6, 9, 2)
     FlushResult rhiFlush(QWindow *window, qreal sourceDevicePixelRatio, const QRegion &region,
                          const QPoint &offset, QPlatformTextureList *textures,
                          bool translucentBackground) override;
+#else
+    FlushResult rhiFlush(QWindow *window, qreal sourceDevicePixelRatio, const QRegion &region,
+                         const QPoint &offset, QPlatformTextureList *textures,
+                         bool translucentBackground, qreal sourceTransformFactor = 0) override;
 #endif
 #if QT_VERSION <= QT_VERSION_CHECK(6, 2, 4)
     GLuint toTexture(const QRegion &dirtyRegion, QSize *textureSize, TextureFlags *flags) const override;
