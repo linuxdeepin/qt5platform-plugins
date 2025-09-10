@@ -725,7 +725,8 @@ void DWaylandShellManager::handleWindowStateChanged(QWaylandWindow *window)
         window->window()->setProperty(_DWAYALND_ "staysontop", isKeepAbove);
     });
 
-    QObject::connect(ddeShellSurface, &KCDFace::workAreaChanged, window, [](QWaylandScreen *q, const QRect &geom){
+    QObject::connect(ddeShellSurface, QOverload<QtWaylandClient::QWaylandScreen*, const QRect&>::of(
+            &KCDFace::workAreaChanged), window, [](QWaylandScreen *q, const QRect &geom){
         Q_UNUSED(geom);
         QWindowSystemInterface::handleScreenGeometryChange(q->screen(), q->geometry(), q->availableGeometry());
     });
