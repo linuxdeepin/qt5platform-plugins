@@ -190,7 +190,14 @@ static void onPrimaryNameChanged(xcb_connection_t *connection, const QByteArray 
     default:
         break;
     }
-    qDebug() << "primary screen info:" << QGuiApplication::primaryScreen()->name() << QGuiApplication::primaryScreen()->model() << QGuiApplication::primaryScreen()->geometry();
+    const auto primaryScreen = QGuiApplication::primaryScreen();
+    if (primaryScreen) {
+        qDebug() << "Primary screen name:" << primaryScreen->name()
+            << ", model:" << primaryScreen->model()
+            << ", geometry:" << primaryScreen->geometry();
+    } else {
+        qWarning() << "Primary screen is nullptr";
+    }
 }
 
 static void onPrimaryRectChanged(xcb_connection_t *connection, const QByteArray &key, const QVariant &property, void *handle)
@@ -253,7 +260,14 @@ static void onPrimaryRectChanged(xcb_connection_t *connection, const QByteArray 
     default:
         break;
     }
-    qDebug() << "Primary screen info:" << QGuiApplication::primaryScreen()->name() << QGuiApplication::primaryScreen()->model() << QGuiApplication::primaryScreen()->geometry();
+    const auto primaryScreen = QGuiApplication::primaryScreen();
+    if (primaryScreen) {
+        qDebug() << "Primary screen name:" << primaryScreen->name()
+            << ", model:" << primaryScreen->model()
+            << ", geometry:" << primaryScreen->geometry();
+    } else {
+        qWarning() << "Primary screen is nullptr";
+    }
 }
 
 DWaylandIntegration::DWaylandIntegration()
