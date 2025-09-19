@@ -39,7 +39,6 @@
 #include <DWayland/Client/ddeseat.h>
 #include <DWayland/Client/ddekeyboard.h>
 #include <DWayland/Client/strut.h>
-#include <DWayland/Client/fakeinput.h>
 #include <DWayland/Client/compositor.h>
 #include <DWayland/Client/blur.h>
 #include <DWayland/Client/region.h>
@@ -89,7 +88,6 @@ public:
     static void createStrut(quint32 name, quint32 version);
     static void createDDEPointer();
     static void createDDEKeyboard();
-    static void createDDEFakeInput();
     static void createBlurManager(quint32 name, quint32 version);
     static void createCompositor(quint32 name, quint32 version);
     static void createSurface();
@@ -99,7 +97,6 @@ public:
     static void setWindowStaysOnTop(QWaylandShellSurface *surface, const bool state);
     static void setWindowStaysOnBottom(QWaylandShellSurface *surface, const bool state);
     static void setDockStrut(QWaylandShellSurface *surface, const QVariant var);
-    static void setCursorPoint(QPointF pos);
     static void setEnableBlurWidow(QWaylandWindow *wlWindow, const QVariant &value);
     static void updateWindowBlurAreasForWM(QWaylandWindow *wlWindow, const QString &name, const QVariant &value);
     static void setDockAppItemMinimizedGeometry(QWaylandShellSurface *surface, const QVariant var);

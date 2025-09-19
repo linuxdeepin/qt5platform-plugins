@@ -97,7 +97,6 @@ QWaylandShellIntegration *QKWaylandShellIntegrationPlugin::create(const QString 
     connect(registry, &Registry::interfacesAnnounced, [] {
         DWaylandShellManager::createDDEPointer();
         DWaylandShellManager::createDDEKeyboard();
-        DWaylandShellManager::createDDEFakeInput();
     });
 
     connect(registry, &Registry::strutAnnounced,
