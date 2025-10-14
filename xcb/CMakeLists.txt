@@ -9,6 +9,9 @@ if(${QT_VERSION_MAJOR} STREQUAL "5")
     find_package(Qt5 REQUIRED COMPONENTS XcbQpa X11Extras EdidSupport XkbCommonSupport)
 else()
     find_package(Qt6 REQUIRED COMPONENTS OpenGL XcbQpaPrivate)
+    if(Qt6_VERSION VERSION_GREATER_EQUAL 6.10)
+      find_package(Qt6 COMPONENTS OpenGLPrivate REQUIRED)
+    endif()
 endif()
 
 # NOTE(sbw): 禁止语法树上的 vrp 优化，-O2/-O3 默认开启，会导致测试虚析构函数 HOOK 失败
