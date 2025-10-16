@@ -1,6 +1,6 @@
 # Maintainer: justforlxz <justforlxz@gmail.com>
 pkgname=deepin-qt5platform-plugins-git
-pkgver=5.7.23
+pkgver=5.7.24
 pkgrel=1
 sourcename=dde-qt5platform-plugins
 sourcetars=("$sourcename"_"$pkgver".tar.xz)
