@@ -238,12 +238,29 @@ bool VtableHook::ensureVtable(const void *obj, std::function<void ()> destoryObj
  * \brief VtableHook::hasVtable 对象的虚表已经被覆盖时返回true，否则返回false
  * \param obj
  * \return
+ * 
+ * 修复: 不仅检查地址是否在映射表中，还要验证当前对象的 vtable 是否与记录的 ghost vtable 匹配
+ * 防止地址重用导致误判
  */
 bool VtableHook::hasVtable(const void *obj)
 {
     quintptr **_obj = (quintptr**)(obj);
 
-    return objToGhostVfptr.contains(_obj);
+    // 验证 vtable 是否匹配
+    quintptr *ghost_vtable = objToGhostVfptr.value(obj);
+    if (!ghost_vtable) {
+        return false;
+    }
+    
+    // 检查当前对象的 vtable 指针是否指向我们记录的 ghost vtable
+    if (*_obj != adjustToEntry(ghost_vtable)) {
+        // vtable 不匹配，说明地址被重用了
+        qCDebug(vtableHook) << "hasVtable: vtable mismatch! Address reused by different object."
+                               << "obj:" << QString("0x%1").arg((quintptr)obj, 0, 16);        
+        return false;
+    }
+    
+    return true;
 }
 
 void VtableHook::resetVtable(const void *obj)
