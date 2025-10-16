@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.7.24] - 2025-10-16
+
+### Fixed
+
+- Compatibility with Qt 6.10
+- Improve vtable ownership verification in hasVtable
+
 ## [5.7.23] - 2025-09-25
 
 ## [5.7.22] - 2025-09-04
