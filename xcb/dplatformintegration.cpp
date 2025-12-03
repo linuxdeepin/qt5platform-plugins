@@ -1064,13 +1064,35 @@ static void cursorThemePropertyChanged(xcb_connection_t *connection, const QByte
     Q_UNUSED(property);
     Q_UNUSED(handle)
 
-    QMetaObject::invokeMethod(qApp, [](){
-        for (const auto window : qApp->allWindows()) {
-            auto cursor = window->cursor();
-            if (window->screen() && window->screen()->handle() && window->screen()->handle()->cursor())
-                overrideChangeCursor(window->screen()->handle()->cursor(), &cursor, window);
+    // TODO: https://qt-project.atlassian.net/browse/QTBUG-142329 这个BUG解决之后可将这里的代码删除
+    for (QScreen *screen : qApp->screens()) {
+        if (screen && screen->handle() && screen->handle()->cursor()) {
+            QXcbCursor *xcb_cursor = static_cast<QXcbCursor *>(screen->handle()->cursor());
+
+            if (xcb_cursor == nullptr) {
+                continue;
+            }
+            xcb_cursor->m_cursorHash.clear();
+
+            // source from: QXCBCursor::updateContext()
+            if (xcb_cursor->m_cursorContext) {
+                xcb_cursor_context_free(xcb_cursor->m_cursorContext);
+            }
+            xcb_cursor->m_cursorContext = nullptr;
+            xcb_connection_t *conn = xcb_cursor->xcb_connection();
+    
+            if (xcb_cursor_context_new(conn, xcb_cursor->m_screen->screen(), &xcb_cursor->m_cursorContext) < 0) {
+                xcb_cursor->m_cursorContext = nullptr;
+            }
         }
-    }, Qt::QueuedConnection);
+    }
+    
+    for (const auto window : qApp->allWindows()) {
+        auto cursor = window->cursor();
+        if (window->screen() && window->screen()->handle() && window->screen()->handle()->cursor()) {
+            overrideChangeCursor(window->screen()->handle()->cursor(), &cursor, window);
+        }
+    }
 }
 
 void DPlatformIntegration::initialize()
@@ -1196,6 +1218,7 @@ void DPlatformIntegration::initialize()
 
     // Qt中同样监听了这个属性的变化，但是只刷新了光标上下文却没有更新当前窗口的光标，无法做到光标的实时变化，所以加了该逻辑额外处理
     xSettings()->registerCallbackForProperty("Gtk/CursorThemeName", cursorThemePropertyChanged, nullptr);
+    xSettings()->registerCallbackForProperty("Gtk/CursorThemeSize", cursorThemePropertyChanged, nullptr);
 }
 
 #ifdef Q_OS_LINUX
