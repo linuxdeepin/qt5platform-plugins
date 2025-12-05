@@ -1074,7 +1074,9 @@ static void cursorThemePropertyChanged(xcb_connection_t *connection, const QByte
             }
             xcb_cursor->m_cursorHash.clear();
 
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
             // source from: QXCBCursor::updateContext()
+            // Note: m_cursorContext only exists in Qt6
             if (xcb_cursor->m_cursorContext) {
                 xcb_cursor_context_free(xcb_cursor->m_cursorContext);
             }
@@ -1084,6 +1086,7 @@ static void cursorThemePropertyChanged(xcb_connection_t *connection, const QByte
             if (xcb_cursor_context_new(conn, xcb_cursor->m_screen->screen(), &xcb_cursor->m_cursorContext) < 0) {
                 xcb_cursor->m_cursorContext = nullptr;
             }
+#endif
         }
     }
     
