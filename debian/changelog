@@ -1,3 +1,9 @@
+dde-qt5platform-plugins (5.7.29) unstable; urgency=medium
+
+  * fix: add Qt6 version guard for cursor context handling
+
+ -- fuleyi <fuleyi@uniontech.com>  Fri, 05 Dec 2025 13:45:50 +0800
+
 dde-qt5platform-plugins (5.7.28) unstable; urgency=medium
 
   * Release 5.7.28
