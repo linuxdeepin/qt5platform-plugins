@@ -1,17 +1,48 @@
 Source: dde-qt5platform-plugins
 Section: devel
 Priority: optional
-Maintainer: Deepin Packages Builder <packages@deepin.com>
-Build-Depends: debhelper (>=9), qtbase5-dev, qtbase5-private-dev,
- pkg-config, libqt5x11extras5-dev, libxcb-xkb-dev, libxcb-render-util0-dev,
- libxcb-image0-dev, libxcb-icccm4-dev, libxcb-keysyms1-dev, libegl1-mesa-dev,
- libmtdev-dev, libxkbcommon-x11-dev, libdbus-1-dev, libqt5opengl5-dev,
- libudev-dev, libxrender-dev,libxi-dev, libsm-dev, libxcb-xinerama0-dev,
- libfontconfig1-dev, libglib2.0-dev, libxcb-damage0-dev,
- libxcb-composite0-dev, libcairo2-dev, libkf5wayland-dev, libdwayland-dev,
-  qtwayland5-private-dev | libqt5waylandclient5-dev,
- libwayland-dev, libxcb-xinput-dev, libxcb-util-dev | libxcb-util0-dev,
- libx11-xcb-dev, libxcb-sync-dev, libxcb-randr0-dev, cmake, libgtest-dev, libgmock-dev, libdtkcommon-dev(>=5.6.16)
+Maintainer: Shanshan Ye <yeshanshan@uniontech.com>
+Build-Depends: debhelper-compat (= 12),
+ cmake,
+ pkg-config,
+ libgtest-dev,
+ libgmock-dev,
+ libdtkcommon-dev(>=5.6.16),
+ qtbase5-dev <!nodtk5>,
+ qtbase5-private-dev <!nodtk5>,
+ libqt5x11extras5-dev <!nodtk5>,
+ libqt5opengl5-dev <!nodtk5>,
+ qtwayland5-private-dev | libqt5waylandclient5-dev <!nodtk5>,
+ qt6-base-dev <!nodtk6>,
+ qt6-base-private-dev <!nodtk6>,
+ libxcb-cursor-dev <!nodtk6>,
+ libxcb-xkb-dev,
+ libxcb-render-util0-dev,
+ libxcb-image0-dev,
+ libxcb-icccm4-dev,
+ libxcb-keysyms1-dev,
+ libegl1-mesa-dev,
+ libmtdev-dev,
+ libxkbcommon-x11-dev,
+ libdbus-1-dev,
+ libudev-dev,
+ libxrender-dev,
+ libxi-dev,
+ libsm-dev,
+ libxcb-xinerama0-dev,
+ libfontconfig1-dev,
+ libglib2.0-dev,
+ libxcb-damage0-dev,
+ libxcb-composite0-dev,
+ libcairo2-dev,
+ libkf5wayland-dev <!nodtk5>,
+ libdwayland-dev <!nodtk5>,
+ libwayland-dev,
+ libxcb-xinput-dev,
+ libxcb-util-dev | libxcb-util0-dev,
+ libx11-xcb-dev,
+ libxcb-sync-dev,
+ libxcb-randr0-dev
 Standards-Version: 3.9.8
 
 Package: dde-qt5xcb-plugin
@@ -21,11 +52,20 @@ Conflicts: libqt5dxcb-plugin, qt5dxcb-plugin
 Breaks:dde-qt5integration (<< 0.2.8.1)
 Replaces: qt5dxcb-plugin
 Depends: ${shlibs:Depends}, ${misc:Depends}
-Description: Qt platform plugins
+Build-Profiles: <!nodtk5>
+Description: Qt platform plugins (DTK5 with Qt5)
  Qt platform plugins for DDE.
 
 Package: dde-qt5wayland-plugin
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}, qtwayland5
-Description: Qt platform plugins
+Build-Profiles: <!nodtk5>
+Description: Qt platform plugins (DTK5 with Qt5)
  Qt platform plugins for DDE.
+
+Package: dde-qt6xcb-plugin
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Build-Profiles: <!nodtk6>
+Description: Qt platform plugins (DTK6 with Qt6)
+ Qt platform plugins for DDE (Qt6 version).

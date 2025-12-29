@@ -4,12 +4,11 @@
 
 cmake_minimum_required(VERSION 3.13)
 
-file(READ "${CMAKE_CURRENT_SOURCE_DIR}/VERSION" DTK_FILE_VERSION)
-string(STRIP "${DTK_FILE_VERSION}" DTK_FILE_VERSION)
-set(DTK_VERSION "${DTK_FILE_VERSION}" CACHE STRING "define project version")
+file(READ "${CMAKE_CURRENT_SOURCE_DIR}/VERSION" FILE_VERSION)
+string(STRIP "${FILE_VERSION}" FILE_VERSION)
 
 project(qt5platform-plugins
-    VERSION ${DTK_VERSION}
+    VERSION ${FILE_VERSION}
     DESCRIPTION "DTK platform plugin module"
     HOMEPAGE_URL "https://github.com/linuxdeepin/qt5platform-plugins"
     LANGUAGES CXX C
@@ -22,15 +21,19 @@ endif ()
 include(GNUInstallDirs)
 include(CMakePackageConfigHelpers)
 
-if("${PROJECT_VERSION_MAJOR}" STREQUAL "5")
-    set(QT_VERSION_MAJOR "5")
-elseif("${PROJECT_VERSION_MAJOR}" STREQUAL "6")
-    set(QT_VERSION_MAJOR "6")
-    set(DTK_VERSION_MAJOR "6")
+option(DTK5 "Build DTK5." ON)
+if(DTK5)
+    set(DTK_VERSION_MAJOR "5")
 else()
-    message(SEND_ERROR "not support Prject Version ${PROJECT_VERSION}.")
+    set(DTK_VERSION_MAJOR "6")
 endif()
-message(${PROJECT_VERSION_MAJOR})
+
+set(DTK_VERSION_MINOR ${PROJECT_VERSION_MINOR})
+set(DTK_VERSION_PATCH ${PROJECT_VERSION_PATCH})
+set(DTK_VERSION "${DTK_VERSION_MAJOR}.${DTK_VERSION_MINOR}.${DTK_VERSION_PATCH}")
+set(QT_VERSION_MAJOR ${DTK_VERSION_MAJOR})
+
+message(STATUS "Building DTK${DTK_VERSION_MAJOR} (Qt${QT_VERSION_MAJOR}) version: ${DTK_VERSION}")
 
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
@@ -48,11 +51,10 @@ endif ()
 set(LIBRARY_OUTPUT_PATH ${CMAKE_BINARY_DIR}/plugins/platforms)
 
 add_subdirectory(xcb)
-if("${PROJECT_VERSION_MAJOR}" STREQUAL "5")
+if(DTK5)
     add_subdirectory(wayland)
 endif()
 if(BUILD_TESTING)
     enable_testing()
     add_subdirectory(tests)
 endif()
-message(${PROJECT_VERSION_MAJOR})
