@@ -22,8 +22,8 @@ build() {
 	cmake . -GNinja \
 		-DCMAKE_INSTALL_LIBDIR=lib \
 		-DCMAKE_INSTALL_PREFIX=/usr \
-                -DCMAKE_BUILD_TYPE=Release \
-                -DQT_XCB_PRIVATE_HEADERS=/usr/include/qtxcb-private
+		-DQT_XCB_PRIVATE_HEADERS=/usr/include/qtxcb-private \
+      	-DDTK5=ON
 	ninja
 }
 
