@@ -973,7 +973,12 @@ static void overrideChangeCursor(QPlatformCursor *cursorHandle, QCursor * cursor
     }
 #endif // D_ENABLE_CURSOR_HOOK
 
-    VtableHook::callOriginalFun(cursorHandle, &QPlatformCursor::changeCursor, cursor, widget);
+    if (cursor) {
+        VtableHook::callOriginalFun(cursorHandle, &QPlatformCursor::changeCursor, cursor, widget);
+    } else {
+        QCursor defaultCursor;
+        VtableHook::callOriginalFun(cursorHandle, &QPlatformCursor::changeCursor, &defaultCursor, widget);
+    }
 }
 
 static void hookXcbCursor(QScreen *screen)
