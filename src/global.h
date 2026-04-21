@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2022 Uniontech Software Technology Co.,Ltd.
+// SPDX-FileCopyrightText: 2017 - 2026 Uniontech Software Technology Co.,Ltd.
 //
 // SPDX-License-Identifier: LGPL-3.0-or-later
 
@@ -134,5 +134,8 @@ public:
     void proxyCall(FunctionType func);
 
 };
+
+bool isInEdgeMargin(const QPoint &pressLocalPos, const QSize &windowSize);
+
 DPP_END_NAMESPACE
 #endif // GLOBAL_H

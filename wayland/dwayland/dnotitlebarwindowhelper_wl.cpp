@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2022 Uniontech Software Technology Co.,Ltd.
+// SPDX-FileCopyrightText: 2017 - 2026 Uniontech Software Technology Co.,Ltd.
 //
 // SPDX-License-Identifier: LGPL-3.0-or-later
 
@@ -196,6 +196,12 @@ bool DNoTitlebarWlWindowHelper::windowEvent(QWindow *w, QEvent *event)
 
     if (is_mouse_move && !event->isAccepted()
             && w->geometry().contains(static_cast<QMouseEvent*>(event)->globalPos())) {
+        // 用按下时的起始点（本地坐标）做边缘检查，避免与系统手势冲突
+        QPoint localStartPos = w->mapFromGlobal(static_cast<QMouseEvent*>(event)->globalPos());
+        if (isInEdgeMargin(localStartPos, w->size())) {
+            return false;
+        }
+
         if (!self->m_windowMoving && self->isEnableSystemMove()) {
             self->m_windowMoving = true;
 

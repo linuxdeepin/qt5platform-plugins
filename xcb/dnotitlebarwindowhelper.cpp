@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2022 Uniontech Software Technology Co.,Ltd.
+// SPDX-FileCopyrightText: 2017 - 2026 Uniontech Software Technology Co.,Ltd.
 //
 // SPDX-License-Identifier: LGPL-3.0-or-later
 
@@ -617,6 +617,12 @@ bool DNoTitlebarWindowHelper::windowEvent(QEvent *event)
             return ret;
         }
 
+        // 用按下时的起始点（本地坐标）做边缘检查，避免与系统手势冲突
+        QPoint localStartPos = w->mapFromGlobal(g_pressPoint[this].toPoint());
+        if (isInEdgeMargin(localStartPos, w->size())) {
+            return ret;
+        }
+
 #if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
         QPointF delta = me->globalPosition() - g_pressPoint[this];
 #else
@@ -865,6 +871,10 @@ bool DNoTitlebarWindowHelper::handleTouchDragForQML(QPointerEvent *touchEvent)
             
             // 使用本地坐标检查（更可靠）
             if (!inBounds) {
+                return false;
+            }
+            QPoint localStartPos = w->mapFromGlobal(startPos.toPoint());
+            if (isInEdgeMargin(localStartPos, w->size())) {
                 return false;
             }
             
