@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2022 Uniontech Software Technology Co.,Ltd.
+// SPDX-FileCopyrightText: 2017 - 2026 Uniontech Software Technology Co.,Ltd.
 //
 // SPDX-License-Identifier: LGPL-3.0-or-later
 
@@ -35,6 +35,19 @@ void RunInThreadProxy::proxyCall(FunctionType func)
     connect(&scope, &QObject::destroyed, receiver, [func]() {
         (func)();
     }, Qt::QueuedConnection);
+}
+
+// 判断起始按压点是否在窗口左/右/下边缘的手势保护区内
+bool isInEdgeMargin(const QPoint &pressLocalPos, const QSize &windowSize)
+{
+    static int margin = []() {
+        bool ok;
+        int v = qEnvironmentVariableIntValue("D_DXCB_EDGE_MARGIN", &ok);
+        return (ok && v >= 0) ? v : 5;
+    }();
+    return pressLocalPos.x() < margin
+        || pressLocalPos.x() >= windowSize.width() - margin
+        || pressLocalPos.y() >= windowSize.height() - margin;
 }
 
 DPP_END_NAMESPACE
