@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [6.7.40] - 2026-04-23
+
+### Added
+
+- Add window edge margin detection for gesture conflict prevention
+
+### Changed
+
+- Chore: New release 6.7.33
+- Chore: New release 6.7.34
+- Chore: New release 6.7.35
+- Chore: New release 6.7.36
+- Chore: New release 6.7.37
+- Chore: New release 6.7.38
+- Chore: New release 6.7.39
+
+### Fixed
+
+- Set default cursor when cursor is null
+- Adapt vtable hook for Qt6 inheritance changes
+
 ## [6.7.39] - 2026-04-09
 
 ### Changed
