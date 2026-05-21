@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2022 Uniontech Software Technology Co.,Ltd.
+// SPDX-FileCopyrightText: 2022 - 2026 Uniontech Software Technology Co.,Ltd.
 //
 // SPDX-License-Identifier: LGPL-3.0-or-later
 
@@ -7,9 +7,7 @@
 #include "global.h"
 #include "../xcb/utility.h"
 
-#define protected public
 #include <qwindow.h>
-#undef protected
 
 #include <QtWaylandClientVersion>
 #include <QLoggingCategory>

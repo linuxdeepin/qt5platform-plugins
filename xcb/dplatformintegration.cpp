@@ -1,10 +1,8 @@
-// SPDX-FileCopyrightText: 2017 - 2022 Uniontech Software Technology Co.,Ltd.
+// SPDX-FileCopyrightText: 2017 - 2026 Uniontech Software Technology Co.,Ltd.
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#define private public
 #include <QGuiApplication>
-#undef private
 
 #include "dplatformintegration.h"
 #include "global.h"
@@ -28,10 +26,8 @@
 #endif
 
 #ifdef Q_OS_LINUX
-#define private public
 #include "qxcbcursor.h"
 #include "qxcbdrag.h"
-#undef private
 
 #include "windoweventhook.h"
 #include "xcbnativeeventfilter.h"
@@ -54,9 +50,7 @@
 #include <QStyleHints>
 
 #include <private/qguiapplication_p.h>
-#define protected public
 #include <private/qsimpledrag_p.h>
-#undef protected
 #include <qpa/qplatformnativeinterface.h>
 #include <qpa/qplatforminputcontext.h>
 #include <qpa/qplatformservices.h>
@@ -69,6 +63,23 @@
 #define XSETTINGS_CURSOR_BLINK QByteArrayLiteral("Net/CursorBlink")
 #define XSETTINGS_CURSOR_BLINK_TIME QByteArrayLiteral("Net/CursorBlinkTime")
 #define XSETTINGS_DOUBLE_CLICK_TIME QByteArrayLiteral("Net/DoubleClickTime")
+
+#ifdef Q_OS_LINUX
+#include "util/dprivateaccessor_p.h"
+D_DECLARE_PRIVATE_MEMBER(QXcbIntegration_m_wmClass, QXcbIntegration, m_wmClass, QByteArray);
+D_DECLARE_PRIVATE_MEMBER(QXcbCursor_m_screen, QXcbCursor, m_screen, QXcbScreen *);
+D_DECLARE_AUTO_PRIVATE_MEMBER_TAG(QXcbCursor_m_cursorHash, QXcbCursor, m_cursorHash);
+D_DECLARE_PRIVATE_MEMBER(QXcbCursor_m_gtkCursorThemeInitialized, QXcbCursor, m_gtkCursorThemeInitialized, bool);
+#if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
+D_DECLARE_PRIVATE_MEMBER(QXcbCursor_m_callbackForPropertyRegistered, QXcbCursor, m_callbackForPropertyRegistered, bool);
+#endif
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+D_DECLARE_PRIVATE_MEMBER(QXcbCursor_m_cursorContext, QXcbCursor, m_cursorContext, xcb_cursor_context_t *);
+#endif
+#include "qxcbclipboard.h"
+D_DECLARE_PRIVATE_MEMBER(QXcbClipboard_m_owner, QXcbClipboard, m_owner, xcb_window_t);
+D_DECLARE_PRIVATE_MEMBER(QXcbClipboard_m_requestor, QXcbClipboard, m_requestor, xcb_window_t);
+#endif
 
 Q_LOGGING_CATEGORY(lcDxcb, "dtk.qpa.dxcb", QtInfoMsg)
 
@@ -281,7 +292,7 @@ void DPlatformIntegration::clearNativeSettings(quint32 settingWindow)
 void DPlatformIntegration::setWMClassName(const QByteArray &name)
 {
     if (auto self = instance())
-        self->m_wmClass = name;
+        D_PRIVATE_MEMBER(*self, QXcbIntegration_m_wmClass{}) = name;
 }
 
 #if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
@@ -804,9 +815,9 @@ static xcb_cursor_t overrideCreateNonStandardCursor(QXcbCursor *xcb_cursor, Qt::
 
     switch (cshape) {
     case Qt::BlankCursor: {
-        xcb_pixmap_t cp = xcb_create_pixmap_from_bitmap_data(conn, xcb_cursor->m_screen->root(), cur_blank_bits, 16, 16,
+        xcb_pixmap_t cp = xcb_create_pixmap_from_bitmap_data(conn, D_PRIVATE_MEMBER(*xcb_cursor, QXcbCursor_m_screen{})->root(), cur_blank_bits, 16, 16,
                                                              1, 0, 0, 0);
-        xcb_pixmap_t mp = xcb_create_pixmap_from_bitmap_data(conn, xcb_cursor->m_screen->root(), cur_blank_bits, 16, 16,
+        xcb_pixmap_t mp = xcb_create_pixmap_from_bitmap_data(conn, D_PRIVATE_MEMBER(*xcb_cursor, QXcbCursor_m_screen{})->root(), cur_blank_bits, 16, 16,
                                                              1, 0, 0, 0);
         cursor = xcb_generate_id(conn);
         xcb_create_cursor(conn, cursor, cp, mp, 0, 0, 0, 0xFFFF, 0xFFFF, 0xFFFF, 8, 8);
@@ -856,7 +867,7 @@ static xcb_cursor_t overrideCreateNonStandardCursor(QXcbCursor *xcb_cursor, Qt::
 
     if (!image.isNull()) {
         image = image.scaledToWidth(24 * window->devicePixelRatio());
-        cursor = qt_xcb_createCursorXRender(xcb_cursor->m_screen, image, QPoint(8, 8) * window->devicePixelRatio());
+        cursor = qt_xcb_createCursorXRender(D_PRIVATE_MEMBER(*xcb_cursor, QXcbCursor_m_screen{}), image, QPoint(8, 8) * window->devicePixelRatio());
     }
 
     return cursor;
@@ -888,9 +899,9 @@ static bool updateCursorTheme(void *dpy)
         cursor = loadCursor(dpy, cshape);
 
 #if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
-        if (!cursor && !xcb_cursor->m_callbackForPropertyRegistered) {
+        if (!cursor && !D_PRIVATE_MEMBER(*xcb_cursor, QXcbCursor_m_callbackForPropertyRegistered{})) {
 #else
-        if (!cursor && !xcb_cursor->m_gtkCursorThemeInitialized) {
+        if (!cursor && !D_PRIVATE_MEMBER(*xcb_cursor, QXcbCursor_m_gtkCursorThemeInitialized{})) {
 #endif
             VtableHook::callOriginalFun(xcb_cursor, &QPlatformCursor::changeCursor, c, window);
 
@@ -957,9 +968,9 @@ static void overrideChangeCursor(QPlatformCursor *cursorHandle, QCursor * cursor
     xcb_cursor_t c = XCB_CURSOR_NONE;
     if (cursor && cursor->shape() != Qt::BitmapCursor) {
         const QXcbCursorCacheKey key(cursor->shape());
-        QXcbCursor::CursorHash::iterator it = xcb_cursor->m_cursorHash.find(key);
-        if (it == xcb_cursor->m_cursorHash.end()) {
-            it = xcb_cursor->m_cursorHash.insert(key, overrideCreateFontCursor(xcb_cursor, cursor, widget));
+        auto it = D_AUTO_PRIVATE_MEMBER(*xcb_cursor, QXcbCursor_m_cursorHash).find(key);
+        if (it == D_AUTO_PRIVATE_MEMBER(*xcb_cursor, QXcbCursor_m_cursorHash).end()) {
+            it = D_AUTO_PRIVATE_MEMBER(*xcb_cursor, QXcbCursor_m_cursorHash).insert(key, overrideCreateFontCursor(xcb_cursor, cursor, widget));
         }
         c = it.value();
 #if QT_VERSION < QT_VERSION_CHECK(5, 7, 1)
@@ -1051,11 +1062,11 @@ static void startDrag(QXcbDrag *drag)
     //    if (support_actions.size() < 2)
     //        return;
 #if QT_VERSION <= QT_VERSION_CHECK(6, 2, 4)
-    xcb_change_property(drag->xcb_connection(), XCB_PROP_MODE_REPLACE, drag->connection()->clipboard()->m_owner,
+    xcb_change_property(drag->xcb_connection(), XCB_PROP_MODE_REPLACE, D_PRIVATE_MEMBER(*drag->connection()->clipboard(), QXcbClipboard_m_owner{}),
                         drag->atom(QXcbAtom::D_QXCBATOM_WRAPPER(XdndActionList)), XCB_ATOM_ATOM, sizeof(xcb_atom_t) * 8,
                         support_actions.size(), support_actions.constData());
 #else
-    xcb_change_property(drag->xcb_connection(), XCB_PROP_MODE_REPLACE, drag->connection()->clipboard()->m_requestor, //TODO: m_ower deleted, replaced by m_requestor ?
+    xcb_change_property(drag->xcb_connection(), XCB_PROP_MODE_REPLACE, D_PRIVATE_MEMBER(*drag->connection()->clipboard(), QXcbClipboard_m_requestor{}), //TODO: m_ower deleted, replaced by m_requestor ?
                         drag->atom(QXcbAtom::D_QXCBATOM_WRAPPER(XdndActionList)), XCB_ATOM_ATOM, sizeof(xcb_atom_t) * 8,
                         support_actions.size(), support_actions.constData());
 #endif
@@ -1077,19 +1088,19 @@ static void cursorThemePropertyChanged(xcb_connection_t *connection, const QByte
             if (xcb_cursor == nullptr) {
                 continue;
             }
-            xcb_cursor->m_cursorHash.clear();
+            D_AUTO_PRIVATE_MEMBER(*xcb_cursor, QXcbCursor_m_cursorHash).clear();
 
 #if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
             // source from: QXCBCursor::updateContext()
             // Note: m_cursorContext only exists in Qt6
-            if (xcb_cursor->m_cursorContext) {
-                xcb_cursor_context_free(xcb_cursor->m_cursorContext);
+            if (D_PRIVATE_MEMBER(*xcb_cursor, QXcbCursor_m_cursorContext{})) {
+                xcb_cursor_context_free(D_PRIVATE_MEMBER(*xcb_cursor, QXcbCursor_m_cursorContext{}));
             }
-            xcb_cursor->m_cursorContext = nullptr;
+            D_PRIVATE_MEMBER(*xcb_cursor, QXcbCursor_m_cursorContext{}) = nullptr;
             xcb_connection_t *conn = xcb_cursor->xcb_connection();
     
-            if (xcb_cursor_context_new(conn, xcb_cursor->m_screen->screen(), &xcb_cursor->m_cursorContext) < 0) {
-                xcb_cursor->m_cursorContext = nullptr;
+            if (xcb_cursor_context_new(conn, D_PRIVATE_MEMBER(*xcb_cursor, QXcbCursor_m_screen{})->screen(), &D_PRIVATE_MEMBER(*xcb_cursor, QXcbCursor_m_cursorContext{})) < 0) {
+                D_PRIVATE_MEMBER(*xcb_cursor, QXcbCursor_m_cursorContext{}) = nullptr;
             }
 #endif
         }
@@ -1169,7 +1180,7 @@ void DPlatformIntegration::initialize()
     VtableHook::overrideVfptrFun(xcbConnection()->drag(), &QXcbDrag::startDrag, &startDrag);
 #endif
 
-    VtableHook::overrideVfptrFun(qApp->d_func(), &QGuiApplicationPrivate::isWindowBlocked,
+    VtableHook::overrideVfptrFun(static_cast<QGuiApplicationPrivate*>(QObjectPrivate::get(qApp)), &QGuiApplicationPrivate::isWindowBlocked,
                                  this, &DPlatformIntegration::isWindowBlockedHandle);
 
     // FIXME(zccrs): 修复启动drag后鼠标从一块屏幕移动到另一块后图标窗口位置不对
@@ -1287,7 +1298,7 @@ DXcbXSettings *DPlatformIntegration::xSettings(QXcbConnection *connection)
 bool DPlatformIntegration::isWindowBlockedHandle(QWindow *window, QWindow **blockingWindow)
 {
     if (DFrameWindow *frame = qobject_cast<DFrameWindow*>(window)) {
-        bool blocked = VtableHook::callOriginalFun(qApp->d_func(), &QGuiApplicationPrivate::isWindowBlocked, frame->m_contentWindow, blockingWindow);
+        bool blocked = VtableHook::callOriginalFun(static_cast<QGuiApplicationPrivate*>(QObjectPrivate::get(qApp)), &QGuiApplicationPrivate::isWindowBlocked, frame->m_contentWindow, blockingWindow);
 
         // NOTE(zccrs): 将内容窗口的blocked状态转移到frame窗口，否则会被QXcbWindow::relayFocusToModalWindow重复调用requestActivate而引起死循环
         if (blockingWindow && frame->m_contentWindow.data() == *blockingWindow) {
@@ -1297,7 +1308,7 @@ bool DPlatformIntegration::isWindowBlockedHandle(QWindow *window, QWindow **bloc
         return blocked;
     }
 
-    return VtableHook::callOriginalFun(qApp->d_func(), &QGuiApplicationPrivate::isWindowBlocked, window, blockingWindow);
+    return VtableHook::callOriginalFun(static_cast<QGuiApplicationPrivate*>(QObjectPrivate::get(qApp)), &QGuiApplicationPrivate::isWindowBlocked, window, blockingWindow);
 }
 
 void DPlatformIntegration::inputContextHookFunc()

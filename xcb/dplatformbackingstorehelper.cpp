@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2022 Uniontech Software Technology Co.,Ltd.
+// SPDX-FileCopyrightText: 2017 - 2026 Uniontech Software Technology Co.,Ltd.
 //
 // SPDX-License-Identifier: LGPL-3.0-or-later
 
@@ -9,11 +9,9 @@
 #include "dwmsupport.h"
 
 #ifdef Q_OS_LINUX
-#define private public
-#define protected public
 #include "qxcbbackingstore.h"
-#undef protected
-#undef private
+#include "util/dprivateaccessor_p.h"
+D_DECLARE_PRIVATE_MEMBER(QXcbBackingStore_m_image, QXcbBackingStore, m_image, QXcbBackingStoreImage *);
 #endif
 
 #include <qpa/qplatformbackingstore.h>
@@ -160,7 +158,7 @@ void DPlatformBackingStoreHelper::resize(const QSize &size, const QRegion &stati
     VtableHook::callOriginalFun(this->backingStore(), &QPlatformBackingStore::resize, size, staticContents);
 
     QXcbBackingStore *bs = static_cast<QXcbBackingStore*>(backingStore());
-    QXcbShmImage *shm_image = reinterpret_cast<QXcbShmImage*>(bs->m_image);
+    QXcbShmImage *shm_image = reinterpret_cast<QXcbShmImage*>(D_PRIVATE_MEMBER(*bs, QXcbBackingStore_m_image{}));
 
     if (shm_image->m_shm_info.shmaddr) {
         DPlatformWindowHelper *window_helper = DPlatformWindowHelper::mapped.value(bs->window()->handle());

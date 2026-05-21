@@ -19,12 +19,20 @@ QT_END_NAMESPACE
 #include "dplatformwindowhelper.h"
 #include "dhighdpi.h"
 
-#define private public
-#define protected public
 #include "qxcbdrag.h"
 #include "qxcbkeyboard.h"
-#undef private
-#undef protected
+
+#include "util/dprivateaccessor_p.h"
+D_DECLARE_PRIVATE_MEMBER(QXcbDrag_currentWindow, QXcbDrag, currentWindow, QPointer<QWindow>);
+D_DECLARE_PRIVATE_MEMBER(QXcbDrag_currentPosition, QXcbDrag, currentPosition, QPoint);
+D_DECLARE_PRIVATE_MEMBER(QXcbDrag_m_dropData, QXcbDrag, m_dropData, QXcbDropData *);
+D_DECLARE_PRIVATE_MEMBER(QXcbDrag_accepted_drop_action, QXcbDrag, accepted_drop_action, Qt::DropAction);
+D_DECLARE_PRIVATE_MEMBER(QXcbDrag_xdnd_dragsource, QXcbDrag, xdnd_dragsource, xcb_atom_t);
+D_DECLARE_PRIVATE_MEMBER(QXcbDrag_target_time, QXcbDrag, target_time, xcb_timestamp_t);
+D_DECLARE_PRIVATE_MEMBER(QXcbDrag_waiting_for_status, QXcbDrag, waiting_for_status, bool);
+D_DECLARE_AUTO_PRIVATE_MEMBER_TAG(QXcbKeyboard_rmod_masks, QXcbKeyboard, rmod_masks);
+D_DECLARE_PRIVATE_MEMBER(QXcbDrag_current_proxy_target, QXcbDrag, current_proxy_target, xcb_window_t);
+D_DECLARE_PRIVATE_METHOD(QBasicDrag_setExecutedDropAction, QBasicDrag, setExecutedDropAction, void, Qt::DropAction);
 
 #include <QDrag>
 #include <QMimeData>
@@ -181,7 +189,7 @@ void WindowEventHook::handleClientMessageEvent(QXcbWindowEventListener *el, cons
         Qt::DropActions support_actions = Qt::IgnoreAction;
 
         do {
-            xcb_get_property_cookie_t cookie = xcb_get_property(xcb_connection, false, drag->xdnd_dragsource,
+            xcb_get_property_cookie_t cookie = xcb_get_property(xcb_connection, false, D_PRIVATE_MEMBER(*drag, QXcbDrag_xdnd_dragsource{}),
                                                                 window->connection()->atom(QXcbAtom::D_QXCBATOM_WRAPPER(XdndActionList)),
                                                                 XCB_ATOM_ATOM, offset, 1024);
             xcb_get_property_reply_t *reply = xcb_get_property_reply(xcb_connection, cookie, NULL);
@@ -213,7 +221,7 @@ void WindowEventHook::handleClientMessageEvent(QXcbWindowEventListener *el, cons
         QMimeData *dropData = drag->platformDropData();
 #else
         //FIXME(zccrs): must use the drop data object
-        QMimeData *dropData = reinterpret_cast<QMimeData*>(drag->m_dropData);
+        QMimeData *dropData = reinterpret_cast<QMimeData*>(D_PRIVATE_MEMBER(*drag, QXcbDrag_m_dropData{}));
 #endif
 
         if (!dropData) {
@@ -227,8 +235,8 @@ void WindowEventHook::handleClientMessageEvent(QXcbWindowEventListener *el, cons
         QXcbDrag *drag = window->connection()->drag();
 
         DEBUG("xdndHandleDrop");
-        if (!drag->currentWindow) {
-            drag->xdnd_dragsource = 0;
+        if (!D_PRIVATE_MEMBER(*drag, QXcbDrag_currentWindow{})) {
+            D_PRIVATE_MEMBER(*drag, QXcbDrag_xdnd_dragsource{}) = 0;
             return; // sanity
         }
 
@@ -236,14 +244,14 @@ void WindowEventHook::handleClientMessageEvent(QXcbWindowEventListener *el, cons
 
         DEBUG("xdnd drop");
 
-        if (l[0] != drag->xdnd_dragsource) {
-            DEBUG("xdnd drop from unexpected source (%x not %x", l[0], drag->xdnd_dragsource);
+        if (l[0] != D_PRIVATE_MEMBER(*drag, QXcbDrag_xdnd_dragsource{})) {
+            DEBUG("xdnd drop from unexpected source (%x not %x", l[0], D_PRIVATE_MEMBER(*drag, QXcbDrag_xdnd_dragsource{}));
             return;
         }
 
         // update the "user time" from the timestamp in the event.
         if (l[2] != 0)
-            drag->target_time = /*X11->userTime =*/ l[2];
+            D_PRIVATE_MEMBER(*drag, QXcbDrag_target_time{}) = /*X11->userTime =*/ l[2];
 
         Qt::DropActions supported_drop_actions;
         QMimeData *dropData = 0;
@@ -255,9 +263,9 @@ void WindowEventHook::handleClientMessageEvent(QXcbWindowEventListener *el, cons
             dropData = drag->platformDropData();
 #else
             //FIXME(zccrs): must use the drop data object
-            dropData = reinterpret_cast<QMimeData*>(drag->m_dropData);
+            dropData = reinterpret_cast<QMimeData*>(D_PRIVATE_MEMBER(*drag, QXcbDrag_m_dropData{}));
 #endif
-            supported_drop_actions = drag->accepted_drop_action;
+            supported_drop_actions = D_PRIVATE_MEMBER(*drag, QXcbDrag_accepted_drop_action{});
 
             // Drop coming from another app? Update keyboard modifiers.
             QGuiApplicationPrivate::modifier_buttons = QGuiApplication::queryKeyboardModifiers();
@@ -280,27 +288,27 @@ void WindowEventHook::handleClientMessageEvent(QXcbWindowEventListener *el, cons
         if (!drag->currentDrag())
             QGuiApplicationPrivate::mouse_buttons = window->connection()->queryMouseButtons();
 
-        QPlatformDropQtResponse response = QWindowSystemInterface::handleDrop(drag->currentWindow.data(),
-                                                                            dropData, drag->currentPosition,
+        QPlatformDropQtResponse response = QWindowSystemInterface::handleDrop(D_PRIVATE_MEMBER(*drag, QXcbDrag_currentWindow{}).data(),
+                                                                            dropData, D_PRIVATE_MEMBER(*drag, QXcbDrag_currentPosition{}),
                                                                               supported_drop_actions,
                                                                               QGuiApplication::mouseButtons(), QGuiApplication::keyboardModifiers());
 #else
-        QPlatformDropQtResponse response = QWindowSystemInterface::handleDrop(drag->currentWindow.data(),
-                                                                            dropData, drag->currentPosition,
+        QPlatformDropQtResponse response = QWindowSystemInterface::handleDrop(D_PRIVATE_MEMBER(*drag, QXcbDrag_currentWindow{}).data(),
+                                                                            dropData, D_PRIVATE_MEMBER(*drag, QXcbDrag_currentPosition{}),
                                                                               supported_drop_actions);
 #endif
-        drag->setExecutedDropAction(response.acceptedAction());
+        D_PRIVATE_CALL(*drag, QBasicDrag_setExecutedDropAction{}, response.acceptedAction());
 
         if (directSaveMode) {
             const QUrl &url = dropData->property("DirectSaveUrl").toUrl();
 
-            if (url.isValid() && drag->xdnd_dragsource) {
+            if (url.isValid() && D_PRIVATE_MEMBER(*drag, QXcbDrag_xdnd_dragsource{})) {
                 xcb_atom_t XdndDirectSaveAtom = Utility::internAtom("XdndDirectSave0");
                 xcb_atom_t textAtom = Utility::internAtom("text/plain");
-                QByteArray basename = Utility::windowProperty(drag->xdnd_dragsource, XdndDirectSaveAtom, textAtom, 1024);
+                QByteArray basename = Utility::windowProperty(D_PRIVATE_MEMBER(*drag, QXcbDrag_xdnd_dragsource{}), XdndDirectSaveAtom, textAtom, 1024);
                 QByteArray fileUri = url.toString().toLocal8Bit() + "/" + basename;
 
-                Utility::setWindowProperty(drag->xdnd_dragsource, XdndDirectSaveAtom,
+                Utility::setWindowProperty(D_PRIVATE_MEMBER(*drag, QXcbDrag_xdnd_dragsource{}), XdndDirectSaveAtom,
                                            textAtom, fileUri.constData(), fileUri.length());
 
                 Q_UNUSED(dropData->data("XdndDirectSave0"));
@@ -310,26 +318,26 @@ void WindowEventHook::handleClientMessageEvent(QXcbWindowEventListener *el, cons
         xcb_client_message_event_t finished;
         finished.response_type = XCB_CLIENT_MESSAGE;
         finished.sequence = 0;
-        finished.window = drag->xdnd_dragsource;
+        finished.window = D_PRIVATE_MEMBER(*drag, QXcbDrag_xdnd_dragsource{});
         finished.format = 32;
         finished.type = drag->atom(QXcbAtom::D_QXCBATOM_WRAPPER(XdndFinished));
-        finished.data.data32[0] = drag->currentWindow ? xcb_window(drag->currentWindow.data()) : XCB_NONE;
+        finished.data.data32[0] = D_PRIVATE_MEMBER(*drag, QXcbDrag_currentWindow{}) ? xcb_window(D_PRIVATE_MEMBER(*drag, QXcbDrag_currentWindow{}).data()) : XCB_NONE;
         finished.data.data32[1] = response.isAccepted(); // flags
         finished.data.data32[2] = toXdndAction(drag, response.acceptedAction());
 #ifdef Q_XCB_CALL
-        Q_XCB_CALL(xcb_send_event(drag->xcb_connection(), false, drag->current_proxy_target,
+        Q_XCB_CALL(xcb_send_event(drag->xcb_connection(), false, D_PRIVATE_MEMBER(*drag, QXcbDrag_current_proxy_target{}),
                                   XCB_EVENT_MASK_NO_EVENT, (char *)&finished));
 #else
-        xcb_send_event(drag->xcb_connection(), false, drag->current_proxy_target,
+        xcb_send_event(drag->xcb_connection(), false, D_PRIVATE_MEMBER(*drag, QXcbDrag_current_proxy_target{}),
                        XCB_EVENT_MASK_NO_EVENT, (char *)&finished);
 #endif
 
-        drag->xdnd_dragsource = 0;
-        drag->currentWindow.clear();
-        drag->waiting_for_status = false;
+        D_PRIVATE_MEMBER(*drag, QXcbDrag_xdnd_dragsource{}) = 0;
+        D_PRIVATE_MEMBER(*drag, QXcbDrag_currentWindow{}).clear();
+        D_PRIVATE_MEMBER(*drag, QXcbDrag_waiting_for_status{}) = false;
 
         // reset
-        drag->target_time = XCB_CURRENT_TIME;
+        D_PRIVATE_MEMBER(*drag, QXcbDrag_target_time{}) = XCB_CURRENT_TIME;
     } else {
         window->QXcbWindow::handleClientMessageEvent(event);
     }
@@ -400,7 +408,8 @@ void WindowEventHook::handlePropertyNotifyEvent(QXcbWindowEventListener *el, con
 }
 
 #ifdef XCB_USE_XINPUT22
-static Qt::KeyboardModifiers translateModifiers(const QXcbKeyboard::_mod_masks &rmod_masks, int s)
+template<typename T>
+static Qt::KeyboardModifiers translateModifiers(const T &rmod_masks, int s)
 {
     Qt::KeyboardModifiers ret = Qt::KeyboardModifiers();
     if (s & XCB_MOD_MASK_SHIFT)
@@ -447,7 +456,7 @@ void WindowEventHook::handleXIEnterLeave(QXcbWindowEventListener *el, xcb_ge_eve
 #else
             Qt::MouseButtons buttons = me->connection()->buttonState();
 #endif
-            const Qt::KeyboardModifiers modifiers = translateModifiers(me->connection()->keyboard()->rmod_masks, ev->mods.effective_mods);
+            const Qt::KeyboardModifiers modifiers = translateModifiers(D_AUTO_PRIVATE_MEMBER(*me->connection()->keyboard(), QXcbKeyboard_rmod_masks), ev->mods.effective_mods);
             unsigned char *buttonMask = (unsigned char *) &ev[1];
             for (int i = 1; i <= 15; ++i) {
                 Qt::MouseButton b = me->connection()->translateMouseButton(i);

@@ -4,10 +4,10 @@
 
 #include "dnotitlebarwindowhelper_wl.h"
 #include "vtablehook.h"
-
-#define protected public
 #include <QWindow>
-#undef protected
+#include "util/dprivateaccessor_p.h"
+D_DECLARE_PRIVATE_METHOD(QWindow_event_wl, QWindow, event, bool, QEvent *);
+
 #include <QMouseEvent>
 #include <QGuiApplication>
 #include <QStyleHints>
@@ -17,12 +17,10 @@
 #include <qpa/qplatformwindow.h>
 #include <QtWaylandClientVersion>
 
-#define private public
 #include "QtWaylandClient/private/qwaylandintegration_p.h"
 #include "QtWaylandClient/private/qwaylandshellsurface_p.h"
 #include "QtWaylandClient/private/qwaylandwindow_p.h"
 #include "QtWaylandClient/private/qwaylandcursor_p.h"
-#undef private
 
 #include <private/qguiapplication_p.h>
 
@@ -141,9 +139,9 @@ void DNoTitlebarWlWindowHelper::updateEnableSystemMoveFromProperty()
     m_enableSystemMove = !v.isValid() || v.toBool();
 
     if (m_enableSystemMove) {
-        HookOverride(m_window, &QWindow::event, &DNoTitlebarWlWindowHelper::windowEvent);
+        HookOverride(m_window, get(QWindow_event_wl{}), &DNoTitlebarWlWindowHelper::windowEvent);
     } else if (VtableHook::hasVtable(m_window)) {
-        HookReset(m_window, &QWindow::event);
+        HookReset(m_window, get(QWindow_event_wl{}));
     }
 }
 
@@ -152,7 +150,7 @@ bool DNoTitlebarWlWindowHelper::windowEvent(QWindow *w, QEvent *event)
     DNoTitlebarWlWindowHelper *self = mapped.value(w);
 
     if (!self)
-        return VtableHook::callOriginalFun(w, &QWindow::event, event);
+        return VtableHook::callOriginalFun(w, get(QWindow_event_wl{}), event);
     // m_window 的 event 被 override 以后，在 windowEvent 里面获取到的 this 就成 m_window 了，
     // 而不是 DNoTitlebarWlWindowHelper，所以此处 windowEvent 改为 static 并传 self 进来
     {
@@ -173,7 +171,7 @@ bool DNoTitlebarWlWindowHelper::windowEvent(QWindow *w, QEvent *event)
             QPointF currentPos = static_cast<QMouseEvent*>(event)->globalPos();
             QPointF delta = touchBeginPosition  - currentPos;
             if (delta.manhattanLength() < QGuiApplication::styleHints()->startDragDistance()) {
-                return VtableHook::callOriginalFun(w, &QWindow::event, event);
+                return VtableHook::callOriginalFun(w, get(QWindow_event_wl{}), event);
             }
         }
     }
@@ -184,7 +182,7 @@ bool DNoTitlebarWlWindowHelper::windowEvent(QWindow *w, QEvent *event)
         self->m_windowMoving = false;
     }
 
-    if (!HookCall(w, &QWindow::event, event))
+    if (!HookCall(w, get(QWindow_event_wl{}), event))
         return false;
 
     // workaround for kwin: Qt receives no release event when kwin finishes MOVE operation,

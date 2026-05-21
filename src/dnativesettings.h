@@ -1,13 +1,11 @@
-// SPDX-FileCopyrightText: 2017 - 2022 Uniontech Software Technology Co.,Ltd.
+// SPDX-FileCopyrightText: 2017 - 2026 Uniontech Software Technology Co.,Ltd.
 //
 // SPDX-License-Identifier: LGPL-3.0-or-later
 
 #ifndef DNATIVESETTINGS_H
 #define DNATIVESETTINGS_H
 
-#define protected public
 #include <private/qobject_p.h>
-#undef protected
 
 #include "global.h"
 

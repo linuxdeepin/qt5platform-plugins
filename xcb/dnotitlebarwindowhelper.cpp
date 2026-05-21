@@ -2,10 +2,12 @@
 //
 // SPDX-License-Identifier: LGPL-3.0-or-later
 
-#define protected public
 #include <QWindow>
-#undef protected
 #include "dnotitlebarwindowhelper.h"
+#include "util/dprivateaccessor_p.h"
+
+D_DECLARE_PRIVATE_METHOD(QWindow_event, QWindow, event, bool, QEvent *);
+
 #include "vtablehook.h"
 #include "utility.h"
 #include "dwmsupport.h"
@@ -435,9 +437,9 @@ void DNoTitlebarWindowHelper::updateEnableSystemMoveFromProperty()
     m_enableSystemMove = !v.isValid() || v.toBool();
 
     if (m_enableSystemMove) {
-        VtableHook::overrideVfptrFun(m_window, &QWindow::event, this, &DNoTitlebarWindowHelper::windowEvent);
+        VtableHook::overrideVfptrFun(m_window, get(QWindow_event{}), this, &DNoTitlebarWindowHelper::windowEvent);
     } else if (VtableHook::hasVtable(m_window)) {
-        VtableHook::resetVfptrFun(m_window, &QWindow::event);
+        VtableHook::resetVfptrFun(m_window, get(QWindow_event{}));
     }
 }
 
@@ -526,7 +528,7 @@ bool DNoTitlebarWindowHelper::windowEvent(QEvent *event)
     // TODO Crashed when delete by Vtable.
     if (event->type() == QEvent::DeferredDelete) {
         VtableHook::resetVtable(w);
-        return w->event(event);
+        return D_PRIVATE_CALL(*w, QWindow_event{}, event);
     }
     DNoTitlebarWindowHelper *self = mapped.value(w);
 
@@ -574,7 +576,7 @@ bool DNoTitlebarWindowHelper::windowEvent(QEvent *event)
 #endif
         QPointF delta = touchBeginPosition  - currentPos;
         if (delta.manhattanLength() < QGuiApplication::styleHints()->startDragDistance()) {
-            return VtableHook::callOriginalFun(w, &QWindow::event, event);
+            return VtableHook::callOriginalFun(w, get(QWindow_event{}), event);
         }
     }
 
@@ -591,7 +593,7 @@ bool DNoTitlebarWindowHelper::windowEvent(QEvent *event)
         updateMoveWindow(winId);
     }
 
-    bool ret = VtableHook::callOriginalFun(w, &QWindow::event, event);
+    bool ret = VtableHook::callOriginalFun(w, get(QWindow_event{}), event);
 
     // workaround for kwin: Qt receives no release event when kwin finishes MOVE operation,
     // which makes app hang in windowMoving state. when a press happens, there's no sense of

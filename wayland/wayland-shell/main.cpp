@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2022 Uniontech Software Technology Co.,Ltd.
+// SPDX-FileCopyrightText: 2022 - 2026 Uniontech Software Technology Co.,Ltd.
 //
 // SPDX-License-Identifier: LGPL-3.0-or-later
 
@@ -25,13 +25,14 @@ public:
 #include "vtablehook.h"
 #include "dwaylandshellmanager.h"
 
-#define private public
 #include "QtWaylandClient/private/qwaylandintegration_p.h"
 #include "QtWaylandClient/private/qwaylandshellintegrationplugin_p.h"
 #include "QtWaylandClient/private/qwaylandshellintegration_p.h"
 #include "QtWaylandClient/private/qwaylandshellsurface_p.h"
 #include "QtWaylandClient/private/qwaylandwindow_p.h"
-#undef private
+
+#include "util/dprivateaccessor_p.h"
+D_DECLARE_PRIVATE_METHOD(QWaylandIntegration_createShellIntegration, QtWaylandClient::QWaylandIntegration, createShellIntegration, QtWaylandClient::QWaylandShellIntegration *, const QString &);
 
 #ifndef D_DEEPIN_IS_DWAYLAND
 #include <KWayland/Client/registry.h>
@@ -125,7 +126,7 @@ QWaylandShellIntegration *QKWaylandShellIntegrationPlugin::create(const QString 
 
     auto wayland_integration = static_cast<QWaylandIntegration *>(QGuiApplicationPrivate::platformIntegration());
     QString shellVersion = registry->hasInterface(Registry::Interface::XdgShellUnstableV6) ? "xdg-shell-v6" : "xdg-shell";
-    QWaylandShellIntegration *shell = wayland_integration->createShellIntegration(shellVersion);
+    QWaylandShellIntegration *shell = D_PRIVATE_CALL(*wayland_integration, QWaylandIntegration_createShellIntegration{}, shellVersion);
 
     if (!shell) {
         qInfo() << "Failed to create kwayland-shell and the shell is nullptr.";

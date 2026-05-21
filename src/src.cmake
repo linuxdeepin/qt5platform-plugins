@@ -3,6 +3,7 @@
 # SPDX-License-Identifier: LGPL-3.0-or-later
 
 list(APPEND GLOBAL_HEADERS
+    ${CMAKE_CURRENT_LIST_DIR}/util/dprivateaccessor_p.h
     ${CMAKE_CURRENT_LIST_DIR}/dbackingstoreproxy.h
     ${CMAKE_CURRENT_LIST_DIR}/dnativesettings.h
     ${CMAKE_CURRENT_LIST_DIR}/dopenglpaintdevice.h

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2022 Uniontech Software Technology Co.,Ltd.
+// SPDX-FileCopyrightText: 2017 - 2026 Uniontech Software Technology Co.,Ltd.
 //
 // SPDX-License-Identifier: LGPL-3.0-or-later
 
@@ -20,6 +20,9 @@
 #include "dplatformintegration.h"
 #define IN_DXCB_PLUGIN
 #endif
+
+#include "util/dprivateaccessor_p.h"
+D_DECLARE_PRIVATE_CONST_METHOD(QObject_senderSignalIndex, QObject, senderSignalIndex, int);
 
 #include <QDebug>
 #include <QMetaProperty>
@@ -439,7 +442,7 @@ int DNativeSettings::metaCall(QMetaObject::Call _c, int _id, void ** _a)
             break;
         }
 
-        int signal = m_base->senderSignalIndex();
+        int signal = D_PRIVATE_CALL(*m_base, QObject_senderSignalIndex{});
         QByteArray signal_name;
         qint32 data1 = 0, data2 = 0;
 

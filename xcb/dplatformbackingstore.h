@@ -1,13 +1,11 @@
-// SPDX-FileCopyrightText: 2017 - 2022 Uniontech Software Technology Co.,Ltd.
+// SPDX-FileCopyrightText: 2017 - 2026 Uniontech Software Technology Co.,Ltd.
 //
 // SPDX-License-Identifier: LGPL-3.0-or-later
 
 #ifndef DXCBBACKINGSTORE_H
 #define DXCBBACKINGSTORE_H
 
-#define private public
 #include <qpa/qplatformbackingstore.h>
-#undef private
 #include <qpa/qplatformwindow.h>
 
 #include <QBasicTimer>

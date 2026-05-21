@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2022 Uniontech Software Technology Co.,Ltd.
+// SPDX-FileCopyrightText: 2017 - 2026 Uniontech Software Technology Co.,Ltd.
 //
 // SPDX-License-Identifier: LGPL-3.0-or-later
 
@@ -9,13 +9,22 @@
 
 #include <wayland-cursor.h>
 
-#define private public
 #include <QtWaylandClient/private/qwaylanddisplay_p.h>
 #include <QtWaylandClient/private/qwaylandscreen_p.h>
 #include <QtWaylandClient/private/qwaylandcursor_p.h>
 #include <QtWaylandClient/private/qwaylandinputdevice_p.h>
-#undef private
 #include <QtWaylandClientVersion>
+
+#include "util/dprivateaccessor_p.h"
+#if QTWAYLANDCLIENT_VERSION < QT_VERSION_CHECK(5, 13, 0)
+using QWaylandDisplay_mCursorThemesBySize_type = QMap<int, QtWaylandClient::QWaylandCursorTheme *>;
+D_DECLARE_PRIVATE_MEMBER(QWaylandDisplay_mCursorThemesBySize, QtWaylandClient::QWaylandDisplay, mCursorThemesBySize, QWaylandDisplay_mCursorThemesBySize_type);
+#elif QTWAYLANDCLIENT_VERSION < QT_VERSION_CHECK(5, 16, 0)
+using QWaylandDisplay_mCursorThemes_type = QMap<std::pair<QString, int>, QtWaylandClient::QWaylandCursorTheme *>;
+D_DECLARE_PRIVATE_MEMBER(QWaylandDisplay_mCursorThemes, QtWaylandClient::QWaylandDisplay, mCursorThemes, QWaylandDisplay_mCursorThemes_type);
+D_DECLARE_PRIVATE_MEMBER(QWaylandCursorTheme_m_theme, QtWaylandClient::QWaylandCursorTheme, m_theme, struct ::wl_cursor_theme *);
+D_DECLARE_AUTO_PRIVATE_MEMBER_TAG(QWaylandCursorTheme_m_cursors, QtWaylandClient::QWaylandCursorTheme, m_cursors);
+#endif
 
 #include <QDebug>
 #include <QTimer>
@@ -71,9 +80,9 @@ static void onXSettingsChanged(xcb_connection_t *connection, const QByteArray &n
         const QByteArray &cursor_name = dXSettings->globalSettings()->setting(name).toByteArray();
 
 #if QTWAYLANDCLIENT_VERSION < QT_VERSION_CHECK(5, 13, 0)
-        const auto &cursor_map = DWaylandIntegration::instance()->display()->mCursorThemesBySize;
+        const auto &cursor_map = D_PRIVATE_MEMBER(*DWaylandIntegration::instance()->display(), QWaylandDisplay_mCursorThemesBySize{});
 #elif QTWAYLANDCLIENT_VERSION < QT_VERSION_CHECK(5, 16, 0)
-        const auto &cursor_map = DWaylandIntegration::instance()->display()->mCursorThemes;
+        const auto &cursor_map = D_PRIVATE_MEMBER(*DWaylandIntegration::instance()->display(), QWaylandDisplay_mCursorThemes{});
 #endif
         // 处理光标主题变化
         for (auto cursor = cursor_map.constBegin(); cursor != cursor_map.constEnd(); ++cursor) {
@@ -90,13 +99,13 @@ static void onXSettingsChanged(xcb_connection_t *connection, const QByteArray &n
                 continue;
 
             // 先尝试销毁旧主题
-            if (ct->m_theme) {
-                wl_cursor_theme_destroy(ct->m_theme);
+            if (D_PRIVATE_MEMBER(*ct, QWaylandCursorTheme_m_theme{})) {
+                wl_cursor_theme_destroy(D_PRIVATE_MEMBER(*ct, QWaylandCursorTheme_m_theme{}));
             }
 
             // 清理缓存数据
-            ct->m_cursors.clear();
-            ct->m_theme = theme;
+            D_AUTO_PRIVATE_MEMBER(*ct, QWaylandCursorTheme_m_cursors).clear();
+            D_PRIVATE_MEMBER(*ct, QWaylandCursorTheme_m_theme{}) = theme;
         }
 
         // 更新窗口光标

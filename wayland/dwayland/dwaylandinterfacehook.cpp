@@ -1,10 +1,8 @@
-// SPDX-FileCopyrightText: 2017 - 2022 Uniontech Software Technology Co.,Ltd.
+// SPDX-FileCopyrightText: 2017 - 2026 Uniontech Software Technology Co.,Ltd.
 //
 // SPDX-License-Identifier: LGPL-3.0-or-later
 
-#define private public
 #include "QtWaylandClient/private/qwaylandnativeinterface_p.h"
-#undef private
 
 #include "dwaylandinterfacehook.h"
 #include "dhighdpi.h"

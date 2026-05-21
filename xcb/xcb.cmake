@@ -28,3 +28,4 @@ endif()
 set(xcb_SRC ${XCB_HEADER} ${XCB_SOURCE} ${XCB_RCC_QRCS} ${DBUS_INTERFACE_XMLS})
 
 include_directories(${CMAKE_CURRENT_LIST_DIR})
+include_directories(${CMAKE_SOURCE_DIR}/src)

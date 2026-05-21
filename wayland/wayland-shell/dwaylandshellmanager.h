@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2022 Uniontech Software Technology Co.,Ltd.
+// SPDX-FileCopyrightText: 2022 - 2026 Uniontech Software Technology Co.,Ltd.
 //
 // SPDX-License-Identifier: LGPL-3.0-or-later
 
@@ -7,7 +7,6 @@
 
 #include "vtablehook.h"
 
-#define private public
 #include "QtWaylandClient/private/qwaylandintegration_p.h"
 #include "QtWaylandClient/private/qwaylandshellintegrationplugin_p.h"
 #include "QtWaylandClient/private/qwaylandshellintegration_p.h"
@@ -15,7 +14,6 @@
 #include "QtWaylandClient/private/qwaylandwindow_p.h"
 #include "QtWaylandClient/private/qwaylandcursor_p.h"
 #include "QtWaylandClient/private/qwaylandscreen_p.h"
-#undef private
 
 #ifndef D_DEEPIN_IS_DWAYLAND
 #include <KWayland/Client/registry.h>

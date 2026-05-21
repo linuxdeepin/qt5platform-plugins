@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2022 Uniontech Software Technology Co.,Ltd.
+// SPDX-FileCopyrightText: 2017 - 2026 Uniontech Software Technology Co.,Ltd.
 //
 // SPDX-License-Identifier: LGPL-3.0-or-later
 
@@ -13,10 +13,8 @@
 #if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
 #include <any>
 #endif
-#define private public
 #include "qxcbwindow.h"
 typedef QXcbWindow QNativeWindow;
-#undef private
 #elif defined(Q_OS_WIN)
 #include "qwindowswindow.h"
 typedef QWindowsWindow QNativeWindow;

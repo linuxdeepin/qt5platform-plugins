@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2022 Uniontech Software Technology Co.,Ltd.
+// SPDX-FileCopyrightText: 2017 - 2026 Uniontech Software Technology Co.,Ltd.
 //
 // SPDX-License-Identifier: LGPL-3.0-or-later
 
@@ -7,14 +7,20 @@
 #include "dplatformwindowhelper.h"
 #include "dframewindow.h"
 
-#define private public
 #include "qxcbconnection.h"
 #include "qxcbclipboard.h"
-#undef private
+#include "qxcbconnection_basic.h"
 
 #include "dplatformintegration.h"
 #include "dxcbwmsupport.h"
 #include "dxcbxsettings.h"
+
+#include "util/dprivateaccessor_p.h"
+D_DECLARE_PRIVATE_MEMBER(QXcbBasicConnection_m_xfixesFirstEvent, QXcbBasicConnection, m_xfixesFirstEvent, uint32_t);
+D_DECLARE_PRIVATE_MEMBER(QXcbBasicConnection_m_xiOpCode, QXcbBasicConnection, m_xiOpCode, int);
+D_DECLARE_PRIVATE_MEMBER(QXcbBasicConnection_m_xrandrFirstEvent, QXcbBasicConnection, m_xrandrFirstEvent, uint32_t);
+D_DECLARE_PRIVATE_CONST_METHOD(QXcbConnection_findScreenForOutput, QXcbConnection, findScreenForOutput, QXcbScreen*, xcb_window_t, xcb_randr_output_t);
+D_DECLARE_PRIVATE_METHOD(QXcbConnection_updateScreens, QXcbConnection, updateScreens, void, const xcb_randr_notify_event_t *);
 
 #include <xcb/xfixes.h>
 #include <xcb/damage.h>
@@ -89,7 +95,7 @@ bool XcbNativeEventFilter::nativeEventFilter(const QByteArray &eventType, void *
     if (Q_UNLIKELY(response_type == m_connection->xfixes_first_event + XCB_XFIXES_SELECTION_NOTIFY)) {
 #else
     // cannot use isXFixesType because symbols from QXcbBasicConnection are not exported
-    if (response_type == m_connection->m_xfixesFirstEvent + XCB_XFIXES_SELECTION_NOTIFY) {
+    if (response_type == D_PRIVATE_MEMBER(*m_connection, QXcbBasicConnection_m_xfixesFirstEvent{}) + XCB_XFIXES_SELECTION_NOTIFY) {
 #endif
         xcb_xfixes_selection_notify_event_t *xsn = (xcb_xfixes_selection_notify_event_t *)event;
 
@@ -103,7 +109,7 @@ bool XcbNativeEventFilter::nativeEventFilter(const QByteArray &eventType, void *
 
         // here we care only about the xfixes events that come from non Qt processes
         if (xsn->owner == XCB_NONE && xsn->subtype == XCB_XFIXES_SELECTION_EVENT_SET_SELECTION_OWNER) {
-            QXcbClipboard *xcbClipboard = m_connection->m_clipboard;
+            QXcbClipboard *xcbClipboard = m_connection->clipboard();
             xcbClipboard->emitChanged(mode);
         }
     } else if (Q_UNLIKELY(response_type == m_damageFirstEvent + XCB_DAMAGE_NOTIFY)) {
@@ -156,7 +162,7 @@ bool XcbNativeEventFilter::nativeEventFilter(const QByteArray &eventType, void *
         case XCB_GE_GENERIC: {
             QXcbConnection *xcb_connect = DPlatformIntegration::xcbConnection();
 
-            if (Q_LIKELY(xcb_connect->m_xi2Enabled) && isXIEvent(event, xcb_connect->m_xiOpCode)) {
+            if (Q_LIKELY(xcb_connect->hasXInput2()) && isXIEvent(event, D_PRIVATE_MEMBER(*xcb_connect, QXcbBasicConnection_m_xiOpCode{}))) {
                 xXIGenericDeviceEvent *xiEvent = reinterpret_cast<xXIGenericDeviceEvent *>(event);
 
                 {
@@ -248,17 +254,17 @@ bool XcbNativeEventFilter::nativeEventFilter(const QByteArray &eventType, void *
 #else
             // cannot use isXRandrType because symbols from QXcbBasicConnection are not exported
             if (Q_UNLIKELY(updateScaleLogcailDpi) && DPlatformIntegration::xcbConnection()->hasXRender()
-                    && response_type == DPlatformIntegration::xcbConnection()->m_xrandrFirstEvent + XCB_RANDR_NOTIFY) {
+                    && response_type == D_PRIVATE_MEMBER(*DPlatformIntegration::xcbConnection(), QXcbBasicConnection_m_xrandrFirstEvent{}) + XCB_RANDR_NOTIFY) {
 #endif
                 xcb_randr_notify_event_t *e = reinterpret_cast<xcb_randr_notify_event_t *>(event);
                 xcb_randr_output_change_t output = e->u.oc;
 
                 if (e->subCode == XCB_RANDR_NOTIFY_OUTPUT_CHANGE) {
-                    QXcbScreen *screen = DPlatformIntegration::xcbConnection()->findScreenForOutput(output.window, output.output);
+                    QXcbScreen *screen = D_PRIVATE_CALL(*DPlatformIntegration::xcbConnection(), QXcbConnection_findScreenForOutput{}, output.window, output.output);
 
                     if (!screen && output.connection == XCB_RANDR_CONNECTION_CONNECTED
                             && output.crtc != XCB_NONE && output.mode != XCB_NONE) {
-                        DPlatformIntegration::xcbConnection()->updateScreens(e);
+                        D_PRIVATE_CALL(*DPlatformIntegration::xcbConnection(), QXcbConnection_updateScreens{}, e);
                         // 通知deepin platform插件重设缩放后的dpi值
                         reinterpret_cast<void(*)()>(updateScaleLogcailDpi)();
 
