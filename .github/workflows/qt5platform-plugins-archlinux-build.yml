@@ -68,16 +68,14 @@ jobs:
 
       - name: Create installation package
         run: |
-          cd /tmp/qt5platform-plugins-install
-          pacman -S --noconfirm zip
-          zip -r /tmp/qt5platform-plugins-archlinux-$(date +%Y%m%d-%H%M%S).zip .
-          ls -la /tmp/qt5platform-plugins-archlinux-*.zip
+          tar -czf /tmp/qt5platform-plugins-archlinux-$(date +%Y%m%d-%H%M%S).tar.gz -C /tmp/qt5platform-plugins-install .
+          ls -la /tmp/qt5platform-plugins-archlinux-*.tar.gz
 
       - name: Upload qt5platform-plugins Arch Linux build artifacts
         if: ${{ !env.ACT }}
         uses: actions/upload-artifact@v4
         with:
           name: qt5platform-plugins-archlinux-build
-          path: "/tmp/qt5platform-plugins-archlinux-*.zip"
+          path: "/tmp/qt5platform-plugins-archlinux-*.tar.gz"
           if-no-files-found: error
           retention-days: 30
