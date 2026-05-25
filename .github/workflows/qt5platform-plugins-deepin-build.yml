@@ -39,10 +39,22 @@ jobs:
 
       - name: Build qt5platform-plugins deb packages
         run: |
-          set -euxo pipefail
-          dpkg-buildpackage -uc -us -b
+          dpkg-buildpackage -uc -us -b 2>&1 | tee /tmp/build.log
+          if [ ${PIPESTATUS[0]} -ne 0 ]; then
+            echo "❌ Build failed!"
+            exit 1
+          fi
           echo "✅ qt5platform-plugins deb packages built successfully!"
           ls -la ../
+
+      - name: Upload build log on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: qt5platform-plugins-deepin-build-log
+          path: /tmp/build.log
+          if-no-files-found: warn
+          retention-days: 7
 
       - name: Collect deb artifacts
         run: |

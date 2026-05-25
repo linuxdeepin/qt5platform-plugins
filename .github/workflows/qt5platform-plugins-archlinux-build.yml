@@ -28,7 +28,7 @@ jobs:
             libxcb xcb-util xcb-util-image xcb-util-keysyms \
             xcb-util-renderutil xcb-util-wm xcb-util-cursor \
             libxkbcommon libxkbcommon-x11 \
-            libxi libxrender libsm \
+            libxi libxrender libsm libice cairo \
             dbus libglvnd fontconfig glib2 mtdev systemd \
             kwayland5 \
             dtkcommon
