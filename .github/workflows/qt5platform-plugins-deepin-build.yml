@@ -39,10 +39,11 @@ jobs:
 
       - name: Build qt5platform-plugins deb packages
         run: |
-          dpkg-buildpackage -uc -us -b 2>&1 | tee /tmp/build.log
-          if [ ${PIPESTATUS[0]} -ne 0 ]; then
-            echo "❌ Build failed!"
-            exit 1
+          dpkg-buildpackage -uc -us -b 2>&1 | tee /tmp/build.log; BUILD_STATUS=${PIPESTATUS[0]}
+          if [ $BUILD_STATUS -ne 0 ]; then
+            echo "❌ Build failed! Last 200 lines of build log:"
+            tail -200 /tmp/build.log
+            exit $BUILD_STATUS
           fi
           echo "✅ qt5platform-plugins deb packages built successfully!"
           ls -la ../
