@@ -51,32 +51,23 @@ jobs:
 
       - name: Configure and build qt5platform-plugins
         run: |
+          set -o pipefail
           cmake -B build \
             -GNinja \
             -DCMAKE_INSTALL_PREFIX=/usr \
             -DCMAKE_INSTALL_LIBDIR=lib \
             -DCMAKE_BUILD_TYPE=Release \
             -DQT_XCB_PRIVATE_HEADERS=/usr/include/qtxcb-private \
-            -DDTK5=ON 2>&1 | tee /tmp/cmake-configure.log || { echo "=== CMAKE CONFIGURE FAILED ==="; cat /tmp/cmake-configure.log; exit 1; }
-          cmake --build build -j$(nproc) 2>&1 | tee /tmp/cmake-build.log || { echo "=== CMAKE BUILD FAILED (last 200 lines) ==="; tail -200 /tmp/cmake-build.log; exit 1; }
+            -DDTK5=ON 2>&1 | tee /tmp/cmake-configure.log
+          cmake --build build -j$(nproc) 2>&1 | tee /tmp/cmake-build.log
           echo "✅ qt5platform-plugins built successfully!"
-
-      - name: List cmake install targets
-        run: |
-          echo "=== Build tree contents ==="
-          find build -name "*.so" -o -name "cmake_install.cmake" | head -20
-          echo "=== cmake_install.cmake contents ==="
-          cat build/cmake_install.cmake 2>/dev/null || true
-          cat build/xcb/cmake_install.cmake 2>/dev/null || true
+          echo "=== Built .so files ==="
+          find build -name "*.so" | head -20
 
       - name: Install qt5platform-plugins to staging directory
         run: |
-          DESTDIR=/tmp/qt5platform-plugins-install cmake --install build --verbose || {
-            echo "=== CMAKE INSTALL FAILED, exit code: $? ==="
-            echo "=== Checking build dir ==="
-            find build -name "*.so" | head -20
-            exit 1
-          }
+          cat build/cmake_install.cmake 2>/dev/null || true
+          DESTDIR=/tmp/qt5platform-plugins-install cmake --install build --verbose
           echo "Total: $(find /tmp/qt5platform-plugins-install -type f | wc -l) files"
           find /tmp/qt5platform-plugins-install -type f | head -20
 
