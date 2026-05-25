@@ -69,7 +69,9 @@
 D_DECLARE_PRIVATE_MEMBER(QXcbIntegration_m_wmClass, QXcbIntegration, m_wmClass, QByteArray);
 D_DECLARE_PRIVATE_MEMBER(QXcbCursor_m_screen, QXcbCursor, m_screen, QXcbScreen *);
 D_DECLARE_AUTO_PRIVATE_MEMBER_TAG(QXcbCursor_m_cursorHash, QXcbCursor, m_cursorHash);
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
 D_DECLARE_PRIVATE_MEMBER(QXcbCursor_m_gtkCursorThemeInitialized, QXcbCursor, m_gtkCursorThemeInitialized, bool);
+#endif
 #if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
 D_DECLARE_PRIVATE_MEMBER(QXcbCursor_m_callbackForPropertyRegistered, QXcbCursor, m_callbackForPropertyRegistered, bool);
 #endif
@@ -898,8 +900,12 @@ static bool updateCursorTheme(void *dpy)
         // special case for non-standard dnd-* cursors
         cursor = loadCursor(dpy, cshape);
 
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+        if (!cursor
 #if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
-        if (!cursor && !D_PRIVATE_MEMBER(*xcb_cursor, QXcbCursor_m_callbackForPropertyRegistered{})) {
+            && !D_PRIVATE_MEMBER(*xcb_cursor, QXcbCursor_m_callbackForPropertyRegistered{})
+#endif
+        ) {
 #else
         if (!cursor && !D_PRIVATE_MEMBER(*xcb_cursor, QXcbCursor_m_gtkCursorThemeInitialized{})) {
 #endif
