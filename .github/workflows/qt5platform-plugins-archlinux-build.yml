@@ -61,9 +61,22 @@ jobs:
           cmake --build build -j$(nproc) 2>&1 | tee /tmp/cmake-build.log || { echo "=== CMAKE BUILD FAILED (last 200 lines) ==="; tail -200 /tmp/cmake-build.log; exit 1; }
           echo "✅ qt5platform-plugins built successfully!"
 
+      - name: List cmake install targets
+        run: |
+          echo "=== Build tree contents ==="
+          find build -name "*.so" -o -name "cmake_install.cmake" | head -20
+          echo "=== cmake_install.cmake contents ==="
+          cat build/cmake_install.cmake 2>/dev/null || true
+          cat build/xcb/cmake_install.cmake 2>/dev/null || true
+
       - name: Install qt5platform-plugins to staging directory
         run: |
-          DESTDIR=/tmp/qt5platform-plugins-install cmake --install build --verbose
+          DESTDIR=/tmp/qt5platform-plugins-install cmake --install build --verbose || {
+            echo "=== CMAKE INSTALL FAILED, exit code: $? ==="
+            echo "=== Checking build dir ==="
+            find build -name "*.so" | head -20
+            exit 1
+          }
           echo "Total: $(find /tmp/qt5platform-plugins-install -type f | wc -l) files"
           find /tmp/qt5platform-plugins-install -type f | head -20
 
