@@ -63,11 +63,13 @@ jobs:
 
       - name: Install qt5platform-plugins to staging directory
         run: |
-          DESTDIR=/tmp/qt5platform-plugins-install cmake --install build --verbose 2>&1 | tee /tmp/cmake-install.log || { echo "=== CMAKE INSTALL FAILED ==="; cat /tmp/cmake-install.log; exit 1; }
+          DESTDIR=/tmp/qt5platform-plugins-install cmake --install build --verbose
           echo "Total: $(find /tmp/qt5platform-plugins-install -type f | wc -l) files"
+          find /tmp/qt5platform-plugins-install -type f | head -20
 
       - name: Create installation package
         run: |
+          ls -la /tmp/qt5platform-plugins-install/ || { echo "Install dir missing!"; exit 1; }
           tar -czf /tmp/qt5platform-plugins-archlinux-$(date +%Y%m%d-%H%M%S).tar.gz -C /tmp/qt5platform-plugins-install .
           ls -la /tmp/qt5platform-plugins-archlinux-*.tar.gz
 
