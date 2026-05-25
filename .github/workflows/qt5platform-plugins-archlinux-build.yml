@@ -37,6 +37,18 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Print Qt5 version and available xcb private headers
+        run: |
+          qmake --version
+          echo "--- qtxcb-private headers ---"
+          ls /usr/include/qtxcb-private/ | cat
+          echo "--- QXcbBackingStore m_image check ---"
+          grep -n "m_image" /usr/include/qtxcb-private/qxcbbackingstore.h 2>/dev/null || echo "NOT FOUND"
+          echo "--- QXcbCursor m_cursorHash check ---"
+          grep -n "m_cursorHash\|CursorHash" /usr/include/qtxcb-private/qxcbcursor.h 2>/dev/null || echo "NOT FOUND"
+          echo "--- QXcbDrag members check ---"
+          grep -n "currentWindow\|currentPosition\|m_dropData\|accepted_drop_action\|xdnd_dragsource\|target_time\|waiting_for_status\|current_proxy_target" /usr/include/qtxcb-private/qxcbdrag.h 2>/dev/null || echo "NOT FOUND"
+
       - name: Configure and build qt5platform-plugins
         run: |
           cmake -B build \
@@ -45,8 +57,8 @@ jobs:
             -DCMAKE_INSTALL_LIBDIR=lib \
             -DCMAKE_BUILD_TYPE=Release \
             -DQT_XCB_PRIVATE_HEADERS=/usr/include/qtxcb-private \
-            -DDTK5=ON
-          cmake --build build -j$(nproc)
+            -DDTK5=ON 2>&1 | tee /tmp/cmake-configure.log || { echo "=== CMAKE CONFIGURE FAILED ==="; cat /tmp/cmake-configure.log; exit 1; }
+          cmake --build build -j$(nproc) 2>&1 | tee /tmp/cmake-build.log || { echo "=== CMAKE BUILD FAILED (last 200 lines) ==="; tail -200 /tmp/cmake-build.log; exit 1; }
           echo "✅ qt5platform-plugins built successfully!"
 
       - name: Install qt5platform-plugins to staging directory

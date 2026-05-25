@@ -102,7 +102,9 @@ struct Qt5PlatformAutoPrivateAccessor
 //   D_DECLARE_AUTO_PRIVATE_MEMBER_TAG(MyTag, ClassName, myMember);
 //   auto &ref = obj.*get(MyTag{});   // no access check needed here
 #define D_DECLARE_AUTO_PRIVATE_MEMBER_TAG(TagName, ClassName, Member) \
-    struct TagName {}; \
+    struct TagName { \
+        friend auto get(TagName) noexcept; \
+    }; \
     template<auto Ptr> \
     struct TagName##Impl { \
         friend auto get(TagName) noexcept { return Ptr; } \
