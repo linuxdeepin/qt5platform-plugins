@@ -79,7 +79,9 @@ D_DECLARE_PRIVATE_MEMBER(QXcbCursor_m_callbackForPropertyRegistered, QXcbCursor,
 D_DECLARE_PRIVATE_MEMBER(QXcbCursor_m_cursorContext, QXcbCursor, m_cursorContext, xcb_cursor_context_t *);
 #endif
 #include "qxcbclipboard.h"
+#if QT_VERSION <= QT_VERSION_CHECK(6, 2, 4)
 D_DECLARE_PRIVATE_MEMBER(QXcbClipboard_m_owner, QXcbClipboard, m_owner, xcb_window_t);
+#endif
 D_DECLARE_PRIVATE_MEMBER(QXcbClipboard_m_requestor, QXcbClipboard, m_requestor, xcb_window_t);
 #endif
 
