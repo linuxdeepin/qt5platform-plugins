@@ -171,12 +171,13 @@ void DXcbWMSupport::updateHasComposite()
 
     xcb_connection_t *xcb_connection = DPlatformIntegration::xcbConnection()->xcb_connection();
 
-    auto atom = Utility::internAtom("_NET_KDE_COMPOSITE_TOGGLING");
+    // _NET_KDE_COMPOSITE_TOGGLING 为 KWin 私有 atom，非 KWin 环境下原本不存在属正常情况。
+    // intern 后 stage1 查不到属性会自然落入 stage2 的 _NET_WM_CM_S0 selection owner 探测。
+    // 仅在 X 连接异常时（如会话退出期）intern 才会失败，此时 stage2 同样无意义，静默返回
+    auto atom = Utility::internAtom("_NET_KDE_COMPOSITE_TOGGLING", false);
 
-    if (atom == 0) {
-        qWarning() << "The value of atom:_NET_KDE_COMPOSITE_TOGGLING is 0 !";
+    if (atom == XCB_NONE)
         return;
-    }
 
     xcb_window_t root = DPlatformIntegration::xcbConnection()->primaryScreen()->root();
 

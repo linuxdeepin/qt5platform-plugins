@@ -183,10 +183,18 @@ void Utility::updateMousePointForWindowMove(quint32 WId, bool finished/* = false
 // 新增：支持多屏幕的版本，接受自定义全局坐标
 void Utility::updateMousePointForWindowMove(quint32 WId, const QPoint &globalPos, bool finished/* = false*/)
 {
+    // internAtom() 默认 only_if_exists=true：_DEEPIN_MOVE_UPDATE 是 deepin kwin 的私有
+    // atom，窗管未创建它时查询返回 XCB_NONE，此时发送 type 为 0 的 ClientMessage，
+    // 会被窗管转发回客户端并触发 qtbase 的 "Unhandled client message" 告警。窗管不支持
+    // 该协议时直接跳过。
+    const xcb_atom_t moveUpdateType = internAtom("_DEEPIN_MOVE_UPDATE");
+    if (moveUpdateType == XCB_NONE)
+        return;
+
     xcb_client_message_event_t xev;
 
     xev.response_type = XCB_CLIENT_MESSAGE;
-    xev.type = internAtom("_DEEPIN_MOVE_UPDATE");
+    xev.type = moveUpdateType;
     xev.window = WId;
     xev.format = 32;
     xev.data.data32[0] = globalPos.x();
